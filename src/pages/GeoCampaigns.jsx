@@ -1744,18 +1744,6 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                       <span className="text-gray-400">Target area</span>
                       <span className="text-gray-900">SW Miami · 12.4 sq mi</span>
                     </div>
-                    {singleCostMode === 'fixed' && singleFixedCost && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Project cost</span>
-                        <span className="text-gray-900">${Number(singleFixedCost).toLocaleString()}</span>
-                      </div>
-                    )}
-                    {singleCostMode === 'per_area' && singleCostPerArea && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Cost per m²</span>
-                        <span className="text-gray-900">${singleCostPerArea}/m²</span>
-                      </div>
-                    )}
                   </div>
                   <div className="px-6 py-5 flex flex-col gap-2 text-gray-400 text-[13px] text-center">
                     <p>Launching outreach for <span className="text-gray-900 font-semibold">{qualifiedCount} qualified homeowners</span>.</p>
