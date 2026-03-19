@@ -3,10 +3,28 @@ import { useNavigate } from 'react-router-dom'
 export default function Login() {
   const navigate = useNavigate()
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-6">
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage: 'url(/login-bg.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Subtle overlay to ensure contrast */}
+      <div className="absolute inset-0" style={{background: 'rgba(0,10,50,0.35)'}} />
+
+      <div className="relative z-10 w-full max-w-sm mx-4 flex flex-col gap-6"
+        style={{
+          background: 'rgba(255,255,255,0.97)',
+          borderRadius: 20,
+          padding: '40px 36px 32px',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2)',
+        }}>
+
+        {/* Logo */}
         <div className="flex flex-col items-center gap-2">
-          <div className="text-2xl font-bold tracking-tight text-gray-900">Greenlyne</div>
+          <img src="/greenlyne-logo.svg" alt="Greenlyne" style={{height: 32, marginBottom: 2}} />
           <div className="text-sm text-gray-500">PrecisionMARKETER Pro — Demo</div>
         </div>
 
@@ -32,7 +50,8 @@ export default function Login() {
 
         <button
           onClick={() => navigate('/pipeline')}
-          className="w-full bg-gray-900 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-700 transition-colors"
+          className="w-full text-white rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+          style={{background: '#001660'}}
         >
           Enter Demo
         </button>

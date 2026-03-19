@@ -313,7 +313,7 @@ export default function AppLayout() {
       <header className="h-12 flex items-center px-5 shrink-0 border-b" style={{background: headerBg, borderColor:'rgba(255,255,255,0.12)'}}>
         {/* Logo */}
         <div className="flex items-center gap-2 shrink-0">
-          <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{height: 20}} />
+          <img src="/greenlyne-logo-white.svg" alt="GreenLyne" style={{height: 20}} />
           <span className="text-[11px] font-medium" style={{color:'rgba(255,255,255,0.55)'}}>PMPro</span>
         </div>
 

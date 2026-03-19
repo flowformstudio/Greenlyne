@@ -1718,19 +1718,24 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
 
             {step === 3 && (
               <div className="flex flex-col items-center gap-6 text-center w-full">
-                {/* Icon + title */}
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-3xl">
-                    🚀
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900 leading-snug">{campaignName}</h2>
-                    <p className="text-gray-400 text-sm mt-0.5">is launching now</p>
+                {/* Hero image */}
+                <div className="w-full rounded-2xl overflow-hidden relative" style={{height: 200}}>
+                  <img
+                    src="https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&h=400&fit=crop&auto=format"
+                    alt="City aerial"
+                    className="w-full h-full object-cover"
+                    style={{filter:'brightness(0.7)'}}
+                  />
+                  <div className="absolute inset-0" style={{background:'linear-gradient(180deg, rgba(0,22,96,0.3) 0%, rgba(0,22,96,0.65) 100%)'}} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    <div className="text-4xl">🚀</div>
+                    <h2 className="text-xl font-bold text-white leading-snug px-4">{campaignName}</h2>
+                    <p className="text-white/70 text-sm">is launching now</p>
                   </div>
                 </div>
 
                 {/* Status card */}
-                <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm  text-[13px]">
+                <div className="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm text-[13px]">
                   <div className="px-6 py-5 border-b border-gray-100 flex flex-col gap-3 text-left">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Households prescreened</span>
@@ -1745,7 +1750,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                       <span className="text-gray-900">SW Miami · 12.4 sq mi</span>
                     </div>
                   </div>
-                  <div className="px-6 py-5 flex flex-col gap-2 text-gray-400 text-[13px] text-center">
+                  <div className="px-6 py-4 flex flex-col gap-1.5 text-gray-400 text-[13px] text-center">
                     <p>Launching outreach for <span className="text-gray-900 font-semibold">{qualifiedCount} qualified homeowners</span>.</p>
                     <p className="text-[12px]">You'll be notified when results are ready.</p>
                   </div>
@@ -1819,8 +1824,10 @@ export default function GeoCampaigns() {
     const newId = Date.now()
     setCampaigns(prev => [{
       id: newId, name, status: 'processing', launched: 'just now',
-      type: 'Mail campaign', targeted: 2400, qualified: qualify,
+      type: 'Mail campaign', targeted: 2400, qualified: qualify ?? 0,
       contacted: 0, engaged: 0, hot: 0, medianEquity: '$142k', avgFico: 714,
+      cityImg: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&h=220&fit=crop&auto=format',
+      cityLabel: 'Miami, FL',
     }, ...prev])
     setProcessingInfo({ id: newId, name, qualify })
     setProcessingProgress(0)
@@ -2325,7 +2332,7 @@ export default function GeoCampaigns() {
             <div className="flex items-center gap-6 shrink-0">
               {[
                 { label: 'Targeted',  value: c.targeted.toLocaleString(), color: '#374151' },
-                { label: 'Qualified', value: c.qualified.toLocaleString(), color: '#254BCE' },
+                { label: 'Qualified', value: (c.qualified ?? 0).toLocaleString(), color: '#254BCE' },
                 { label: 'Engaged',   value: c.engaged > 0 ? c.engaged : '—', color: c.engaged > 0 ? '#D97706' : '#D1D5DB' },
                 { label: 'Hot',       value: c.hot > 0 ? c.hot : '—', color: c.hot > 0 ? '#F97316' : '#D1D5DB' },
                 { label: 'Equity',    value: c.medianEquity, color: '#254BCE' },
@@ -2456,8 +2463,8 @@ export default function GeoCampaigns() {
               {/* Funnel stats */}
               <div className="grid grid-cols-4 text-center" style={{marginBottom:10, padding:'8px 0', borderTop:`1px solid ${D.divider}`, borderBottom:`1px solid ${D.divider}`}}>
                 {[
-                  { label:'Targeted',  value: c.targeted.toLocaleString(),  color:'#001660' },
-                  { label:'Qualified', value: c.qualified.toLocaleString(), color:'#254BCE' },
+                  { label:'Targeted',  value: (c.targeted ?? 0).toLocaleString(),  color:'#001660' },
+                  { label:'Qualified', value: (c.qualified ?? 0).toLocaleString(), color:'#254BCE' },
                   { label:'Engaged',   value: c.engaged > 0 ? c.engaged.toLocaleString() : '—', color: c.engaged > 0 ? '#016163' : 'rgba(0,22,96,0.2)' },
                   { label:'Hot',       value: c.hot > 0 ? c.hot.toLocaleString() : '—', color: c.hot > 0 ? '#DC2626' : 'rgba(0,22,96,0.2)' },
                 ].map(({ label, value, color }) => (
