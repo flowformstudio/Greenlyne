@@ -370,6 +370,10 @@ function ScreenHandoff({ source, handoffPhase, setHandoffPhase, onComplete }) {
           <div style={{ background: 'rgba(37,75,206,0.05)', borderRadius: 10, padding: 10, fontSize: 12, color: C.blue, lineHeight: 1.5 }}>
             He'll review your exact plan and answer any questions — takes about 15 min.
           </div>
+          <button style={{ background: C.white, border: '1px solid rgba(37,75,206,0.2)', borderRadius: 10, padding: '10px 16px', fontSize: 12, color: C.blue, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Add to calendar
+          </button>
           <button onClick={() => setHandoffPhase(HANDOFF_STATES.ACTIVE)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 11, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
             [Demo] Call starting →
           </button>

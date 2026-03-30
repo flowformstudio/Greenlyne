@@ -1351,7 +1351,7 @@ function ScreenDeclined({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: C·1 — Docs Preparing
 // ─────────────────────────────────────────────────────────────────────────────
-function ScreenDocsPrepairing({ dispatch }) {
+function ScreenDocsPreparing({ dispatch }) {
   return (
     <div className="max-w-2xl mx-auto px-5 py-8">
       <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·1 — Documents Preparing</div>
@@ -1588,7 +1588,7 @@ export default function POSDemo() {
       case S.OPS_REVIEW_WAIT:      return <ScreenOpsReviewWait />
       case S.FINAL_OFFER:          return <ScreenFinalOffer loan={loan} step2={step2} dispatch={dispatch} />
       case S.DECLINED:             return <ScreenDeclined dispatch={dispatch} />
-      case S.DOCS_PREPARING:      return <ScreenDocsPrepairing dispatch={dispatch} />
+      case S.DOCS_PREPARING:      return <ScreenDocsPreparing dispatch={dispatch} />
       case S.READY_TO_SCHEDULE:   return <ScreenReadyToSchedule dispatch={dispatch} />
       case S.NOTARY_SCHEDULED:    return <ScreenNotaryScheduled dispatch={dispatch} />
       case S.SIGNING_IN_PROGRESS: return <ScreenSigningInProgress dispatch={dispatch} />

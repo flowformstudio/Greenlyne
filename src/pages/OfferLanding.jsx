@@ -82,10 +82,10 @@ const VALIDATORS = {
 
 // ── Base components ───────────────────────────────────────────────────────────
 
-function GreenLyneBadge() {
+function GreenLyneBadge({ showOwning = false }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-      <div style={{ fontSize: 8.5, fontWeight: 700, color: '#8899bb', letterSpacing: '0.06em', textTransform: 'uppercase' }}>GreenLyne · OWNING lender</div>
+      <div style={{ fontSize: 8.5, fontWeight: 700, color: '#8899bb', letterSpacing: '0.06em', textTransform: 'uppercase' }}>GreenLyne{showOwning ? ' · OWNING lender' : ''}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
         <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -94,10 +94,12 @@ function GreenLyneBadge() {
           </svg>
         </div>
         <span style={{ fontSize: 13, fontWeight: 700, color: C.navy, letterSpacing: '-0.02em' }}>GreenLyne</span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: '#556' }}>with</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>OWNING</span>
+        {showOwning && <>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#556' }}>with</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>OWNING</span>
+        </>}
       </div>
-      <div style={{ fontSize: 8, fontWeight: 400, color: '#99aacc', letterSpacing: '0.08em', textTransform: 'uppercase' }}>NMLS #2611</div>
+      {showOwning && <div style={{ fontSize: 8, fontWeight: 400, color: '#99aacc', letterSpacing: '0.08em', textTransform: 'uppercase' }}>NMLS #2611</div>}
     </div>
   )
 }
@@ -822,7 +824,7 @@ export default function OfferLanding() {
       <div style={{ background: C.white, borderBottom: '1px solid #e8e8e8', padding: '14px 0', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img src="/westhaven-logo.png" alt="Westhaven Power" style={{ height: 34, width: 'auto', objectFit: 'contain' }} />
-          <GreenLyneBadge />
+          <GreenLyneBadge showOwning={step === 4} />
         </div>
       </div>
 
@@ -896,7 +898,7 @@ export default function OfferLanding() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#f0fdf4' }}>Plan confirmed · {prefill.address || '1482 Sunridge Drive'}</div>
-                  <div style={{ fontSize: 11, color: '#4ade80', marginTop: 1 }}>Solar payment $1,260/mo · Save $140/mo</div>
+                  <div style={{ fontSize: 11, color: '#4ade80', marginTop: 1 }}>Solar payment ${prefill.estimate?.payment ?? 1260}/mo · Save ${prefill.estimate?.savings ?? 140}/mo</div>
                 </div>
               </div>
               <ProgressBar step={step} />
