@@ -318,6 +318,148 @@ function ScreenIntent({ source, billRange, onConfirm }) {
   )
 }
 
+// ── HANDOFF screen ─────────────────────────────────────────────────────────────
+function ScreenHandoff({ source, handoffPhase, setHandoffPhase, onComplete }) {
+  if (handoffPhase === HANDOFF_STATES.PENDING) {
+    return (
+      <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+        <Header source={source} />
+        <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          {/* Spinner */}
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid rgba(0,22,96,0.08)', borderTopColor: C.navy, animation: 'spin 1s linear infinite', marginTop: 24 }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, lineHeight: 1.3, marginBottom: 8 }}>Reviewing your estimate…</div>
+            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>A solar specialist is being connected to your plan</div>
+          </div>
+          {/* Plan recap */}
+          <div style={{ background: C.white, borderRadius: 12, padding: '12px 14px', width: '100%', maxWidth: 320, border: '1px solid rgba(0,22,96,0.07)' }}>
+            <div style={{ fontSize: 9, color: C.muted, marginBottom: 6 }}>Your plan</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>$1,260/mo</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.teal }}>Save $140/mo</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 9, color: C.muted, textAlign: 'center' }}>No lender language · no financing yet</div>
+          {/* Demo advance button */}
+          <button onClick={() => setHandoffPhase(HANDOFF_STATES.SCHEDULED)} style={{ marginTop: 16, background: 'rgba(0,22,96,0.06)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 11, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
+            [Demo] Specialist assigned →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (handoffPhase === HANDOFF_STATES.SCHEDULED) {
+    return (
+      <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+        <Header source={source} />
+        <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(37,75,206,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px auto 0' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, marginBottom: 4 }}>You're all set.</div>
+            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>Your solar specialist will call you</div>
+          </div>
+          <div style={{ background: C.white, borderRadius: 12, padding: 16, border: '1px solid rgba(37,75,206,0.15)' }}>
+            <div style={{ fontSize: 9, color: C.muted, marginBottom: 2 }}>Scheduled call</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.navy }}>Today at 2:30 PM</div>
+            <div style={{ fontSize: 12, color: C.blue, marginTop: 2 }}>Trevor Evanson · Westhaven</div>
+          </div>
+          <div style={{ background: 'rgba(37,75,206,0.05)', borderRadius: 10, padding: 10, fontSize: 12, color: C.blue, lineHeight: 1.5 }}>
+            He'll review your exact plan and answer any questions — takes about 15 min.
+          </div>
+          <button onClick={() => setHandoffPhase(HANDOFF_STATES.ACTIVE)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 11, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
+            [Demo] Call starting →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (handoffPhase === HANDOFF_STATES.ACTIVE) {
+    return (
+      <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+        {/* GreenLyne now visible in header */}
+        <div style={{ background: C.white, borderBottom: '1px solid rgba(0,22,96,0.07)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 8, height: 8, background: '#e0271a', borderRadius: 1 }} />
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#0d0d0d' }}>Westhaven</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.green }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.teal }}>GreenLyne</span>
+          </div>
+        </div>
+        <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ textAlign: 'center', marginTop: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Call in progress</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, lineHeight: 1.3 }}>Trevor is walking you through your plan</div>
+          </div>
+          {/* Live plan card */}
+          <div style={{ background: C.navy, borderRadius: 14, padding: 16 }}>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Your plan · on screen</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Payment</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: C.white }}>$1,260/mo</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Savings</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: C.green }}>$140/mo</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, textAlign: 'center', lineHeight: 1.5 }}>
+            Stay on this screen — your specialist has the same plan in front of them
+          </div>
+          <button onClick={() => setHandoffPhase(HANDOFF_STATES.COMPLETED)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 11, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
+            [Demo] Call complete →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // COMPLETED
+  return (
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+      {/* GreenLyne + OWNING co-brand */}
+      <div style={{ background: C.white, borderBottom: '1px solid rgba(0,22,96,0.07)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 8, height: 8, background: '#e0271a', borderRadius: 1 }} />
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#0d0d0d' }}>Westhaven</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.teal }}>GreenLyne</span>
+          <span style={{ fontSize: 10, color: C.muted }}>·</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.navy }}>OWNING</span>
+        </div>
+      </div>
+      <div style={{ padding: '32px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(1,97,99,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px auto 0' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.teal} strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, marginBottom: 4 }}>Plan confirmed.</div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>Your solar specialist reviewed your estimate and confirmed this plan works for your home.</div>
+        </div>
+        <div style={{ background: C.white, borderRadius: 10, padding: 12, border: '1px solid rgba(0,22,96,0.08)', fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+          "Now that your plan is confirmed, let's look at the financing that supports it."
+        </div>
+        <button
+          onClick={onComplete}
+          style={{ width: '100%', background: C.navy, border: 'none', borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 700, color: C.white, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Continue to Financing →
+        </button>
+        <div style={{ fontSize: 9, color: C.muted, textAlign: 'center' }}>GreenLyne financing · OWNING lender</div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main SmartPOS component ────────────────────────────────────────────────────
 export default function SmartPOS() {
   const [searchParams] = useSearchParams()
@@ -374,10 +516,12 @@ export default function SmartPOS() {
         />
       )}
       {phase === STATES.HANDOFF && (
-        <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-          <div style={{ color: C.muted, fontSize: 14 }}>HANDOFF ({handoffPhase}) — coming in Task 7</div>
-          <button onClick={goToFinancing} style={{ background: C.green, color: C.navy, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>→ Financing</button>
-        </div>
+        <ScreenHandoff
+          source={source}
+          handoffPhase={handoffPhase}
+          setHandoffPhase={setHandoffPhase}
+          onComplete={goToFinancing}
+        />
       )}
     </div>
   )
