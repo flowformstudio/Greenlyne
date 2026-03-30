@@ -206,7 +206,7 @@ function ScreenRefined({ source, billRange, onNext }) {
 
       <div style={{ padding: '12px 16px 0' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(1,97,99,0.08)', border: '1px solid rgba(1,97,99,0.2)', borderRadius: 100, padding: '4px 10px', marginBottom: 10 }}>
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={C.teal} strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={C.teal} strokeWidth="3" role="img" aria-label="Estimate updated"><polyline points="20 6 9 17 4 12"/></svg>
           <span style={{ fontSize: 10, fontWeight: 700, color: C.teal }}>Updated for your bill range</span>
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, lineHeight: 1.2, marginBottom: 3 }}>Here's your refined plan.</div>
