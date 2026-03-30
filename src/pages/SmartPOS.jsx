@@ -23,7 +23,7 @@ const HANDOFF_STATES = {
 }
 
 // ── Shared header ──────────────────────────────────────────────────────────────
-function Header({ source }) {
+function Header() {
   return (
     <div style={{ background: C.white, borderBottom: '1px solid rgba(0,22,96,0.07)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       {/* Westhaven logo placeholder */}
