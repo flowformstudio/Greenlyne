@@ -445,10 +445,10 @@ function SimPanel({ sim, appState, dispatch }) {
               </button>
             )}
             {isWaitingNotary && (
-              <button onClick={() => dispatch({ type: 'ADVANCE_NOTARY' })}
+              <button onClick={() => dispatch({ type: appState === S.NOTARY_SCHEDULED ? 'NOTARY_ARRIVED' : 'ADVANCE_NOTARY' })}
                 className="w-full py-2 text-[12px] font-bold rounded-xl transition-colors"
                 style={{ background: '#254BCE', color: '#fff' }}>
-                {appState === S.NOTARY_SCHEDULED ? 'Advance to docs ready →' : 'Advance state →'}
+                {appState === S.NOTARY_SCHEDULED ? 'Session starting →' : appState === S.SIGNING_IN_PROGRESS ? 'Signing complete →' : 'Advance state →'}
               </button>
             )}
           </div>
