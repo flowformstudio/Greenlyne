@@ -72,12 +72,15 @@ function appReducer(state, action) {
   switch (action.type) {
     case 'NEXT': {
       const nextMap = {
-        [S.BASIC_INFO]:      S.OFFER_SELECT,
-        [S.OFFER_SELECT]:    S.MORE_INFO,
-        [S.MORE_INFO]:       S.LINK_INCOME,
-        [S.LINK_INCOME]:     S.VERIFY_IDENTITY,
-        [S.VERIFY_IDENTITY]: S.PROPERTY_VERIFY_WAIT,
-        [S.DOCS_PREPARING]:  S.READY_TO_SCHEDULE,
+        [S.BASIC_INFO]:           S.OFFER_SELECT,
+        [S.OFFER_SELECT]:         S.MORE_INFO,
+        [S.MORE_INFO]:            S.LINK_INCOME,
+        [S.LINK_INCOME]:          S.VERIFY_IDENTITY,
+        [S.VERIFY_IDENTITY]:      S.PROPERTY_VERIFY_WAIT,
+        [S.DOCS_PREPARING]:       S.READY_TO_SCHEDULE,
+        [S.READY_TO_SCHEDULE]:    S.NOTARY_SCHEDULED,
+        [S.NOTARY_SCHEDULED]:     S.SIGNING_IN_PROGRESS,
+        [S.SIGNING_IN_PROGRESS]:  S.LOAN_CLOSED,
       }
       const next = nextMap[state.app]
       if (!next) return state
@@ -1361,6 +1364,11 @@ function ScreenDocsPrepairing({ dispatch }) {
       <div className="rounded-xl p-4 text-sm text-blue-600" style={{ background: 'rgba(37,75,206,0.05)', border: '1px solid rgba(37,75,206,0.1)' }}>
         No action needed right now — we'll reach out when your notary appointment can be scheduled.
       </div>
+      <button onClick={() => dispatch({ type: 'NEXT' })}
+        className="text-xs text-gray-400 underline block text-center w-full mt-4"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+        [Demo] Documents ready →
+      </button>
     </div>
   )
 }
