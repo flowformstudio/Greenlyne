@@ -7,11 +7,23 @@ import Settings from './pages/Settings'
 import UserManagement from './pages/settings/UserManagement'
 import Organizations from './pages/settings/Organizations'
 import ChangePassword from './pages/settings/ChangePassword'
+import POSDemo from './pages/POSDemo'
+import EmailPreview from './pages/EmailPreview'
+import OfferLanding from './pages/OfferLanding'
+import PreQualified from './pages/PreQualified'
+import DemoLauncher from './pages/DemoLauncher'
+import SmartPOS from './pages/SmartPOS'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/demo" element={<DemoLauncher />} />
+      <Route path="/offer" element={<SmartPOS />} />
+      <Route path="/financing" element={<OfferLanding />} />
+      <Route path="/pos-demo" element={<POSDemo />} />
+      <Route path="/email" element={<EmailPreview />} />
+      <Route path="/pre-qualified" element={<PreQualified />} />
       <Route element={<AppLayout />}>
         <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/geo-campaigns" element={<GeoCampaigns />} />
