@@ -295,7 +295,7 @@ function StepProperty({ form, errors, touched, set, touch, onNext }) {
   return (
     <>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: C.navy, marginBottom: 8, letterSpacing: '-0.01em' }}>Tell us about your property</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: C.navy, marginBottom: 8, letterSpacing: '-0.01em' }}>Let's confirm your property details</div>
         <div style={{ fontSize: 13, color: C.label, lineHeight: 1.65 }}>Your property was already identified as a strong candidate. We just need to verify a few details to activate your offer. No appraisal required at this stage.</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
