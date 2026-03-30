@@ -253,6 +253,71 @@ function ScreenRefined({ source, billRange, onNext }) {
   )
 }
 
+// ── INTENT screen ──────────────────────────────────────────────────────────────
+function ScreenIntent({ source, billRange, onConfirm }) {
+  const savings = Math.max(20, Math.round((billRange - 20) * 0.7 / 10) * 10)
+  const solarPayment = billRange - savings
+
+  return (
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+      <Header source={source} />
+
+      <div style={{ padding: '28px 16px 0', textAlign: 'center' }}>
+        {/* Plan summary card */}
+        <div style={{ background: C.navy, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>Your plan · 1482 Sunridge Drive</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 10 }}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Solar payment</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: C.white }}>${solarPayment}<span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>/mo</span></div>
+            </div>
+            <div style={{ background: 'rgba(147,221,186,0.12)', borderRadius: 10, padding: 10, border: '1px solid rgba(147,221,186,0.2)' }}>
+              <div style={{ fontSize: 9, color: 'rgba(147,221,186,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>You save</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: C.green }}>${savings}<span style={{ fontSize: 11, color: 'rgba(147,221,186,0.5)' }}>/mo</span></div>
+            </div>
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>Est. system: 8.4 kW · $131,800 HELOC · $0 down</div>
+        </div>
+
+        <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 6, lineHeight: 1.25 }}>Ready to get your exact plan?</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+          A solar specialist will walk you through the confirmed numbers and answer your questions.
+        </div>
+
+        {source === 'qr' ? (
+          /* QR: single CTA, rep notified silently */
+          <>
+            <button
+              onClick={onConfirm}
+              style={{ width: '100%', background: C.teal, border: 'none', borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 700, color: C.white, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}
+            >
+              Confirm &amp; Get My Exact Plan
+            </button>
+            <div style={{ fontSize: 11, color: C.muted, paddingBottom: 20 }}>No commitment · No credit check · Takes 2 minutes</div>
+          </>
+        ) : (
+          /* Email: two CTAs */
+          <>
+            <button
+              onClick={onConfirm}
+              style={{ width: '100%', background: C.teal, border: 'none', borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 700, color: C.white, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}
+            >
+              Talk to a specialist now
+            </button>
+            <button
+              onClick={onConfirm}
+              style={{ width: '100%', background: 'transparent', border: '1.5px solid rgba(0,22,96,0.2)', borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}
+            >
+              We'll reach out shortly
+            </button>
+            <div style={{ fontSize: 11, color: C.muted, paddingBottom: 20 }}>No commitment · No credit check · Takes 2 minutes</div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main SmartPOS component ────────────────────────────────────────────────────
 export default function SmartPOS() {
   const [searchParams] = useSearchParams()
@@ -303,10 +368,11 @@ export default function SmartPOS() {
         />
       )}
       {phase === STATES.INTENT && (
-        <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-          <div style={{ color: C.muted, fontSize: 14 }}>INTENT — coming in Task 6</div>
-          <button onClick={() => setPhase(STATES.HANDOFF)} style={{ background: C.teal, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
-        </div>
+        <ScreenIntent
+          source={source}
+          billRange={billRange}
+          onConfirm={() => setPhase(STATES.HANDOFF)}
+        />
       )}
       {phase === STATES.HANDOFF && (
         <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
