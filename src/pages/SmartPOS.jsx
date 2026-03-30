@@ -327,7 +327,6 @@ export default function SmartPOS() {
   const [phase, setPhase] = useState(STATES.ESTIMATE)
   const [handoffPhase, setHandoffPhase] = useState(HANDOFF_STATES.PENDING)
   const [billRange, setBillRange] = useState(140) // slider value
-  const [billBucket, setBillBucket] = useState(null) // chip selection
 
   // Viewport: QR = 390px mobile, Email = full desktop
   const wrapperStyle = source === 'qr'
