@@ -1,5 +1,5 @@
 // src/pages/SmartPOS.jsx
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const C = {
@@ -32,7 +32,7 @@ function Header({ source }) {
         <span style={{ fontSize: 14, fontWeight: 800, color: '#0d0d0d' }}>Westhaven</span>
       </div>
       <div style={{ fontSize: 9, color: C.muted, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        {source === 'qr' ? 'Powered by GreenLyne' : 'Powered by GreenLyne'}
+        Powered by GreenLyne
       </div>
     </div>
   )
@@ -154,7 +154,7 @@ export default function SmartPOS() {
       {phase === STATES.MICRO_CONFIRM && (
         <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
           <div style={{ color: C.muted, fontSize: 14 }}>MICRO_CONFIRM — coming in Task 4</div>
-          <button onClick={() => setPhase(STATES.REFINED)} style={{ marginTop: 16, background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
+          <button onClick={() => setPhase(STATES.REFINED)} style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
         </div>
       )}
       {phase === STATES.REFINED && (
