@@ -117,6 +117,83 @@ function ScreenEstimate({ source, onNext }) {
   )
 }
 
+// ── MICRO_CONFIRM screen ───────────────────────────────────────────────────────
+function ScreenMicroConfirm({ source, billRange, setBillRange, onNext }) {
+  const [owns, setOwns] = useState(true)
+
+  return (
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+      <Header source={source} />
+      <ProgressDots step={2} />
+
+      <div style={{ padding: '14px 20px 0' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: C.navy, lineHeight: 1.2, marginBottom: 4 }}>
+          Confirm two details to sharpen your estimate.
+        </div>
+        <div style={{ fontSize: 12, color: C.muted }}>Takes 10 seconds.</div>
+      </div>
+
+      {/* Bill slider */}
+      <div style={{ margin: '16px 20px 0', background: C.white, borderRadius: 16, padding: 18, border: '1px solid rgba(0,22,96,0.07)' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
+          What's your average monthly electric bill?
+        </div>
+        <input
+          type="range" min={50} max={300} step={10}
+          value={billRange}
+          onChange={e => setBillRange(Number(e.target.value))}
+          style={{ width: '100%', accentColor: C.navy, marginBottom: 10 }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 10, color: C.muted }}>$50</span>
+          <span style={{ fontSize: 10, color: C.muted }}>$300+</span>
+        </div>
+        <div style={{ textAlign: 'center', background: 'rgba(0,22,96,0.05)', borderRadius: 8, padding: 8 }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: C.navy }}>${billRange}</span>
+          <span style={{ fontSize: 13, color: C.muted }}>/mo</span>
+        </div>
+      </div>
+
+      {/* Ownership toggle */}
+      <div style={{ margin: '12px 20px 0', background: C.white, borderRadius: 16, padding: 18, border: '1px solid rgba(0,22,96,0.07)' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Do you own 1482 Sunridge Drive?
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[
+            { label: '🏠 Yes, I own it', value: true },
+            { label: '🏢 I rent', value: false },
+          ].map(opt => (
+            <button
+              key={String(opt.value)}
+              onClick={() => setOwns(opt.value)}
+              style={{
+                borderRadius: 10, padding: 12, textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit',
+                border: owns === opt.value ? `2px solid ${C.navy}` : '2px solid rgba(0,22,96,0.12)',
+                background: owns === opt.value ? C.navy : C.white,
+                fontSize: 12, fontWeight: 700,
+                color: owns === opt.value ? C.white : C.muted,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding: '16px 20px 20px' }}>
+        <button
+          onClick={onNext}
+          style={{ width: '100%', background: C.blue, border: 'none', borderRadius: 14, padding: 15, fontSize: 15, fontWeight: 700, color: C.white, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Update My Estimate →
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main SmartPOS component ────────────────────────────────────────────────────
 export default function SmartPOS() {
   const [searchParams] = useSearchParams()
@@ -152,10 +229,12 @@ export default function SmartPOS() {
         <ScreenEstimate source={source} onNext={() => setPhase(STATES.MICRO_CONFIRM)} />
       )}
       {phase === STATES.MICRO_CONFIRM && (
-        <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-          <div style={{ color: C.muted, fontSize: 14 }}>MICRO_CONFIRM — coming in Task 4</div>
-          <button onClick={() => setPhase(STATES.REFINED)} style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
-        </div>
+        <ScreenMicroConfirm
+          source={source}
+          billRange={billRange}
+          setBillRange={setBillRange}
+          onNext={() => setPhase(STATES.REFINED)}
+        />
       )}
       {phase === STATES.REFINED && (
         <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
