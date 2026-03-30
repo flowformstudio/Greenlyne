@@ -194,6 +194,65 @@ function ScreenMicroConfirm({ source, billRange, setBillRange, onNext }) {
   )
 }
 
+// ── REFINED screen ─────────────────────────────────────────────────────────────
+function ScreenRefined({ source, billRange, onNext }) {
+  const savings = Math.max(20, Math.round((billRange - 20) * 0.7 / 10) * 10)
+  const solarPayment = billRange - savings
+
+  return (
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: '-apple-system, sans-serif' }}>
+      <Header source={source} />
+      <ProgressDots step={3} />
+
+      <div style={{ padding: '12px 16px 0' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(1,97,99,0.08)', border: '1px solid rgba(1,97,99,0.2)', borderRadius: 100, padding: '4px 10px', marginBottom: 10 }}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={C.teal} strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.teal }}>Updated for your bill range</span>
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: C.navy, lineHeight: 1.2, marginBottom: 3 }}>Here's your refined plan.</div>
+        <div style={{ fontSize: 11, color: C.muted }}>Based on a ${Math.round(billRange * 0.85)}–${billRange}/mo bill at 1482 Sunridge Drive</div>
+      </div>
+
+      {/* Savings hero */}
+      <div style={{ margin: '12px 16px 0', background: C.navy, borderRadius: 14, padding: 16, textAlign: 'center' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Est. monthly savings</div>
+        <div style={{ fontSize: 40, fontWeight: 700, color: C.green, letterSpacing: '-0.03em', lineHeight: 1 }}>${savings}</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>per month · after switching to solar</div>
+      </div>
+
+      {/* Before / After */}
+      <div style={{ margin: '10px 16px 0', display: 'grid', gridTemplateColumns: '1fr auto 1fr', background: C.white, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,22,96,0.07)' }}>
+        <div style={{ padding: 12 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Now</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: C.muted, letterSpacing: '-0.02em', lineHeight: 1, textDecoration: 'line-through', textDecorationColor: 'rgba(224,39,26,0.5)' }}>${billRange}</div>
+          <div style={{ fontSize: 9, color: '#d1d5db', marginTop: 2 }}>electric bill</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '0 4px', color: '#d1d5db', fontSize: 14, background: '#f8f9fa' }}>→</div>
+        <div style={{ padding: 12, background: 'rgba(0,22,96,0.03)' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>With solar</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: C.navy, letterSpacing: '-0.02em', lineHeight: 1 }}>${solarPayment}</div>
+          <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>fixed payment</div>
+        </div>
+      </div>
+
+      {/* Expectation setter */}
+      <div style={{ margin: '10px 16px 0', padding: '10px 12px', background: 'rgba(37,75,206,0.05)', borderRadius: 10, border: '1px solid rgba(37,75,206,0.1)' }}>
+        <div style={{ fontSize: 10, color: C.blue, lineHeight: 1.6 }}>After you confirm, a solar specialist will walk you through your exact plan.</div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding: '12px 16px 14px' }}>
+        <button
+          onClick={onNext}
+          style={{ width: '100%', background: C.navy, border: 'none', borderRadius: 12, padding: 13, fontSize: 14, fontWeight: 700, color: C.white, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Confirm &amp; Get Exact Plan →
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main SmartPOS component ────────────────────────────────────────────────────
 export default function SmartPOS() {
   const [searchParams] = useSearchParams()
@@ -237,10 +296,11 @@ export default function SmartPOS() {
         />
       )}
       {phase === STATES.REFINED && (
-        <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-          <div style={{ color: C.muted, fontSize: 14 }}>REFINED — coming in Task 5</div>
-          <button onClick={() => setPhase(STATES.INTENT)} style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
-        </div>
+        <ScreenRefined
+          source={source}
+          billRange={billRange}
+          onNext={() => setPhase(STATES.INTENT)}
+        />
       )}
       {phase === STATES.INTENT && (
         <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
