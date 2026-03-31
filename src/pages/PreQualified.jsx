@@ -162,14 +162,14 @@ export default function PreQualified() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>Est. electricity savings</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: C.teal }}>{OFFER.savings}/mo</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: C.teal, letterSpacing: '-0.5px', lineHeight: 1 }}>{OFFER.savings}<span style={{ fontSize: 13, fontWeight: 600 }}>/mo</span></div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* ── CTA SECTION — two column desktop ─────────────────── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16, marginBottom: 8, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16, marginBottom: 8, alignItems: 'stretch' }}>
 
             {/* PRIMARY — Continue Online */}
             <div style={{ background: C.white, border: `2px solid ${C.blue}`, borderRadius: 18, padding: '28px 28px 24px' }}>
@@ -201,9 +201,9 @@ export default function PreQualified() {
             </div>
 
             {/* SECONDARY — Talk to Specialist */}
-            <div style={{ background: C.offwhite, border: `1.5px solid ${C.border}`, borderRadius: 18, padding: '28px 24px 24px' }}>
+            <div style={{ background: C.offwhite, border: `1.5px solid ${C.border}`, borderRadius: 18, padding: '28px 24px 24px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontSize: 21, fontWeight: 900, color: C.navy, letterSpacing: '-0.02em', marginBottom: 10 }}>Talk to a Specialist</div>
-              <p style={{ fontSize: 14, color: C.label, lineHeight: 1.65, margin: '0 0 20px' }}>
+              <p style={{ fontSize: 14, color: C.label, lineHeight: 1.65, margin: '0 0 20px', flex: 1 }}>
                 Have questions? A GreenLyne specialist will walk you through every line of your offer — no pressure, on your schedule.
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20 }}>
