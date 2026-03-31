@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
+import LoanConfigFlow from '../components/LoanConfigFlow'
 
 const STATUSES = [
   { key: 'qualified', label: 'Qualified', color: 'bg-blue-500',    textColor: '#60A5FA', activeBg: 'bg-blue-50',    info: 'Passed prescreen, offer ready, no outreach.\nAction: Send email or postcard' },
@@ -343,11 +344,13 @@ function ActionBtn({ icon, label, onClick, primary }) {
 
 function LeadDrawer({ lead, onClose }) {
   if (!lead) return null
+  const [showLoanFlow, setShowLoanFlow] = useState(false)
   const initials = lead.name.split(' ').map(n => n[0]).join('')
   const statusColor = { qualified:'#60A5FA', contacted:'#38BDF8', engaged:'#FBBF24', hot:'#FB923C', applying:'#C084FC', approved:'#34D399', funded:'#A3E635' }
 
   return (
     <>
+      {showLoanFlow && <LoanConfigFlow lead={lead} onClose={() => setShowLoanFlow(false)} />}
       <div className="fixed inset-0 bg-black/25 z-40" onClick={onClose} />
       <div className="fixed top-0 right-0 h-full w-[500px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
 
@@ -388,7 +391,7 @@ function LeadDrawer({ lead, onClose }) {
             <ActionBtn icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             } label="Call Lead" />
-            <ActionBtn icon={
+            <ActionBtn onClick={() => setShowLoanFlow(true)} icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             } label="Preview Offer" />
           </div>

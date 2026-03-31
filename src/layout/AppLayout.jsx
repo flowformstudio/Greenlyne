@@ -361,7 +361,9 @@ export default function AppLayout() {
                   color: isActive ? (dark ? '#fff' : '#001660') : (dark ? 'rgba(255,255,255,0.4)' : 'rgba(0,22,96,0.4)'),
                   paddingLeft: sidebarExpanded ? 10 : 6,
                   paddingRight: 10,
-                  background: isActive ? (dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,22,96,0.06)') : 'transparent',
+                  background: isActive
+                    ? (item.demo ? 'rgba(37,75,206,0.12)' : (dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,22,96,0.06)'))
+                    : 'transparent',
                   transition: 'padding-left 160ms ease',
                 })}
                 onMouseOver={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,22,96,0.04)' }}
@@ -369,16 +371,22 @@ export default function AppLayout() {
               >
                 {({ isActive }) => (
                   <>
-                    <span className="shrink-0" style={{color: isActive ? (dark ? '#fff' : '#001660') : (dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,22,96,0.45)')}}>
+                    <span className="shrink-0" style={{color: item.demo ? '#254BCE' : (isActive ? (dark ? '#fff' : '#001660') : (dark ? 'rgba(255,255,255,0.45)' : 'rgba(0,22,96,0.45)'))}}>
                       {item.icon}
                     </span>
                     <span style={{
                       whiteSpace: 'nowrap',
                       opacity: sidebarExpanded ? 1 : 0,
                       transition: 'opacity 120ms ease',
-                      color: isActive ? (dark ? '#fff' : '#001660') : (dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,22,96,0.55)'),
+                      color: item.demo ? '#254BCE' : (isActive ? (dark ? '#fff' : '#001660') : (dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,22,96,0.55)')),
+                      fontWeight: item.demo ? 600 : undefined,
                     }}>
                       {item.label}
+                      {item.demo && (
+                        <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded" style={{background:'rgba(37,75,206,0.12)', color:'#254BCE'}}>
+                          demo
+                        </span>
+                      )}
                     </span>
                   </>
                 )}

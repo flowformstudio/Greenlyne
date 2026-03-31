@@ -28,8 +28,8 @@ const S = {
 }
 
 const SIDEBAR_STEPS = [
-  { n: 1, label: 'Confirm Details',   states: [S.BASIC_INFO] },
-  { n: 2, label: 'Loan Options',      states: [S.OFFER_SELECT] },
+  { n: 1, label: 'Basic Info',         states: [S.BASIC_INFO] },
+  { n: 2, label: 'Select Your Offer', states: [S.OFFER_SELECT] },
   { n: 3, label: 'Verify & Confirm',  states: [S.MORE_INFO, S.LINK_INCOME, S.VERIFY_IDENTITY, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT] },
   { n: 4, label: 'Final Offer',       states: [S.OPS_REVIEW_WAIT, S.FINAL_OFFER, S.DECLINED] },
   { n: 5, label: 'Review & Sign',     states: [S.DOCS_PREPARING, S.READY_TO_SCHEDULE] },
@@ -37,7 +37,7 @@ const SIDEBAR_STEPS = [
   { n: 7, label: 'Funded',            states: [S.FUNDED] },
 ]
 
-const SEED = { projectCost: 45000, maxCredit: 294821, minCredit: 25000, defaultCredit: 161080, defaultWithdraw: 112134 }
+const SEED = { projectCost: 45000, maxCredit: 294821, minCredit: 25000, defaultCredit: 131800, defaultWithdraw: 91800 }
 
 const SEED_STEP1 = {
   firstName: 'Alex', lastName: 'Rivera',
@@ -193,23 +193,25 @@ function CardHeader({ title, sub }) {
 
 function NavButtons({ onBack, onNext, nextLabel = 'Continue', disabled = false, showBack = true }) {
   return (
-    <div className="flex items-center gap-3 pt-2 pb-8">
-      {showBack && (
-        <button onClick={onBack} className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
-          style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}
+    <div className="flex items-center justify-between pt-2 pb-8">
+      <div className="flex items-center gap-3">
+        {showBack && (
+          <button onClick={onBack} className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
+            style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}
+            onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
+            onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
+            ← Back
+          </button>
+        )}
+        <button className="px-5 py-2.5 text-sm font-medium rounded-xl border transition-colors"
+          style={{ borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.55)', background: '#fff' }}
           onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
           onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
-          ← Back
+          Save for later
         </button>
-      )}
-      <button className="px-5 py-2.5 text-sm font-medium rounded-xl border transition-colors"
-        style={{ borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.55)', background: '#fff' }}
-        onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
-        onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
-        Save for later
-      </button>
+      </div>
       <button onClick={onNext} disabled={disabled}
-        className="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+        className="py-2.5 px-6 text-sm font-bold rounded-xl transition-all flex items-center gap-2"
         style={{ background: disabled ? 'rgba(0,22,96,0.2)' : '#254BCE', color: '#fff',
           boxShadow: disabled ? 'none' : '0 4px 16px rgba(37,75,206,0.3)', cursor: disabled ? 'not-allowed' : 'pointer' }}
         onMouseOver={e => { if (!disabled) e.currentTarget.style.background = '#1e3fa8' }}
@@ -263,43 +265,20 @@ function CreditBar({ withdrawNow, creditLimit }) {
 function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
   return (
     <div className="border-b px-6 py-3 flex items-center gap-4 shrink-0" style={{ background: '#fff', borderColor: 'rgba(0,22,96,0.08)' }}>
-      <div className="flex items-center gap-2.5 flex-1">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#001660' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </div>
-        <div>
-          <div className="text-sm font-bold" style={{ color: '#001660' }}>Westhaven Power</div>
-          <div className="text-[10px] text-gray-400">Solar Installation · {fmt(SEED.projectCost)} · Westhaven Power</div>
-        </div>
+      {/* LEFT — GreenLyne primary */}
+      <div className="flex-1">
+        <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 20, width: 'auto', objectFit: 'contain' }} />
       </div>
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,22,96,0.04)' }}>
-        <span className="text-[11px] font-medium" style={{ color: 'rgba(0,22,96,0.5)' }}>
-          Financing by <strong style={{ color: '#001660' }}>OWNING</strong> · Powered by <strong style={{ color: '#254BCE' }}>GreenLyne</strong>
+
+      {/* RIGHT — lender + project tag */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
+          Financing by <strong style={{ color: '#001660' }}>Owning</strong> · NMLS #2611
+        </span>
+        <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400 }}>
+          Project by Westhaven Power
         </span>
       </div>
-      <button onClick={onToggleSim}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors"
-        style={{ background: 'rgba(37,75,206,0.08)', color: '#254BCE', border: '1px solid rgba(37,75,206,0.2)' }}
-        onMouseOver={e => (e.currentTarget.style.background = 'rgba(37,75,206,0.14)')}
-        onMouseOut={e => (e.currentTarget.style.background = 'rgba(37,75,206,0.08)')}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        Sim Controls
-      </button>
-      <button className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Need help?
-      </button>
-      <button onClick={onViewEmail} className="text-[11px] font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors"
-        style={{ color: 'rgba(0,22,96,0.5)' }}
-        onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
-        onMouseOut={e => (e.currentTarget.style.background = 'transparent')}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        View email
-      </button>
-      <button onClick={onRestart} className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1.5">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
-        Restart demo
-      </button>
     </div>
   )
 }
@@ -323,7 +302,9 @@ function StepSidebar({ appState, dispatch }) {
   return (
     <div className="w-56 shrink-0 flex flex-col" style={{ background: '#fff', borderRight: '1px solid rgba(0,22,96,0.08)' }}>
       <div className="px-5 pt-6 pb-4">
-        <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(0,22,96,0.35)' }}>Application steps</div>
+        <div className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(0,22,96,0.35)' }}>Application steps</div>
+        <div className="text-[15px] font-bold leading-snug mb-1" style={{ color: '#001660' }}>Application progress</div>
+        <div className="text-[12px] leading-relaxed" style={{ color: '#6B7280' }}>Complete the loan process today and get funded in as little as five days.</div>
       </div>
       <nav className="flex flex-col px-3 gap-0.5 flex-1">
         {SIDEBAR_STEPS.map((s, i) => {
@@ -332,12 +313,12 @@ function StepSidebar({ appState, dispatch }) {
           const future = s.n > currentStep
           return (
             <div key={s.n} className="flex flex-col">
-              <button
-                onClick={() => dispatch({ type: 'JUMP_TO', state: STEP_JUMP[s.n] })}
+              <div
+                onClick={() => done && dispatch({ type: 'JUMP_TO', state: STEP_JUMP[s.n] })}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left transition-all"
-                style={{ background: active ? 'rgba(37,75,206,0.07)' : 'transparent', cursor: 'pointer' }}
-                onMouseOver={e => { if (!active) e.currentTarget.style.background = 'rgba(0,22,96,0.04)' }}
-                onMouseOut={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
+                style={{ background: active ? 'rgba(37,75,206,0.07)' : 'transparent', cursor: done ? 'pointer' : 'default' }}
+                onMouseEnter={e => { if (done) e.currentTarget.style.background = 'rgba(0,22,96,0.04)' }}
+                onMouseLeave={e => { if (done) e.currentTarget.style.background = 'transparent' }}>
                 <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold"
                   style={{ background: done ? '#10B981' : active ? '#254BCE' : 'rgba(0,22,96,0.08)', color: (done || active) ? '#fff' : 'rgba(0,22,96,0.3)' }}>
                   {done
@@ -353,7 +334,7 @@ function StepSidebar({ appState, dispatch }) {
                   {active && <div className="text-[11px] mt-0.5" style={{ color: '#254BCE' }}>In progress</div>}
                   {future && <div className="text-[11px] text-gray-300 mt-0.5">Upcoming</div>}
                 </div>
-              </button>
+              </div>
               {i < SIDEBAR_STEPS.length - 1 && (
                 <div className="ml-6 w-px h-3" style={{ background: done ? '#10B981' : 'rgba(0,22,96,0.08)' }} />
               )}
@@ -361,10 +342,16 @@ function StepSidebar({ appState, dispatch }) {
           )
         })}
       </nav>
-      <div className="px-5 py-5 mt-auto">
-        <div className="text-[11px] text-gray-400 leading-relaxed">
-          Your progress is saved automatically. You can return at any time.
-        </div>
+      <div className="px-4 py-4 mt-auto border-t" style={{ borderColor: 'rgba(0,22,96,0.08)' }}>
+        <button
+          onClick={() => dispatch({ type: 'TOGGLE_SIM' })}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-colors"
+          style={{ background: 'rgba(37,75,206,0.07)', color: '#254BCE', border: '1px solid rgba(37,75,206,0.15)' }}
+          onMouseOver={e => (e.currentTarget.style.background = 'rgba(37,75,206,0.13)')}
+          onMouseOut={e => (e.currentTarget.style.background = 'rgba(37,75,206,0.07)')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          Sim Controls
+        </button>
       </div>
     </div>
   )
@@ -481,7 +468,7 @@ function SimToggle({ label, value, onChange }) {
 function ScreenBasicInfo({ step1, dispatch }) {
   const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Confirm your details</h1>
         <p className="text-sm text-gray-500">GreenLyne pre-filled this from your pre-approval. Review and confirm — you're not starting from scratch.</p>
@@ -544,6 +531,20 @@ function ScreenBasicInfo({ step1, dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Offer Select (Step 2) — inline loan configurator
 // ─────────────────────────────────────────────────────────────────────────────
+const TERM_OPTIONS = [
+  { years: 30, apr: 7.75, popular: true },
+  { years: 20, apr: 7.35 },
+  { years: 15, apr: 7.35 },
+  { years: 10, apr: 7.35 },
+]
+
+function calcTermPayment(principal, aprPct, years) {
+  const r = aprPct / 100 / 12
+  const n = years * 12
+  if (r === 0) return Math.round(principal / n)
+  return Math.round(principal * r / (1 - Math.pow(1 + r, -n)))
+}
+
 function ScreenOfferSelect({ step2, step1, dispatch }) {
   const maxCredit = SEED.maxCredit
   const [creditLimit, setCreditLimit]       = useState(step2.creditLimit)
@@ -551,6 +552,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
   const [tier, setTier]                     = useState(step2.tier)
   const [deferredMonths, setDeferredMonths] = useState(step2.deferredMonths)
   const [autopay, setAutopay]               = useState(step2.autopay)
+  const [termYears, setTermYears]           = useState(30)
 
   const safeWithdraw = Math.min(withdrawNow, creditLimit)
   const loan = useMemo(() => calcLoan({ creditLimit, withdrawNow: safeWithdraw, tier, deferredMonths }), [creditLimit, safeWithdraw, tier, deferredMonths])
@@ -562,9 +564,9 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div>
       {/* Sub-header */}
-      <div className="px-6 py-4 border-b shrink-0" style={{ borderColor: 'rgba(0,22,96,0.07)', background: '#F8F9FC' }}>
+      <div className="pb-4 mb-2" style={{ borderBottom: '1px solid rgba(0,22,96,0.07)' }}>
         <h1 className="text-xl font-bold" style={{ color: '#001660' }}>Configure your HELOC offer</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           You're approved for up to <strong style={{ color: '#254BCE' }}>{formatCurrencyFull(maxCredit)}</strong>.
@@ -572,10 +574,11 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
         </p>
       </div>
 
-      {/* Two-column body */}
-      <div className="flex-1 overflow-hidden flex">
+      {/* Two-column: controls left, terms panel right */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
         {/* Left — controls */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4" style={{ borderRight: '1px solid rgba(0,22,96,0.07)' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Card 1 — Loan Amount */}
           <Card>
@@ -652,6 +655,53 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                   </div>
                 </div>
 
+                {/* Select your term */}
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2.5">Select your term</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TERM_OPTIONS.map(opt => {
+                      const active = termYears === opt.years
+                      const payment = calcTermPayment(safeWithdraw, opt.apr, opt.years)
+                      return (
+                        <div key={opt.years} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                          {opt.popular && (
+                            <div style={{ background: '#016163', color: '#fff', fontSize: 9, fontWeight: 700, textAlign: 'center', borderRadius: '8px 8px 0 0', padding: '3px 0', letterSpacing: '0.04em' }}>
+                              Most Popular
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setTermYears(opt.years)}
+                            style={{
+                              border: `1.5px solid ${active ? '#016163' : 'rgba(0,22,96,0.12)'}`,
+                              borderTop: opt.popular ? 'none' : undefined,
+                              borderRadius: opt.popular ? '0 0 10px 10px' : 10,
+                              padding: '10px 8px',
+                              background: active ? 'rgba(1,97,99,0.05)' : '#F8F9FC',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                              cursor: 'pointer', transition: 'all 0.15s',
+                            }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#016163' : '#001660' }}>
+                              ${formatCurrencyFull(payment).replace('$', '')}<span style={{ fontSize: 10, fontWeight: 500 }}> mo</span>
+                            </div>
+                            <div style={{ width: '100%', borderTop: '1px solid rgba(0,22,96,0.07)', paddingTop: 4 }}>
+                              <div style={{ fontSize: 10, color: '#6B7280', textAlign: 'center' }}>{opt.apr}% APR</div>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#6B7280' }}>{opt.years}yr fixed</div>
+                            <div style={{
+                              marginTop: 2, fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+                              border: `1.5px solid ${active ? '#016163' : 'rgba(0,22,96,0.15)'}`,
+                              color: active ? '#016163' : '#6B7280',
+                              background: active ? 'rgba(1,97,99,0.08)' : 'transparent',
+                            }}>
+                              {active ? 'Selected' : 'Select'}
+                            </div>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Autopay */}
                 <div className="rounded-xl px-4 py-3" style={{ background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)' }}>
                   <label className="flex items-start gap-3 cursor-pointer">
@@ -672,23 +722,41 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
             </CardBody>
           </Card>
 
-          <div className="text-[10px] text-gray-400 leading-relaxed pb-1">
+          <div className="text-[10px] text-gray-400 leading-relaxed">
             Estimates are illustrative only. Final terms subject to full underwriting and appraisal. Not a commitment to lend.
+          </div>
+
+          {/* Footer buttons */}
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex justify-between">
+              <button onClick={() => dispatch({ type: 'BACK' })}
+                className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
+                style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660' }}>
+                ← Back
+              </button>
+              <button onClick={handleNext}
+                className="py-2.5 px-6 text-sm font-bold rounded-xl transition-colors"
+                style={{ background: '#254BCE', color: '#fff' }}
+                onMouseOver={e => (e.currentTarget.style.background = '#1e3fa8')}
+                onMouseOut={e => (e.currentTarget.style.background = '#254BCE')}>
+                Accept Terms & Continue →
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Right — live terms */}
-        <div className="w-[230px] shrink-0 p-3">
-          <div className="flex flex-col gap-0 rounded-2xl overflow-hidden h-full" style={{ border: '1px solid rgba(0,22,96,0.1)' }}>
-            <div className="px-5 py-4 shrink-0" style={{ background: '#001660' }}>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Terms of your offer</div>
-              <div className="text-3xl font-bold text-white leading-none">{formatCurrencyFull(safeWithdraw)}</div>
-              <div className="text-xs text-white/50 mt-1">Initial draw amount</div>
+        {/* Right — sticky terms panel */}
+        <div style={{ width: 210, flexShrink: 0, position: 'sticky', top: 24 }}>
+          <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(0,22,96,0.1)' }}>
+            <div style={{ background: '#001660', padding: '16px 18px' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Terms of your offer</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{formatCurrencyFull(safeWithdraw)}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Initial draw amount</div>
             </div>
-            <div className="flex-1 px-5 py-4 space-y-3.5" style={{ background: '#F8F9FC' }}>
-              <TermRow label="Draw period payment" value={`${formatCurrencyFull(loan.drawPayment)}/mo`} sub="Interest only · 10 yr" accent />
-              <TermRow label="Repayment payment" value={`${formatCurrencyFull(loan.repayPayment)}/mo`} sub="Principal + interest · 20 yr" />
-              <div className="border-t border-gray-100 pt-3 space-y-2.5">
+            <div style={{ background: '#F8F9FC', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <TermRow label="Draw payment" value={`${formatCurrencyFull(loan.drawPayment)}/mo`} sub="Interest only · 10 yr" accent />
+              <TermRow label="Repayment" value={`${formatCurrencyFull(loan.repayPayment)}/mo`} sub="Principal + interest · 20 yr" />
+              <div style={{ borderTop: '1px solid rgba(0,22,96,0.07)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <TermRow label="APR" value={`${displayApr}%`} />
                 <TermRow label="Interest rate" value={`${FEE_TIERS[tier].rate}%`} />
                 <TermRow label="Origination fee" value={formatCurrencyFull(loan.originationFee)} sub={`${FEE_TIERS[tier].fee}% · rolled in`} />
@@ -696,34 +764,16 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                 <TermRow label="Available after draw" value={formatCurrencyFull(creditLimit - safeWithdraw)} />
               </div>
               {deferredMonths > 0 && (
-                <div className="rounded-xl px-3 py-2.5" style={{ background: '#FFF9ED', border: '1px solid rgba(234,179,8,0.25)' }}>
-                  <div className="text-[10px] font-semibold text-amber-700 mb-0.5">Deferred {deferredMonths} months</div>
-                  <div className="text-[10px] text-amber-600">Interest accrues · first payment deferred</div>
+                <div style={{ borderRadius: 10, padding: '8px 12px', background: '#FFF9ED', border: '1px solid rgba(234,179,8,0.25)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>Deferred {deferredMonths} months</div>
+                  <div style={{ fontSize: 10, color: '#b45309' }}>Interest accrues · first payment deferred</div>
                 </div>
               )}
             </div>
-            <div className="px-5 py-3 shrink-0 border-t border-gray-100" style={{ background: '#fff' }}>
-              <div className="text-[10px] text-gray-400">Cash required at closing: <strong>$0</strong></div>
+            <div style={{ background: '#fff', padding: '10px 18px', borderTop: '1px solid rgba(0,22,96,0.07)' }}>
+              <div style={{ fontSize: 10, color: '#9ca3af' }}>Cash required at closing: <strong>$0</strong></div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-6 py-3.5 border-t border-gray-100" style={{ background: '#fff' }}>
-        <div className="flex gap-2.5">
-          <button onClick={() => dispatch({ type: 'BACK' })}
-            className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
-            style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660' }}>
-            ← Back
-          </button>
-          <button onClick={handleNext}
-            className="flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors"
-            style={{ background: '#254BCE', color: '#fff' }}
-            onMouseOver={e => (e.currentTarget.style.background = '#1e3fa8')}
-            onMouseOut={e => (e.currentTarget.style.background = '#254BCE')}>
-            Accept Terms & Continue →
-          </button>
         </div>
       </div>
     </div>
@@ -756,8 +806,7 @@ function OfferSidebar({ loan, step2 }) {
   const displayApr = autopay ? (parseFloat(displayLoan.apr) - 0.25).toFixed(2) : displayLoan.apr
 
   return (
-    <div className="w-[220px] shrink-0 self-start m-4 rounded-2xl overflow-hidden"
-      style={{ boxShadow: '0 4px 24px rgba(0,22,96,0.13)', border: '1px solid rgba(0,22,96,0.1)' }}>
+    <div className="shrink-0 rounded-2xl overflow-hidden" style={{ width: 210, marginTop: 88, position: 'sticky', top: 32, boxShadow: '0 4px 24px rgba(0,22,96,0.13)', border: '1px solid rgba(0,22,96,0.1)' }}>
       {/* Dark header */}
       <div className="px-5 py-4" style={{ background: '#001660' }}>
         <div className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Terms of your offer</div>
@@ -800,7 +849,7 @@ function OfferSidebar({ loan, step2 }) {
 function ScreenMoreInfo({ step3, dispatch }) {
   const set = (field, value) => dispatch({ type: 'SET_STEP3', field, value })
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="mb-6">
         <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Step 3 of 7</div>
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Verify your property & income</h1>
@@ -887,7 +936,7 @@ function ScreenLinkIncome({ dispatch }) {
   ]
 
   return (
-    <div className="max-w-lg mx-auto px-5 py-8">
+    <div className="">
       <div className="mb-6">
         <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Step 3 of 7 — Income Verification</div>
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Verify your income</h1>
@@ -978,7 +1027,7 @@ function ScreenVerifyIdentity({ dispatch }) {
   const [selfieCapture, setSelfieCapture] = useState(false)
 
   return (
-    <div className="max-w-lg mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="mb-6">
         <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Step 3 of 7 — Identity Verification</div>
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Verify your identity</h1>
@@ -1202,7 +1251,7 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
   const [agreed, setAgreed] = useState(false)
 
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="mb-4">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3" style={{ background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)' }}>
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -1281,19 +1330,21 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
         </label>
       </div>
 
-      <div className="flex gap-3 pb-8">
-        <button onClick={() => dispatch({ type: 'BACK' })}
-          className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
-          style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}>
-          ← Back
-        </button>
-        <button onClick={() => dispatch({ type: 'DECLINE_OFFER' })}
-          className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
-          style={{ borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.5)', background: '#fff' }}>
-          Decline offer
-        </button>
+      <div className="flex items-center justify-between pb-8">
+        <div className="flex gap-3">
+          <button onClick={() => dispatch({ type: 'BACK' })}
+            className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
+            style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}>
+            ← Back
+          </button>
+          <button onClick={() => dispatch({ type: 'DECLINE_OFFER' })}
+            className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
+            style={{ borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.5)', background: '#fff' }}>
+            Decline offer
+          </button>
+        </div>
         <button onClick={() => dispatch({ type: 'ACCEPT' })} disabled={!agreed}
-          className="flex-1 py-2.5 text-sm font-bold rounded-xl transition-all"
+          className="py-2.5 px-6 text-sm font-bold rounded-xl transition-all"
           style={{ background: agreed ? '#254BCE' : 'rgba(0,22,96,0.2)', color: '#fff',
             boxShadow: agreed ? '0 4px 16px rgba(37,75,206,0.3)' : 'none', cursor: agreed ? 'pointer' : 'not-allowed' }}>
           Accept Offer & Proceed to Closing →
@@ -1353,7 +1404,7 @@ function ScreenDeclined({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenDocsPreparing({ dispatch }) {
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8">
+    <div className="">
       <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·1 — Documents Preparing</div>
       <h1 className="text-2xl font-bold mb-3" style={{ color: '#001660' }}>Closing documents are being prepared</h1>
       <div className="rounded-2xl border p-6 mb-4 text-center" style={{ borderColor: 'rgba(0,22,96,0.1)', background: '#f8f9fa' }}>
@@ -1377,7 +1428,7 @@ function ScreenDocsPreparing({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenReadyToSchedule({ dispatch }) {
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·2 — Ready to Schedule</div>
       <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Your documents are ready</h1>
       <p className="text-sm text-gray-500">Schedule your notary appointment to complete the signing process.</p>
@@ -1404,7 +1455,7 @@ function ScreenReadyToSchedule({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenNotaryScheduled({ dispatch }) {
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·3 — Notary Scheduled</div>
       <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Appointment confirmed</h1>
       <div className="rounded-2xl border p-6" style={{ borderColor: 'rgba(37,75,206,0.15)', background: '#fff' }}>
@@ -1431,7 +1482,7 @@ function ScreenNotaryScheduled({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenSigningInProgress({ dispatch }) {
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80' }} />
         <div className="text-[11px] font-bold uppercase tracking-widest text-green-600">C·4 — Signing in Progress</div>
@@ -1467,7 +1518,7 @@ function ScreenSigningInProgress({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenLoanClosed({ dispatch }) {
   return (
-    <div className="max-w-2xl mx-auto px-5 py-8 space-y-4">
+    <div className="space-y-4">
       <div className="text-[11px] font-bold uppercase tracking-widest text-green-600 mb-1">C·5 — Loan Closed ✓</div>
       <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>All documents signed.</h1>
       <div className="rounded-2xl p-6 text-center" style={{ background: '#ECFDF5', border: '1px solid rgba(22,163,74,0.2)' }}>
@@ -1598,11 +1649,11 @@ export default function POSDemo() {
   }
 
   // Screens with full-height flex layout (no inner scroll)
-  const flexScreens = new Set([S.OFFER_SELECT, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT, S.NOTARY_SCHEDULED])
+  const flexScreens = new Set([S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT, S.NOTARY_SCHEDULED])
   const isFlexScreen = flexScreens.has(app)
 
   // Show the persistent offer sidebar on all screens except OFFER_SELECT (has its own live panel)
-  const showOfferSidebar = app !== S.OFFER_SELECT
+  const showOfferSidebar = app !== S.OFFER_SELECT && app !== S.BASIC_INFO
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F8F9FC' }}>
@@ -1610,9 +1661,15 @@ export default function POSDemo() {
       <div className="flex flex-1 overflow-hidden">
         <StepSidebar appState={app} dispatch={dispatch} />
         <main className={isFlexScreen ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
-          {renderScreen()}
+          {isFlexScreen ? renderScreen() : (
+            <div style={{ maxWidth: 980, width: '100%', margin: '0 auto', padding: '32px 32px 64px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {renderScreen()}
+              </div>
+              {showOfferSidebar && <OfferSidebar loan={loan} step2={step2} />}
+            </div>
+          )}
         </main>
-        {showOfferSidebar && <OfferSidebar loan={loan} step2={step2} />}
       </div>
       {simOpen && <SimPanel sim={sim} appState={app} dispatch={dispatch} />}
     </div>

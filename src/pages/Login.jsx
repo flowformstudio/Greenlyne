@@ -48,13 +48,23 @@ export default function Login() {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/pipeline')}
-          className="w-full text-white rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
-          style={{background: '#001660'}}
-        >
-          Enter Demo
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            onClick={() => navigate('/pipeline')}
+            className="w-full text-white rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ background: '#001660' }}
+          >
+            Enter Demo
+          </button>
+
+          <button
+            onClick={() => navigate('/email')}
+            className="w-full rounded-lg py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'none', border: '1.5px solid #001660', color: '#001660' }}
+          >
+            Consumer Flow Demo →
+          </button>
+        </div>
 
         <p className="text-center text-xs text-gray-400">
           This is a prototype demo — no login required
