@@ -155,14 +155,19 @@ export default function PreQualified() {
                 <span style={{ fontSize: 16, fontWeight: 600, color: C.muted }}>/mo</span>
               </div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Interest-only during draw period</div>
-              <div style={{ paddingTop: 14, borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ paddingTop: 14, borderTop: `1px solid ${C.border}`, marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>Interest rate</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{OFFER.rate}</div>
+              </div>
+
+              {/* Savings callout */}
+              <div style={{ background: 'rgba(1,97,99,0.07)', border: '1.5px solid rgba(1,97,99,0.2)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>Interest rate</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{OFFER.rate}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.teal, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Est. Electricity Savings</div>
+                  <div style={{ fontSize: 11, color: 'rgba(1,97,99,0.6)' }}>Based on your reported bill</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: C.muted, marginBottom: 3 }}>Est. electricity savings</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: C.teal, letterSpacing: '-0.5px', lineHeight: 1 }}>{OFFER.savings}<span style={{ fontSize: 13, fontWeight: 600 }}>/mo</span></div>
+                <div style={{ fontSize: 32, fontWeight: 900, color: C.teal, letterSpacing: '-1px', lineHeight: 1 }}>
+                  {OFFER.savings}<span style={{ fontSize: 15, fontWeight: 600 }}>/mo</span>
                 </div>
               </div>
             </div>
