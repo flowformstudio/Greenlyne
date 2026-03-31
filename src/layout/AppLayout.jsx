@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { QUOTA } from '../lib/quota'
 import { ThemeContext } from '../lib/theme'
@@ -316,6 +316,28 @@ export default function AppLayout() {
           <img src="/greenlyne-logo-white.svg" alt="GreenLyne" style={{height: 20}} />
           <span className="text-[11px] font-medium" style={{color:'rgba(255,255,255,0.55)'}}>PMPro</span>
         </div>
+
+        {/* POS Demo link */}
+        <Link
+          to="/email"
+          style={{
+            marginLeft: 20,
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 7,
+            border: '1px solid rgba(255,255,255,0.22)',
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff', fontSize: 12, fontWeight: 600,
+            textDecoration: 'none', letterSpacing: '-0.1px',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          POS Demo
+        </Link>
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-1.5">
