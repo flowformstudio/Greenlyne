@@ -1746,7 +1746,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                     flex: 1, position: 'relative', textAlign: 'left', cursor: 'pointer', background: '#fff',
                     border: `2px solid ${active ? color : 'rgba(0,22,96,0.12)'}`,
                     borderTop: (meta.popular || active) ? 'none' : undefined,
-                    borderRadius: (meta.popular || active) ? '0 0 12px 12px' : 12,
+                    borderRadius: meta.popular ? '0 0 12px 12px' : 12,
                     padding: '14px 14px 12px',
                     boxShadow: active ? `0 3px 16px ${color}22` : '0 1px 3px rgba(0,0,0,0.04)',
                     transition: 'all 0.18s cubic-bezier(0.22,1,0.36,1)', outline: 'none',
