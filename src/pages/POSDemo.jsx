@@ -1735,17 +1735,15 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               const color   = meta.popular ? '#254BCE' : '#016163'
               return (
                 <div key={opt.years} style={{ display: 'flex', flexDirection: 'column' }}>
-                  {meta.popular ? (
+                  {meta.popular && (
                     <div style={{ background: '#254BCE', color: '#fff', fontSize: 11, fontWeight: 800, textAlign: 'center', borderRadius: '8px 8px 0 0', padding: '5px 0', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                       Most popular
                     </div>
-                  ) : active ? (
-                    <div style={{ background: color, borderRadius: '8px 8px 0 0', height: 5 }} />
-                  ) : null}
+                  )}
                   <button onClick={() => setTermYears(opt.years)} style={{
                     flex: 1, position: 'relative', textAlign: 'left', cursor: 'pointer', background: '#fff',
                     border: `2px solid ${active ? color : 'rgba(0,22,96,0.12)'}`,
-                    borderTop: (meta.popular || active) ? 'none' : undefined,
+                    borderTop: active && !meta.popular ? `5px solid ${color}` : meta.popular ? 'none' : `2px solid ${active ? color : 'rgba(0,22,96,0.12)'}`,
                     borderRadius: meta.popular ? '0 0 12px 12px' : 12,
                     padding: '14px 14px 12px',
                     boxShadow: active ? `0 3px 16px ${color}22` : '0 1px 3px rgba(0,0,0,0.04)',
