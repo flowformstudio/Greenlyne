@@ -14,6 +14,7 @@ import EmailPreview from './pages/EmailPreview'
 import OfferLanding from './pages/OfferLanding'
 import PreQualified from './pages/PreQualified'
 import HELOCApp from './pages/HELOCApp'
+import QualificationFlow from './pages/QualificationFlow'
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/email" element={<EmailPreview />} />
         <Route path="/offer" element={<OfferLanding />} />
         <Route path="/pre-qualified" element={<PreQualified />} />
+        <Route path="/qualification" element={<QualificationFlow />} />
         <Route path="/create-account" element={<CreateAccount />} />
         <Route path="/pos-demo" element={<POSDemo />} />
         <Route path="/heloc-app" element={<HELOCApp />} />

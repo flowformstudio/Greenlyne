@@ -1,4 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import AIChat from '../components/AIChat'
 
 const STEPS = [
   { label: 'Email',          path: '/email',          subtitle: 'Westhaven Power • Your Solar Plan' },
@@ -110,6 +111,8 @@ export default function DemoLayout() {
       <div style={{ flex: 1 }}>
         <Outlet />
       </div>
+
+      <AIChat />
     </div>
   )
 }
