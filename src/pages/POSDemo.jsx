@@ -323,7 +323,7 @@ function StepSidebar({ appState, dispatch }) {
                 <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold"
                   style={{ background: done ? '#10B981' : active ? '#254BCE' : 'rgba(0,22,96,0.08)', color: (done || active) ? '#fff' : 'rgba(0,22,96,0.3)' }}>
                   {done
-                    ? <svg width="14" height="14" viewBox="0 0 130 130" fill="none"><path d="M129 64.9L110.2 46.2V19.7H83.7L65 0.9L46.2 19.7H19.7V46.2L1 64.9L19.8 83.6V110.1H46.3L65 128.9L83.7 110.1H110.2V83.6L129 64.9ZM55.7 86.6L38.7 68.7L41.3 66.2L55.6 81.3L88.4 46.8L91 49.3L55.7 86.6Z" fill="white"/></svg>
+                    ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     : s.n}
                 </div>
                 <div>
@@ -610,7 +610,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
               </FieldWrap>
 
               {/* SSN + hint inline */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 4, display: 'block' }}>
                     SSN <span style={{ fontWeight: 400, color: '#9CA3AF' }}>last 4 digits</span>
@@ -626,7 +626,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
                 <div style={{
                   flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px',
                   background: 'rgba(37,75,206,0.04)', borderRadius: 10,
-                  border: '1px solid rgba(37,75,206,0.08)', marginTop: 18,
+                  border: '1px solid rgba(37,75,206,0.08)',
                 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                   <p style={{ fontSize: 13, color: '#4B5563', margin: 0, lineHeight: 1.6 }}>
@@ -1145,7 +1145,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
       <div style={{ background: '#fff', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Current DTI</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#DC2626' }}>{Math.round(currentDTI * 100)}% — {dtiLabel(currentDTI)}</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: '#DC2626' }}>{Math.round(currentDTI * 100)}% — {dtiLabel(currentDTI)}</span>
         </div>
         <div style={{ height: 8, borderRadius: 4, background: '#F3F4F6', overflow: 'hidden', position: 'relative' }}>
           <div style={{ height: '100%', width: `${Math.min(currentDTI * 100, 100)}%`, background: '#DC2626', borderRadius: 4, transition: 'width 0.4s' }} />
@@ -1274,7 +1274,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
                   ].map(r => (
                     <div key={r.label} style={{ background: '#fff', borderRadius: 8, padding: '8px 10px' }}>
                       <div style={{ fontSize: 9, color: '#9CA3AF', marginBottom: 2 }}>{r.label}</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: r.color }}>{r.value}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: r.color }}>{r.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1735,16 +1735,18 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               const color   = meta.popular ? '#254BCE' : '#016163'
               return (
                 <div key={opt.years} style={{ display: 'flex', flexDirection: 'column' }}>
-                  {meta.popular && (
+                  {meta.popular ? (
                     <div style={{ background: '#254BCE', color: '#fff', fontSize: 11, fontWeight: 800, textAlign: 'center', borderRadius: '8px 8px 0 0', padding: '5px 0', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                       Most popular
                     </div>
-                  )}
+                  ) : active ? (
+                    <div style={{ background: color, borderRadius: '8px 8px 0 0', height: 5 }} />
+                  ) : null}
                   <button onClick={() => setTermYears(opt.years)} style={{
                     flex: 1, position: 'relative', textAlign: 'left', cursor: 'pointer', background: '#fff',
                     border: `2px solid ${active ? color : 'rgba(0,22,96,0.12)'}`,
-                    borderTop: meta.popular ? 'none' : undefined,
-                    borderRadius: meta.popular ? '0 0 12px 12px' : 12,
+                    borderTop: (meta.popular || active) ? 'none' : undefined,
+                    borderRadius: (meta.popular || active) ? '0 0 12px 12px' : 12,
                     padding: '14px 14px 12px',
                     boxShadow: active ? `0 3px 16px ${color}22` : '0 1px 3px rgba(0,0,0,0.04)',
                     transition: 'all 0.18s cubic-bezier(0.22,1,0.36,1)', outline: 'none',
@@ -1755,8 +1757,8 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                     <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.6px', lineHeight: 1, color: active ? color : '#001660', marginBottom: 2, transition: 'color 0.15s' }}>
                       {formatCurrencyFull(payment)}<span style={{ fontSize: 14, fontWeight: 600, color: '#9CA3AF', letterSpacing: 0 }}>/mo</span>
                     </div>
-                    <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 8 }}>{opt.years}-yr · {opt.apr}% APR</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: saves >= 0 ? '#065f46' : '#9CA3AF', background: saves >= 0 ? 'rgba(1,97,99,0.07)' : 'rgba(0,0,0,0.04)', borderRadius: 5, padding: '3px 7px', marginBottom: 8, display: 'inline-block' }}>
+                    <div style={{ fontSize: 16, color: '#9CA3AF', marginBottom: 8 }}>{opt.years}-yr · {opt.apr}% APR</div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: saves >= 0 ? '#065f46' : '#9CA3AF', background: saves >= 0 ? 'rgba(1,97,99,0.07)' : 'rgba(0,0,0,0.04)', borderRadius: 5, padding: '3px 7px', marginBottom: 8, display: 'inline-block' }}>
                       {saves >= 0 ? `Save $${saves.toLocaleString()}/mo` : `$${Math.abs(saves).toLocaleString()}/mo over bill`}
                     </div>
                     <div style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.5 }}>{meta.desc}</div>
@@ -2027,7 +2029,7 @@ function TermRow({ label, value, sub, accent, large }) {
         <div className={large ? 'text-[12px] text-gray-500' : 'text-[11px] text-gray-500'}>{label}</div>
         {sub && <div className={large ? 'text-[11px] text-gray-400 mt-0.5' : 'text-[10px] text-gray-400 mt-0.5'}>{sub}</div>}
       </div>
-      <div className={large ? 'text-[14px] font-bold shrink-0' : 'text-[13px] font-bold shrink-0'} style={{ color: accent ? '#254BCE' : '#001660' }}>{value}</div>
+      <div className={large ? 'text-[17px] font-bold shrink-0' : 'text-[16px] font-bold shrink-0'} style={{ color: accent ? '#254BCE' : '#001660' }}>{value}</div>
     </div>
   )
 }
@@ -2546,8 +2548,8 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
               ['Prepayment penalty', 'None'],
             ].map(([l,v]) => (
               <div key={l}>
-                <div className="text-[10px] text-gray-400 mb-0.5">{l}</div>
-                <div className="text-[13px] font-semibold" style={{ color: '#001660' }}>{v}</div>
+                <div className="text-[12px] text-gray-400 mb-1">{l}</div>
+                <div className="text-[17px] font-semibold" style={{ color: '#001660' }}>{v}</div>
               </div>
             ))}
           </div>
@@ -2695,7 +2697,7 @@ function ScreenReadyToSchedule({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenNotaryScheduled({ dispatch }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={{ padding: '32px 32px 64px', maxWidth: 680 }}>
       <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·3 — Notary Scheduled</div>
       <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Appointment confirmed</h1>
       <div className="rounded-2xl border p-6" style={{ borderColor: 'rgba(37,75,206,0.15)', background: '#fff' }}>

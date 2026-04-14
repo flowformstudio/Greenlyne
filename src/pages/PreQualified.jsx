@@ -323,7 +323,7 @@ export default function PreQualified() {
                     padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
                   }}>
                     <span style={{ fontSize: 13, color: C.label }}>{row.label}</span>
-                    <span style={{ fontSize: 13, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
+                    <span style={{ fontSize: 16, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
                   </div>
                 ))}
               </div>
@@ -344,7 +344,7 @@ export default function PreQualified() {
                     borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
                   }}>
                     <span style={{ fontSize: 13, color: row.accent ? C.teal : C.label, fontWeight: row.accent ? 600 : 400 }}>{row.label}</span>
-                    <span style={{ fontSize: 13, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
+                    <span style={{ fontSize: 16, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
                   </div>
                 ))}
               </div>
