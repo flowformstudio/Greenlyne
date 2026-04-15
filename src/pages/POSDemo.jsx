@@ -2133,25 +2133,39 @@ function OfferSidebar({ loan, step2 }) {
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div style={{ padding: '18px 20px 16px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginBottom: 5 }}>Your Loan Plan</div>
-        {/* Hero amount */}
-        <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 3 }}>
-          {formatCurrencyFull(heroAmount)}
-        </div>
-        {/* Product + APR on its own line */}
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 5 }}>
-          {productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR
-        </div>
-        {/* Math breakdown or subtitle */}
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginBottom: 10 }}>Your Loan Plan</div>
+
         {accrued > 0 ? (
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-            You're borrowing {formatCurrencyFull(raw.withdrawNow)}. Since you're not making payments for the first 6 months, {formatCurrencyFull(accrued)} gets added — so your loan starts at {formatCurrencyFull(heroAmount)}.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {/* Row 1 — You receive (PRIMARY) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>You receive</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.4px' }}>{formatCurrencyFull(raw.withdrawNow)}</span>
+            </div>
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+            {/* Row 2 — Added amount (SECONDARY) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.45)', lineHeight: 1.45, flex: 1 }}>To let you skip payments for the first 6 months, this is added to your loan and will be held in escrow</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
+            </div>
+            {/* Row 3 — Total loan (LABELED) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 5, borderTop: '1px dashed rgba(255,255,255,0.15)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)' }}>Total starting loan</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,0.8)', letterSpacing: '-0.2px' }}>{formatCurrencyFull(heroAmount)}</span>
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
+              {productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR
+            </div>
           </div>
         ) : (
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
-            {productType === 'heloc'
-              ? `${formatCurrencyFull(raw.creditLimit)} credit line · ${formatCurrencyFull(raw.withdrawNow)} drawn`
-              : 'Fixed rate · full amount at closing'}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 2 }}>{formatCurrencyFull(raw.withdrawNow)}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+              {productType === 'heloc'
+                ? `${formatCurrencyFull(raw.creditLimit)} credit line · ${formatCurrencyFull(raw.withdrawNow)} drawn`
+                : 'Fixed rate · full amount at closing'}
+            </div>
           </div>
         )}
       </div>

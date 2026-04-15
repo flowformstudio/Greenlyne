@@ -321,31 +321,59 @@ function OfferConfigSummary({
 
       {/* ── Header ────────────────────────────────────────────────── */}
       <div style={{ padding: '20px 22px 18px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginBottom: 6 }}>Your Loan Plan</div>
-        {/* Hero amount */}
-        <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 3 }}>
-          {accrued > 0 ? formatCurrencyFull(newPrinc) : formatCurrencyFull(draw)}
-        </div>
-        {/* Product + APR — now on its own line */}
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
-          {product === 'heloc' ? 'HELOC' : 'HELOAN'} · {apr}% APR
-        </div>
-        {/* Subtitle / math breakdown */}
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginBottom: 12 }}>Your Loan Plan</div>
+
         {accrued > 0 ? (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-            You're borrowing {formatCurrencyFull(draw)}. Since you're not making payments for the first 6 months, {formatCurrencyFull(accrued)} gets added — so your loan starts at {formatCurrencyFull(newPrinc)}.
+          /* ── Breakdown: deferred start chosen ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+            {/* Row 1 — You receive (PRIMARY) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>You receive</span>
+              <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.4px' }}>{formatCurrencyFull(draw)}</span>
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+
+            {/* Row 2 — Added for payment break (SECONDARY) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.45)', lineHeight: 1.45, flex: 1 }}>To let you skip payments for the first 6 months, this amount is added to your loan and will be held in escrow</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '-0.2px', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
+            </div>
+
+            {/* Row 3 — Total starting loan (LABELED) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 6, borderTop: '1px dashed rgba(255,255,255,0.15)' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Total starting loan</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.85)', letterSpacing: '-0.3px' }}>{formatCurrencyFull(newPrinc)}</span>
+            </div>
+
+            {/* Product + APR */}
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+              {product === 'heloc' ? 'HELOC' : 'HELOAN'} · {apr}% APR
+              {product === 'heloc' && creditLim > draw && ` · ${formatCurrencyFull(creditLim - draw)} available to draw anytime`}
+            </div>
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.55 }}>
-            {product === 'heloc'
-              ? `${formatCurrencyFull(creditLim)} credit line · ${formatCurrencyFull(draw)} drawn at closing`
-              : 'Fixed rate · full amount disbursed at closing'}
-          </div>
-        )}
-        {product === 'heloc' && creditLim > draw && (
-          <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 100, padding: '3px 10px' }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#93DDBA" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>{formatCurrencyFull(creditLim - draw)} available to draw anytime</span>
+          /* ── Standard: no deferred period ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+              {formatCurrencyFull(draw)}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+              {product === 'heloc' ? 'HELOC' : 'HELOAN'} · {apr}% APR
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', lineHeight: 1.55 }}>
+              {product === 'heloc'
+                ? `${formatCurrencyFull(creditLim)} credit line · ${formatCurrencyFull(draw)} drawn at closing`
+                : 'Fixed rate · full amount disbursed at closing'}
+            </div>
+            {product === 'heloc' && creditLim > draw && (
+              <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 100, padding: '3px 10px', width: 'fit-content' }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#93DDBA" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>{formatCurrencyFull(creditLim - draw)} available to draw anytime</span>
+              </div>
+            )}
           </div>
         )}
       </div>
