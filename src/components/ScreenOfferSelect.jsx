@@ -451,15 +451,6 @@ function OfferConfigSummary({
         </div>
 
         {/* ── Demo reset link ───────────────────────────────────────── */}
-        <button
-          onClick={onReset}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: '#C4C9D4', textDecoration: 'none', textAlign: 'center', width: '100%', transition: 'color 0.15s' }}
-          onMouseOver={e => e.currentTarget.style.color = '#9CA3AF'}
-          onMouseOut={e => e.currentTarget.style.color = '#C4C9D4'}
-        >
-          ↺ Reset this step &nbsp;·&nbsp; demo only
-        </button>
-
       </div>
     </div>
   )
@@ -618,7 +609,12 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     return all
   })()
 
-  // Auto-select 'none' when IO=5 leaves no real choice
+  // HELOC: interest-only draw period is fixed at 5 years — auto-set, not user-configurable
+  useEffect(() => {
+    if (product === 'heloc' && s2Done && ioYrs === null) setIoYrs(5)
+  }, [product, s2Done, ioYrs])
+
+  // Auto-select 'none' when IO=5 leaves no real choice for reduced payment
   useEffect(() => {
     if (s2Done && effIoYrs >= 5 && redOpt === null) setRedOpt('none')
   }, [effIoYrs, s2Done, redOpt])
@@ -671,9 +667,19 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>
           Configure Your Offer · Step 2 of 7
         </div>
-        <h1 style={{ fontSize: 25, fontWeight: 800, color: '#001660', margin: '0 0 5px', letterSpacing: '-0.4px' }}>
-          Build your loan, one step at a time
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 5 }}>
+          <h1 style={{ fontSize: 25, fontWeight: 800, color: '#001660', margin: 0, letterSpacing: '-0.4px' }}>
+            Build your loan, one step at a time
+          </h1>
+          <button
+            onClick={handleReset}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: '#C4C9D4', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s' }}
+            onMouseOver={e => e.currentTarget.style.color = '#9CA3AF'}
+            onMouseOut={e => e.currentTarget.style.color = '#C4C9D4'}
+          >
+            ↺ Reset this step · demo only
+          </button>
+        </div>
         <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
           Answer each question — your plan summary updates live on the right.
         </p>
@@ -897,55 +903,88 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
         {/* ── Card 4: Interest-only period ────────────────────────────── */}
         {s2Done && (
-          <DecCard
-            step={4}
-            title="Would you like an interest-only period?"
-            answered={s3Done}
-            editing={editingCard === 3}
-            summary={
-              ioYrs === 0
-                ? 'No — principal + interest from the start'
-                : `${ioYrs} year${ioYrs !== 1 ? 's' : ''} of interest-only payments`
-            }
-            onEdit={() => goEdit(3)}
-            onClose={closeEdit}
-          >
-            <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55, marginBottom: 14 }}>
-              For the first few years, your payment covers just the interest — like paying rent on the money. Your loan amount doesn't go down yet, but your monthly payment stays lower. After this period, your regular payments begin and you start paying it off.
+          product === 'heloc' ? (
+            /* HELOC: fixed 5-yr draw period — informational only, not a user choice */
+            <div style={{
+              background: 'rgba(1,97,99,0.04)', borderRadius: 16, overflow: 'hidden',
+              border: '1.5px solid rgba(1,97,99,0.2)',
+              transition: 'border-color 0.2s',
+            }}>
+              {/* Header — looks like a completed step */}
+              <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(1,97,99,0.03)' }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>First 5 years: lower payments</div>
+                </div>
+              </div>
+              {/* Body — plain language explanation */}
+              <div style={{ padding: '14px 18px 16px', borderTop: '1px solid rgba(1,97,99,0.1)' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 13, color: '#374151', lineHeight: 1.65 }}>
+                  For the first 5 years, you'll make lower monthly payments that cover interest only. Your loan balance stays about the same during this time.
+                </p>
+                <p style={{ margin: '0 0 12px', fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
+                  After this period, your regular payments begin and you start paying down your loan.
+                </p>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(1,97,99,0.07)', borderRadius: 100, padding: '4px 11px' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#016163' }}>This is how HELOC works — not a choice you make</span>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-              {[
-                { val: 0, label: 'None',   sub: 'P+I now' },
-                { val: 2, label: '2 yrs',  sub: 'then P+I' },
-                { val: 3, label: '3 yrs',  sub: 'then P+I' },
-                { val: 4, label: '4 yrs',  sub: 'then P+I' },
-                { val: 5, label: '5 yrs',  sub: 'then P+I' },
-              ].map(({ val, label, sub }) => {
-                const active = ioYrs === val
-                return (
-                  <button
-                    key={val}
-                    onClick={() => {
-                      if (val >= 5 && redOpt && redOpt !== 'none') setRedOpt('none')
-                      else if (val >= 4 && redOpt === '30') setRedOpt(null)
-                      setIoYrs(val)
-                      if (editingCard === null) closeEdit()
-                    }}
-                    style={{
-                      padding: '12px 6px', borderRadius: 11, textAlign: 'center', cursor: 'pointer',
-                      border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
-                      background: active ? 'rgba(37,75,206,0.07)' : '#F8F9FC',
-                      boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
-                      transition: 'all 0.15s', outline: 'none',
-                    }}
-                  >
-                    <div style={{ fontSize: 15, fontWeight: 800, color: active ? '#254BCE' : '#001660', marginBottom: 2 }}>{label}</div>
-                    <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.3 }}>{sub}</div>
-                  </button>
-                )
-              })}
-            </div>
-          </DecCard>
+          ) : (
+            /* HELOAN: user-configurable IO period */
+            <DecCard
+              step={4}
+              title="Would you like an interest-only period?"
+              answered={s3Done}
+              editing={editingCard === 3}
+              summary={
+                ioYrs === 0
+                  ? 'No — principal + interest from the start'
+                  : `${ioYrs} year${ioYrs !== 1 ? 's' : ''} of interest-only payments`
+              }
+              onEdit={() => goEdit(3)}
+              onClose={closeEdit}
+            >
+              <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55, marginBottom: 14 }}>
+                For the first few years, your payment covers just the interest — like paying rent on the money. Your loan amount doesn't go down yet, but your monthly payment stays lower. After this period, your regular payments begin and you start paying it off.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                {[
+                  { val: 0, label: 'None',   sub: 'P+I now' },
+                  { val: 2, label: '2 yrs',  sub: 'then P+I' },
+                  { val: 3, label: '3 yrs',  sub: 'then P+I' },
+                  { val: 4, label: '4 yrs',  sub: 'then P+I' },
+                  { val: 5, label: '5 yrs',  sub: 'then P+I' },
+                ].map(({ val, label, sub }) => {
+                  const active = ioYrs === val
+                  return (
+                    <button
+                      key={val}
+                      onClick={() => {
+                        if (val >= 5 && redOpt && redOpt !== 'none') setRedOpt('none')
+                        else if (val >= 4 && redOpt === '30') setRedOpt(null)
+                        setIoYrs(val)
+                        if (editingCard === null) closeEdit()
+                      }}
+                      style={{
+                        padding: '12px 6px', borderRadius: 11, textAlign: 'center', cursor: 'pointer',
+                        border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                        background: active ? 'rgba(37,75,206,0.07)' : '#F8F9FC',
+                        boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
+                        transition: 'all 0.15s', outline: 'none',
+                      }}
+                    >
+                      <div style={{ fontSize: 15, fontWeight: 800, color: active ? '#254BCE' : '#001660', marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.3 }}>{sub}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </DecCard>
+          )
         )}
 
         {/* ── Card 5: Reduced payment ──────────────────────────────────── */}
