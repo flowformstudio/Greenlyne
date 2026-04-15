@@ -6,6 +6,7 @@
 import { useState, useMemo, useReducer, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { calcLoan, FEE_TIERS, DEFERRED_OPTIONS, formatCurrencyFull } from '../lib/loanCalc'
+import ScreenOfferSelectNew from '../components/ScreenOfferSelect'
 
 // ─── State constants ───────────────────────────────────────────────────────────
 const S = {
@@ -276,20 +277,34 @@ function CreditBar({ withdrawNow, creditLimit }) {
 // ─── Brand bar ─────────────────────────────────────────────────────────────────
 function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
   return (
-    <div className="border-b px-6 py-3 flex items-center gap-4 shrink-0" style={{ background: '#fff', borderColor: 'rgba(0,22,96,0.08)' }}>
+    <div className="border-b px-6 shrink-0" style={{ background: '#fff', borderColor: 'rgba(0,22,96,0.08)', height: 56, display: 'flex', alignItems: 'center' }}>
       {/* LEFT — GreenLyne primary */}
-      <div className="flex-1">
-        <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 20, width: 'auto', objectFit: 'contain' }} />
+      <div style={{ flex: 1 }}>
+        <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 22, width: 'auto', objectFit: 'contain' }} />
       </div>
 
-      {/* RIGHT — lender + project tag */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
-          Financing by <img src="/owning-logo.webp" alt="Owning" style={{ height: 13, verticalAlign: 'middle', display: 'inline', margin: '0 3px' }} /> · NMLS #2611
-        </span>
-        <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400 }}>
-          Project by Westhaven Power
-        </span>
+      {/* RIGHT — two labeled partner blocks */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+
+        {/* Block 1 — Project by Westhaven Power */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 20, marginRight: 20, borderRight: '1px solid rgba(0,22,96,0.1)' }}>
+          <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+            Project by
+          </span>
+          <img src="/westhaven-icon.png" alt="Westhaven Power" style={{ height: 19, width: 'auto', objectFit: 'contain' }} />
+        </div>
+
+        {/* Block 2 — Financing services by Grand Bank */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, whiteSpace: 'nowrap', lineHeight: 1.3, textAlign: 'right' }}>
+            Financing services<br/>powered by
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+            <img src="/grand-bank-logo.png" alt="Grand Bank" style={{ height: 16, width: 'auto', objectFit: 'contain' }} />
+            <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, letterSpacing: '0.01em' }}>NMLS #2611</span>
+          </div>
+        </div>
+
       </div>
     </div>
   )
@@ -2034,50 +2049,164 @@ function TermRow({ label, value, sub, accent, large }) {
 
 // ─── Persistent offer sidebar (shown on all screens except offer-select & funded)
 function OfferSidebar({ loan, step2 }) {
-  const tierIdx = step2?.tier ?? 0
+  const tierIdx  = step2?.tier ?? 0
   const tierData = FEE_TIERS[tierIdx]
-  const displayLoan = loan ?? calcLoan({
-    creditLimit:   step2?.creditLimit   ?? SEED.defaultCredit,
-    withdrawNow:   step2?.withdrawNow   ?? SEED.defaultWithdraw,
-    tier:          tierIdx,
+  const raw = loan ?? calcLoan({
+    creditLimit:    step2?.creditLimit    ?? SEED.defaultCredit,
+    withdrawNow:    step2?.withdrawNow    ?? SEED.defaultWithdraw,
+    tier:           tierIdx,
     deferredMonths: step2?.deferredMonths ?? 0,
   })
-  const autopay = step2?.autopay ?? true
-  const displayApr = autopay ? (parseFloat(displayLoan.apr) - 0.25).toFixed(2) : displayLoan.apr
+
+  const autopay    = step2?.autopay ?? true
+  const apr        = autopay ? (parseFloat(raw.apr) - 0.25).toFixed(2) : raw.apr
+  const deferMo    = raw.deferredMonths ?? 0
+  const ioYrs      = loan?.ioYears ?? 0
+  const redPct     = loan?.redPct ?? 0
+  const redMonths  = loan?.redMonths ?? 0
+  const productType = loan?.productType ?? 'heloc'
+
+  // Compute accrued interest for deferred period
+  const rate       = tierData.rate
+  const origFee    = raw.originationFee ?? 0
+  const enhPrinc   = raw.withdrawNow + origFee
+  const accrued    = deferMo > 0 ? Math.round(enhPrinc * (rate / 100 / 12) * deferMo) : 0
+  const newPrinc   = enhPrinc + accrued
+
+  // Hero balance: show what borrower will actually start paying off
+  const heroAmount = accrued > 0 ? newPrinc : raw.withdrawNow
+
+  // Build narrative timeline
+  const timeline = []
+  let seq = 0
+  function tLabel(duration) {
+    const prefix = seq === 0 ? 'First' : seq === 1 ? 'Next' : seq === 2 ? 'Then' : 'After that'
+    seq++
+    return duration ? `${prefix} ${duration}` : prefix
+  }
+
+  if (deferMo > 0) {
+    timeline.push({
+      label: tLabel(`${deferMo} months`),
+      payment: 0,
+      note: 'No payments due',
+      sub: `+${formatCurrencyFull(accrued)} added to your balance`,
+    })
+  }
+  if (ioYrs > 0) {
+    timeline.push({
+      label: tLabel(`${ioYrs} year${ioYrs !== 1 ? 's' : ''}`),
+      payment: raw.drawPayment,
+      note: 'You only pay interest — balance stays the same',
+    })
+  }
+  if (redPct > 0 && redMonths > 0) {
+    const redPayment = Math.round(raw.repayPayment * (1 - redPct / 100))
+    timeline.push({
+      label: tLabel(`${redMonths} months`),
+      payment: redPayment,
+      note: 'Slightly reduced to ease you in',
+    })
+  }
+
+  const specialMo = ioYrs * 12 + redMonths
+  const remainMo  = 240 - specialMo
+  const remainYr  = Math.round(remainMo / 12)
+  timeline.push({
+    label: seq === 0 ? `For ${remainYr} years` : tLabel(),
+    payment: raw.repayPayment,
+    note: 'Full monthly payments until paid off',
+    final: true,
+  })
+
+  const hasSpecial = deferMo > 0 || ioYrs > 0 || redPct > 0
+  const narrative = hasSpecial
+    ? 'Your payments start low, then gradually increase.'
+    : 'Same payment every month for the life of the loan.'
+
+  const dotColors = ['#016163', '#254BCE', '#1e3fa8', '#001660']
 
   return (
-    <div className="shrink-0 rounded-2xl overflow-hidden" style={{ width: 210, marginTop: 88, position: 'sticky', top: 32, boxShadow: '0 4px 24px rgba(0,22,96,0.13)', border: '1px solid rgba(0,22,96,0.1)' }}>
-      {/* Dark header */}
-      <div className="px-5 py-4" style={{ background: '#001660' }}>
-        <div className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Terms of your offer</div>
-        <div className="text-[28px] font-bold text-white leading-none">{formatCurrencyFull(displayLoan.withdrawNow)}</div>
-        <div className="text-xs text-white/50 mt-1">Initial draw amount</div>
-      </div>
+    <div style={{ width: 252, flexShrink: 0, position: 'sticky', top: 32, borderRadius: 18, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,22,96,0.12)', border: '1px solid rgba(0,22,96,0.1)', background: '#fff' }}>
 
-      {/* Terms body */}
-      <div className="px-5 py-5 space-y-4" style={{ background: '#fff' }}>
-        <TermRow label="Draw period payment" value={`${formatCurrencyFull(displayLoan.drawPayment)}/mo`} sub="Interest only · 10 yr" accent large />
-        <TermRow label="Repayment payment" value={`${formatCurrencyFull(displayLoan.repayPayment)}/mo`} sub="Principal + interest · 20 yr" large />
-        <div className="border-t border-gray-100 pt-4 space-y-3">
-          <TermRow label="APR" value={`${displayApr}%`} large />
-          <TermRow label="Interest rate" value={`${tierData.rate}%`} large />
-          <TermRow label="Origination fee" value={formatCurrencyFull(displayLoan.originationFee)} sub={`${tierData.fee}% · rolled in`} large />
-          <TermRow label="Credit limit" value={formatCurrencyFull(displayLoan.creditLimit)} large />
-          <TermRow label="Available after draw" value={formatCurrencyFull(displayLoan.availableAfter)} large />
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <div style={{ padding: '18px 20px 16px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginBottom: 5 }}>Your Loan Plan</div>
+        {/* Hero amount */}
+        <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 3 }}>
+          {formatCurrencyFull(heroAmount)}
         </div>
-        {displayLoan.deferredMonths > 0 && (
-          <div className="rounded-xl px-3 py-2.5" style={{ background: '#FFF9ED', border: '1px solid rgba(234,179,8,0.25)' }}>
-            <div className="text-[11px] font-semibold text-amber-700 mb-0.5">Deferred {displayLoan.deferredMonths} months</div>
-            <div className="text-[11px] text-amber-600">Interest accrues · first payment deferred</div>
+        {/* Product + APR on its own line */}
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 5 }}>
+          {productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR
+        </div>
+        {/* Math breakdown or subtitle */}
+        {accrued > 0 ? (
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+            You're borrowing {formatCurrencyFull(raw.withdrawNow)}. Since you're not making payments for the first 6 months, {formatCurrencyFull(accrued)} gets added — so your loan starts at {formatCurrencyFull(heroAmount)}.
+          </div>
+        ) : (
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
+            {productType === 'heloc'
+              ? `${formatCurrencyFull(raw.creditLimit)} credit line · ${formatCurrencyFull(raw.withdrawNow)} drawn`
+              : 'Fixed rate · full amount at closing'}
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="px-5 py-3 border-t border-gray-100" style={{ background: '#F8F9FC' }}>
-        <div className="text-[11px] text-gray-400 leading-relaxed">
-          Cash required at closing: <strong>$0</strong> · Origination fee deducted from total
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* ── Narrative ────────────────────────────────────────────── */}
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#374151', lineHeight: 1.55 }}>{narrative}</p>
+
+        {/* ── Timeline ─────────────────────────────────────────────── */}
+        <div style={{ position: 'relative', paddingLeft: 2 }}>
+          <div style={{ position: 'absolute', left: 7, top: 10, bottom: 10, width: 2, background: 'linear-gradient(to bottom, #93DDBA, #254BCE, #001660)', borderRadius: 2, opacity: 0.35 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {timeline.map((step, i) => (
+              <div key={i} style={{ display: 'flex', gap: 13, paddingBottom: i < timeline.length - 1 ? 18 : 0 }}>
+                <div style={{ width: 15, height: 15, borderRadius: '50%', flexShrink: 0, marginTop: 2, background: dotColors[Math.min(i, dotColors.length - 1)], boxShadow: `0 0 0 3px rgba(37,75,206,0.1)`, position: 'relative', zIndex: 1 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{step.label}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 4 }}>
+                    <span style={{ fontSize: step.payment === 0 ? 22 : 19, fontWeight: 900, color: step.final ? '#001660' : dotColors[Math.min(i, dotColors.length - 1)], letterSpacing: '-0.4px', lineHeight: 1 }}>
+                      {step.payment === 0 ? '$0' : step.payment != null ? formatCurrencyFull(step.payment) : '—'}
+                    </span>
+                    {step.payment !== 0 && step.payment != null && (
+                      <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.5 }}>{step.note}</div>
+                  {step.sub && (
+                    <div style={{ marginTop: 4, fontSize: 10, fontWeight: 600, color: '#92400e', background: 'rgba(234,179,8,0.07)', borderRadius: 6, padding: '3px 7px', display: 'inline-block' }}>{step.sub}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* ── Key facts ────────────────────────────────────────────── */}
+        <div style={{ paddingTop: 12, borderTop: '1px solid rgba(0,22,96,0.07)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { label: 'Amount borrowed',  value: formatCurrencyFull(raw.withdrawNow) },
+            { label: 'Interest rate',    value: `${rate}% ${productType === 'heloan' ? 'fixed' : 'variable'}` },
+            { label: 'APR',              value: `${apr}%` },
+            { label: 'Fee (rolled in)',  value: formatCurrencyFull(origFee) },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#9CA3AF' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#001660' }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Footer ───────────────────────────────────────────────── */}
+        <div style={{ paddingTop: 10, borderTop: '1px solid rgba(0,22,96,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 10, color: '#9CA3AF' }}>Financing by <span style={{ fontWeight: 700, color: '#374151' }}>Grand Bank</span></div>
+          <div style={{ fontSize: 10, color: '#B0B7C3' }}>NMLS #2611</div>
+        </div>
+
       </div>
     </div>
   )
@@ -2870,7 +2999,7 @@ export default function POSDemo() {
   function renderScreen() {
     switch (app) {
       case S.BASIC_INFO:           return <ScreenBasicInfo step1={step1} dispatch={dispatch} />
-      case S.OFFER_SELECT:         return <ScreenOfferSelect step2={step2} step1={step1} dispatch={dispatch} />
+      case S.OFFER_SELECT:         return <ScreenOfferSelectNew step2={step2} step1={step1} dispatch={dispatch} />
       case S.MORE_INFO:            return <ScreenMoreInfo step3={step3} dispatch={dispatch} />
       case S.LINK_INCOME:          return <ScreenLinkIncome dispatch={dispatch} />
       case S.VERIFY_IDENTITY:      return <ScreenVerifyIdentity dispatch={dispatch} />

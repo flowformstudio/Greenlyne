@@ -7,7 +7,6 @@ const STEPS = [
   { label: 'Pre-qualified',  path: '/pre-qualified',  subtitle: 'Westhaven Power • Your Solar Plan' },
   { label: 'Create Account', path: '/create-account', subtitle: 'GreenLyne • Secure Application' },
   { label: 'Application 1',  path: '/pos-demo',       subtitle: 'GreenLyne • Secure Application' },
-  { label: 'Application 2',  path: '/heloc-app',      subtitle: 'GreenLyne • Secure Application' },
 ]
 
 export default function DemoLayout() {
