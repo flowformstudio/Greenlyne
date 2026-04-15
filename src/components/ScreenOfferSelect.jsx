@@ -609,11 +609,6 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     return all
   })()
 
-  // HELOC: interest-only draw period is fixed at 5 years — auto-set, not user-configurable
-  useEffect(() => {
-    if (product === 'heloc' && s2Done && ioYrs === null) setIoYrs(5)
-  }, [product, s2Done, ioYrs])
-
   // Auto-select 'none' when IO=5 leaves no real choice for reduced payment
   useEffect(() => {
     if (s2Done && effIoYrs >= 5 && redOpt === null) setRedOpt('none')
@@ -904,33 +899,52 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         {/* ── Card 4: Interest-only period ────────────────────────────── */}
         {s2Done && (
           product === 'heloc' ? (
-            /* HELOC: fixed 5-yr draw period — informational only, not a user choice */
+            /* HELOC: fixed 5-yr draw period — informational only, acknowledged by button */
             <div style={{
-              background: 'rgba(1,97,99,0.04)', borderRadius: 16, overflow: 'hidden',
-              border: '1.5px solid rgba(1,97,99,0.2)',
-              transition: 'border-color 0.2s',
+              background: s3Done ? 'rgba(1,97,99,0.03)' : '#fff',
+              borderRadius: 16, overflow: 'hidden',
+              border: `1.5px solid ${s3Done ? 'rgba(1,97,99,0.22)' : 'rgba(0,22,96,0.1)'}`,
+              boxShadow: s3Done ? 'none' : '0 2px 14px rgba(0,22,96,0.06)',
+              transition: 'all 0.2s',
             }}>
-              {/* Header — looks like a completed step */}
-              <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(1,97,99,0.03)' }}>
-                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {/* Header */}
+              <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, background: s3Done ? 'rgba(1,97,99,0.03)' : '#fff' }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: s3Done ? '#016163' : '#254BCE', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
+                  {s3Done
+                    ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>4</span>
+                  }
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>First 5 years: lower payments</div>
-                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>First 5 years: lower payments</div>
               </div>
-              {/* Body — plain language explanation */}
-              <div style={{ padding: '14px 18px 16px', borderTop: '1px solid rgba(1,97,99,0.1)' }}>
+              {/* Body */}
+              <div style={{ padding: '14px 18px 18px', borderTop: '1px solid rgba(0,22,96,0.07)' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 13, color: '#374151', lineHeight: 1.65 }}>
                   For the first 5 years, you'll make lower monthly payments that cover interest only. Your loan balance stays about the same during this time.
                 </p>
                 <p style={{ margin: '0 0 12px', fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
                   After this period, your regular payments begin and you start paying down your loan.
                 </p>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(1,97,99,0.07)', borderRadius: 100, padding: '4px 11px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(1,97,99,0.07)', borderRadius: 100, padding: '4px 11px', marginBottom: s3Done ? 0 : 16 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#016163' }}>This is how HELOC works — not a choice you make</span>
                 </div>
+                {!s3Done && (
+                  <div>
+                    <button
+                      onClick={() => setIoYrs(5)}
+                      style={{
+                        padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                        background: '#016163', border: 'none', color: '#fff', cursor: 'pointer',
+                        boxShadow: '0 3px 12px rgba(1,97,99,0.3)', transition: 'transform 0.15s, box-shadow 0.15s',
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 5px 16px rgba(1,97,99,0.4)' }}
+                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 3px 12px rgba(1,97,99,0.3)' }}
+                    >
+                      I understand
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
