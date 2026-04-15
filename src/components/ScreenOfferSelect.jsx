@@ -242,7 +242,7 @@ function OfferConfigSummary({
   product, draw, creditLim, apr, rate,
   basePayment, piPayment, ioPayment,
   effIoYrs, deferMo, redPct, redMonths, redPayment,
-  newPrinc, origFee, s0Done, allDone, onConfirm,
+  newPrinc, origFee, s0Done, allDone, onConfirm, onReset,
 }) {
   if (!s0Done) {
     return (
@@ -414,25 +414,6 @@ function OfferConfigSummary({
           </div>
         </div>
 
-        {/* ── Confirm CTA ──────────────────────────────────────────── */}
-        {allDone && (
-          <button
-            onClick={onConfirm}
-            style={{
-              width: '100%', padding: '14px', borderRadius: 13,
-              background: 'linear-gradient(135deg, #254BCE 0%, #1e3fa8 100%)',
-              border: 'none', color: '#fff', fontSize: 15, fontWeight: 800,
-              cursor: 'pointer', letterSpacing: '-0.1px',
-              boxShadow: '0 4px 18px rgba(37,75,206,0.4)',
-              transition: 'transform 0.15s, box-shadow 0.15s',
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 22px rgba(37,75,206,0.5)' }}
-            onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 18px rgba(37,75,206,0.4)' }}
-          >
-            Confirm your plan →
-          </button>
-        )}
-
         {/* ── Lender ───────────────────────────────────────────────── */}
         <div style={{ paddingTop: 4, borderTop: '1px solid rgba(0,22,96,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 11, color: '#9CA3AF' }}>
@@ -440,6 +421,16 @@ function OfferConfigSummary({
           </div>
           <div style={{ fontSize: 10, color: '#B0B7C3' }}>NMLS #2611</div>
         </div>
+
+        {/* ── Demo reset link ───────────────────────────────────────── */}
+        <button
+          onClick={onReset}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: '#C4C9D4', textDecoration: 'none', textAlign: 'center', width: '100%', transition: 'color 0.15s' }}
+          onMouseOver={e => e.currentTarget.style.color = '#9CA3AF'}
+          onMouseOut={e => e.currentTarget.style.color = '#C4C9D4'}
+        >
+          ↺ Reset this step &nbsp;·&nbsp; demo only
+        </button>
 
       </div>
     </div>
@@ -535,16 +526,21 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
 }
 
 // ─── Main screen component ────────────────────────────────────────────────────
-export default function ScreenOfferSelect({ step2, step1, dispatch }) {
-  // ── Decision state ──────────────────────────────────────────────────────────
-  const [product,     setProduct]     = useState(null)   // 'heloc' | 'heloan'
-  const [creditLim,   setCreditLim]   = useState(SEED.defaultCredit)
-  const [drawAmt,     setDrawAmt]     = useState(SEED.defaultWithdraw)
-  const [amtDone,     setAmtDone]     = useState(false)
-  const [zeroStart,   setZeroStart]   = useState(null)   // true | false
-  const [ioYrs,       setIoYrs]       = useState(null)   // null | 0..5
-  const [redOpt,      setRedOpt]      = useState(null)   // null | 'none' | '10' | '20' | '30'
-  const [editingCard, setEditingCard] = useState(null)   // which card is open for re-editing
+export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig }) {
+  // ── Decision state — initialised from savedConfig so navigating away and back preserves choices ──
+  const [product,     setProduct]     = useState(savedConfig?.product     ?? null)
+  const [creditLim,   setCreditLim]   = useState(savedConfig?.creditLim   ?? SEED.defaultCredit)
+  const [drawAmt,     setDrawAmt]     = useState(savedConfig?.drawAmt     ?? SEED.defaultWithdraw)
+  const [amtDone,     setAmtDone]     = useState(savedConfig?.amtDone     ?? false)
+  const [zeroStart,   setZeroStart]   = useState(savedConfig?.zeroStart   ?? null)
+  const [ioYrs,       setIoYrs]       = useState(savedConfig?.ioYrs       ?? null)
+  const [redOpt,      setRedOpt]      = useState(savedConfig?.redOpt      ?? null)
+  const [editingCard, setEditingCard] = useState(null)
+
+  // ── Persist choices back to POSDemo state whenever anything changes ─────────
+  useEffect(() => {
+    dispatch({ type: 'SAVE_STEP2_CONFIG', config: { product, creditLim, drawAmt, amtDone, zeroStart, ioYrs, redOpt } })
+  }, [product, creditLim, drawAmt, amtDone, zeroStart, ioYrs, redOpt]) // eslint-disable-line
 
   // ── Step unlock ─────────────────────────────────────────────────────────────
   const s0Done  = product !== null
@@ -612,6 +608,13 @@ export default function ScreenOfferSelect({ step2, step1, dispatch }) {
   // ── Close the currently-editing card ────────────────────────────────────────
   function closeEdit() {
     setEditingCard(null)
+  }
+
+  // ── Reset step (demo only) ──────────────────────────────────────────────────
+  function handleReset() {
+    setProduct(null); setCreditLim(SEED.defaultCredit); setDrawAmt(SEED.defaultWithdraw)
+    setAmtDone(false); setZeroStart(null); setIoYrs(null); setRedOpt(null); setEditingCard(null)
+    dispatch({ type: 'SAVE_STEP2_CONFIG', config: null })
   }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -977,13 +980,23 @@ export default function ScreenOfferSelect({ step2, step1, dispatch }) {
         )}
 
         {/* Navigation */}
-        <div style={{ paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.08)', marginTop: 4 }}>
+        <div style={{ paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.08)', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button
             onClick={() => dispatch({ type: 'BACK' })}
             style={{ padding: '10px 20px', fontSize: 14, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}
           >
             ← Back
           </button>
+          {allDone && (
+            <button
+              onClick={handleConfirm}
+              style={{ padding: '11px 26px', fontSize: 14, fontWeight: 800, borderRadius: 11, background: '#254BCE', border: 'none', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 16px rgba(37,75,206,0.35)', transition: 'transform 0.15s' }}
+              onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
+              onMouseOut={e => (e.currentTarget.style.transform = '')}
+            >
+              Confirm your plan →
+            </button>
+          )}
         </div>
 
       </div>{/* end left */}
@@ -1009,6 +1022,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch }) {
           s0Done={s0Done}
           allDone={allDone}
           onConfirm={handleConfirm}
+          onReset={handleReset}
         />
       </div>
 

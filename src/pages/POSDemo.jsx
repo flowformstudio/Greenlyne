@@ -76,6 +76,7 @@ const initialState = {
   loan: null,
   sim: { propertyCheck: 'ok', appraisalRequired: false, opsReview: false, notaryMethod: 'enotary' },
   simOpen: false,
+  step2Config: null,  // persists configurator choices during session; cleared on restart
 }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
@@ -131,11 +132,12 @@ function appReducer(state, action) {
     case 'SIGN':             return { ...state, app: S.LOAN_CLOSED }
     case 'CLOSE_LOAN':       return { ...state, app: S.FUNDED }
     case 'JUMP_TO': return { ...state, app: action.state }
-    case 'SET_STEP1': return { ...state, step1: { ...state.step1, [action.field]: action.value } }
-    case 'SET_STEP3': return { ...state, step3: { ...state.step3, [action.field]: action.value } }
-    case 'SET_SIM':   return { ...state, sim: { ...state.sim, [action.key]: action.value } }
-    case 'TOGGLE_SIM':return { ...state, simOpen: !state.simOpen }
-    case 'RESTART':   return { ...initialState }
+    case 'SET_STEP1':          return { ...state, step1: { ...state.step1, [action.field]: action.value } }
+    case 'SET_STEP3':          return { ...state, step3: { ...state.step3, [action.field]: action.value } }
+    case 'SET_SIM':            return { ...state, sim: { ...state.sim, [action.key]: action.value } }
+    case 'TOGGLE_SIM':         return { ...state, simOpen: !state.simOpen }
+    case 'SAVE_STEP2_CONFIG':  return { ...state, step2Config: action.config }
+    case 'RESTART':            return { ...initialState }
     default: return state
   }
 }
@@ -2999,7 +3001,7 @@ export default function POSDemo() {
   function renderScreen() {
     switch (app) {
       case S.BASIC_INFO:           return <ScreenBasicInfo step1={step1} dispatch={dispatch} />
-      case S.OFFER_SELECT:         return <ScreenOfferSelectNew step2={step2} step1={step1} dispatch={dispatch} />
+      case S.OFFER_SELECT:         return <ScreenOfferSelectNew step2={step2} step1={step1} dispatch={dispatch} savedConfig={state.step2Config} />
       case S.MORE_INFO:            return <ScreenMoreInfo step3={step3} dispatch={dispatch} />
       case S.LINK_INCOME:          return <ScreenLinkIncome dispatch={dispatch} />
       case S.VERIFY_IDENTITY:      return <ScreenVerifyIdentity dispatch={dispatch} />
