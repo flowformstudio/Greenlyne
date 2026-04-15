@@ -547,14 +547,16 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
 // ─── Main screen component ────────────────────────────────────────────────────
 export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig }) {
   // ── Decision state — initialised from savedConfig so navigating away and back preserves choices ──
-  const [product,     setProduct]     = useState(savedConfig?.product     ?? null)
-  const [creditLim,   setCreditLim]   = useState(savedConfig?.creditLim   ?? SEED.defaultCredit)
-  const [drawAmt,     setDrawAmt]     = useState(savedConfig?.drawAmt     ?? SEED.defaultWithdraw)
-  const [amtDone,     setAmtDone]     = useState(savedConfig?.amtDone     ?? false)
-  const [zeroStart,   setZeroStart]   = useState(savedConfig?.zeroStart   ?? null)
-  const [ioYrs,       setIoYrs]       = useState(savedConfig?.ioYrs       ?? null)
-  const [redOpt,      setRedOpt]      = useState(savedConfig?.redOpt      ?? null)
-  const [editingCard, setEditingCard] = useState(null)
+  const [product,        setProduct]        = useState(savedConfig?.product     ?? null)
+  const [creditLim,      setCreditLim]      = useState(savedConfig?.creditLim   ?? SEED.defaultCredit)
+  const [drawAmt,        setDrawAmt]        = useState(savedConfig?.drawAmt     ?? SEED.defaultWithdraw)
+  const [amtDone,        setAmtDone]        = useState(savedConfig?.amtDone     ?? false)
+  const [zeroStart,      setZeroStart]      = useState(savedConfig?.zeroStart   ?? null)
+  const [ioYrs,          setIoYrs]          = useState(savedConfig?.ioYrs       ?? null)
+  const [redOpt,         setRedOpt]         = useState(savedConfig?.redOpt      ?? null)
+  const [editingCard,    setEditingCard]    = useState(null)
+  // HELOAN: payment start toggle within the merged amount card
+  const [heloanPayStart, setHeloanPayStart] = useState(savedConfig?.zeroStart === true)
 
   // ── Persist choices back to POSDemo state whenever anything changes ─────────
   useEffect(() => {
@@ -577,6 +579,11 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   const origFee  = Math.round(safeDraw * FEE_PCT)
   const enhPrinc = safeDraw + origFee
   const apr      = (rate + FEE_PCT * 100 * 0.08).toFixed(2)
+
+  // HELOAN: when deferring 6 months, some loan capacity is reserved for interest
+  // max_cash = MAX_CR / (1 + rate/12*6)
+  const HELOAN_MAX_DEFERRED = Math.floor(SEED.maxCredit / (1 + HELOAN_RATE / 100 / 12 * 6))
+  const heloanEffectiveMax  = (product === 'heloan' && heloanPayStart) ? HELOAN_MAX_DEFERRED : SEED.maxCredit
 
   const deferMo = zeroStart === true ? 6 : 0
   const accrued = deferMo > 0 ? Math.round(enhPrinc * (rate / 100 / 12) * deferMo) : 0
@@ -622,6 +629,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   // ── Edit handler — opens the card without touching any other answers ────────
   function goEdit(cardIndex) {
     setEditingCard(cardIndex)
+    // When re-editing the HELOAN merged card, sync toggle to current zeroStart
+    if (cardIndex === 1 && product === 'heloan') setHeloanPayStart(zeroStart === true)
   }
 
   // ── Close the currently-editing card ────────────────────────────────────────
@@ -751,33 +760,94 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           <DecCard
             step={2}
             title={product === 'heloc' ? 'Set your credit line and initial draw' : 'How much would you like to borrow?'}
-            answered={s1Done}
+            answered={product === 'heloan' ? (s1Done && zeroStart !== null) : s1Done}
             editing={editingCard === 1}
             summary={
               product === 'heloc'
                 ? `Credit line ${formatCurrencyFull(creditLim)} · Draw ${formatCurrencyFull(safeDraw)} at closing`
-                : `${formatCurrencyFull(creditLim)} — full draw at closing`
+                : `${formatCurrencyFull(creditLim)} · ${zeroStart ? 'first payment month 7' : 'payments begin right away'}`
             }
             onEdit={() => goEdit(1)}
             onClose={closeEdit}
           >
             {product === 'heloan' ? (
+              /* ── HELOAN: merged amount + payment start ── */
               <div>
+                {/* Loan amount */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Loan amount</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: '#254BCE', letterSpacing: '-0.5px' }}>{formatCurrencyFull(creditLim)}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#254BCE', letterSpacing: '-0.5px' }}>{formatCurrencyFull(Math.min(creditLim, heloanEffectiveMax))}</div>
                 </div>
-                <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>Full amount disbursed at closing. Fixed rate for the life of the loan.</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
+                  Full amount disbursed at closing. Fixed rate for the life of the loan.
+                  {heloanPayStart && creditLim > heloanEffectiveMax && (
+                    <span style={{ color: '#92400e', fontWeight: 600 }}> Maximum is {formatCurrencyFull(heloanEffectiveMax)} when deferring payments.</span>
+                  )}
+                </div>
                 <RangeSlider
-                  value={creditLim} min={SEED.minCredit} max={SEED.maxCredit} step={5000}
+                  value={Math.min(creditLim, heloanEffectiveMax)}
+                  min={SEED.minCredit}
+                  max={heloanEffectiveMax}
+                  step={5000}
                   onChange={v => { setCreditLim(v); setDrawAmt(v) }}
                   formatLabel={v => formatCurrencyFull(v)}
                 />
+
+                {/* Payment start toggle */}
+                <div style={{ marginTop: 20, padding: '16px', background: '#F8F9FC', borderRadius: 12, border: '1px solid rgba(0,22,96,0.07)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#001660', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>When do payments start?</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    {[
+                      { val: false, label: 'Start now',           sub: 'First payment next month' },
+                      { val: true,  label: 'Start in 6 months',   sub: 'First payment month 7'    },
+                    ].map(({ val, label, sub }) => {
+                      const active = heloanPayStart === val
+                      return (
+                        <button
+                          key={String(val)}
+                          onClick={() => {
+                            setHeloanPayStart(val)
+                            // Clamp creditLim if switching to deferred and current value is too high
+                            const newMax = val ? HELOAN_MAX_DEFERRED : SEED.maxCredit
+                            if (creditLim > newMax) { setCreditLim(newMax); setDrawAmt(newMax) }
+                          }}
+                          style={{
+                            padding: '11px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                            border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                            background: active ? 'rgba(37,75,206,0.06)' : '#fff',
+                            boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
+                            transition: 'all 0.15s', outline: 'none',
+                          }}
+                        >
+                          <div style={{ width: 13, height: 13, borderRadius: '50%', marginBottom: 8, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 11, color: '#9CA3AF' }}>{sub}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {/* Helper text */}
+                  <div style={{ fontSize: 12, color: heloanPayStart ? '#92400e' : '#6B7280', lineHeight: 1.6, padding: '8px 10px', background: heloanPayStart ? 'rgba(234,179,8,0.06)' : 'rgba(37,75,206,0.04)', borderRadius: 8, border: `1px solid ${heloanPayStart ? 'rgba(234,179,8,0.18)' : 'rgba(37,75,206,0.08)'}` }}>
+                    {heloanPayStart
+                      ? `You won't make payments for the first 6 months. Part of your loan is reserved to cover those payments, which reduces how much you can borrow to ${formatCurrencyFull(HELOAN_MAX_DEFERRED)}.`
+                      : 'You begin payments immediately, so your full loan amount is available to you.'
+                    }
+                  </div>
+                </div>
+
                 <button
-                  onClick={() => { setAmtDone(true); closeEdit() }}
-                  style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 11, fontSize: 14, fontWeight: 700, background: '#254BCE', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)' }}
+                  onClick={() => {
+                    const clamped = Math.min(creditLim, heloanEffectiveMax)
+                    setCreditLim(clamped); setDrawAmt(clamped)
+                    setZeroStart(heloanPayStart)
+                    setAmtDone(true)
+                    if (editingCard === null) closeEdit()
+                  }}
+                  style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 11, fontSize: 14, fontWeight: 700, background: '#254BCE', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)' }}
                 >
-                  Confirm {formatCurrencyFull(creditLim)} →
+                  Confirm {formatCurrencyFull(Math.min(creditLim, heloanEffectiveMax))} →
                 </button>
               </div>
             ) : (
@@ -822,8 +892,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           </DecCard>
         )}
 
-        {/* ── Card 3: $0 start ────────────────────────────────────────── */}
-        {s1Done && (
+        {/* ── Card 3: $0 start — HELOC only (HELOAN handles this inside Card 2) ── */}
+        {s1Done && product === 'heloc' && (
           <DecCard
             step={3}
             title="Would you like your first 6 months payment-free?"
@@ -896,10 +966,9 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           </DecCard>
         )}
 
-        {/* ── Card 4: Interest-only period ────────────────────────────── */}
+        {/* ── Card 4: Interest-only period — fixed at 5 yrs for both HELOC and HELOAN ── */}
         {s2Done && (
-          product === 'heloc' ? (
-            /* HELOC: fixed 5-yr draw period — informational only, acknowledged by button */
+          /* Fixed 5-yr informational block — acknowledged by "I understand" button */
             <div style={{
               background: s3Done ? 'rgba(1,97,99,0.03)' : '#fff',
               borderRadius: 16, overflow: 'hidden',
@@ -927,7 +996,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 </p>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(1,97,99,0.07)', borderRadius: 100, padding: '4px 11px', marginBottom: s3Done ? 0 : 16 }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#016163' }}>This is how HELOC works — not a choice you make</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#016163' }}>This is part of how your loan works — not a choice you make</span>
                 </div>
                 {!s3Done && (
                   <div>
@@ -947,58 +1016,6 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 )}
               </div>
             </div>
-          ) : (
-            /* HELOAN: user-configurable IO period */
-            <DecCard
-              step={4}
-              title="Would you like an interest-only period?"
-              answered={s3Done}
-              editing={editingCard === 3}
-              summary={
-                ioYrs === 0
-                  ? 'No — principal + interest from the start'
-                  : `${ioYrs} year${ioYrs !== 1 ? 's' : ''} of interest-only payments`
-              }
-              onEdit={() => goEdit(3)}
-              onClose={closeEdit}
-            >
-              <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55, marginBottom: 14 }}>
-                For the first few years, your payment covers just the interest — like paying rent on the money. Your loan amount doesn't go down yet, but your monthly payment stays lower. After this period, your regular payments begin and you start paying it off.
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-                {[
-                  { val: 0, label: 'None',   sub: 'P+I now' },
-                  { val: 2, label: '2 yrs',  sub: 'then P+I' },
-                  { val: 3, label: '3 yrs',  sub: 'then P+I' },
-                  { val: 4, label: '4 yrs',  sub: 'then P+I' },
-                  { val: 5, label: '5 yrs',  sub: 'then P+I' },
-                ].map(({ val, label, sub }) => {
-                  const active = ioYrs === val
-                  return (
-                    <button
-                      key={val}
-                      onClick={() => {
-                        if (val >= 5 && redOpt && redOpt !== 'none') setRedOpt('none')
-                        else if (val >= 4 && redOpt === '30') setRedOpt(null)
-                        setIoYrs(val)
-                        if (editingCard === null) closeEdit()
-                      }}
-                      style={{
-                        padding: '12px 6px', borderRadius: 11, textAlign: 'center', cursor: 'pointer',
-                        border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
-                        background: active ? 'rgba(37,75,206,0.07)' : '#F8F9FC',
-                        boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
-                        transition: 'all 0.15s', outline: 'none',
-                      }}
-                    >
-                      <div style={{ fontSize: 15, fontWeight: 800, color: active ? '#254BCE' : '#001660', marginBottom: 2 }}>{label}</div>
-                      <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.3 }}>{sub}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </DecCard>
-          )
         )}
 
         {/* ── Card 5: Reduced payment ──────────────────────────────────── */}
