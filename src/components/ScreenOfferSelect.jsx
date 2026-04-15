@@ -288,7 +288,7 @@ function OfferConfigSummary({
     timeline.push({
       label: timeLabel(`${redMonths} months`),
       payment: redPayment,
-      note: `Slightly reduced payments — easing in before the full amount`,
+      note: `${redPct}% less than your full payment — a stepping stone before you reach ${formatCurrencyFull(piPayment)}/mo`,
     })
   }
 

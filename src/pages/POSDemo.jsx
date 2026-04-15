@@ -2107,7 +2107,7 @@ function OfferSidebar({ loan, step2 }) {
     timeline.push({
       label: tLabel(`${redMonths} months`),
       payment: redPayment,
-      note: 'Slightly reduced to ease you in',
+      note: `${redPct}% less than the full payment — stepping up to ${formatCurrencyFull(raw.repayPayment)}/mo after`,
     })
   }
 
