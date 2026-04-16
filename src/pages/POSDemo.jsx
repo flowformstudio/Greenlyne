@@ -3113,7 +3113,11 @@ export default function POSDemo() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 {renderScreen()}
               </div>
-              {showOfferSidebar && <OfferSidebar loan={loan} step2={step2} />}
+              {showOfferSidebar && (
+                <div style={{ paddingTop: 116, flexShrink: 0 }}>
+                  <OfferSidebar loan={loan} step2={step2} />
+                </div>
+              )}
             </div>
           )}
         </main>
