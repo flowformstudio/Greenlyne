@@ -136,7 +136,7 @@ export default function OfferLanding() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column' }}>
-      <WesthavenHeader />
+      <WesthavenHeader lender="grand-bank" />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: step === 1 ? 'stretch' : 'center', padding: step === 1 ? '0 0 48px' : '0 16px 48px' }}>
         <div style={{ width: '100%', maxWidth: step === 1 ? '100%' : 560, marginTop: step === 1 ? 0 : 32 }}>
 

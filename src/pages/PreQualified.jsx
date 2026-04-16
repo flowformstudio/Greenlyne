@@ -101,7 +101,7 @@ export default function PreQualified() {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       WebkitFontSmoothing: 'antialiased', display: 'flex', flexDirection: 'column',
     }}>
-      <WesthavenHeader />
+      <WesthavenHeader lender="grand-bank" />
 
       <div style={{ flex: 1 }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 20px 72px' }}>

@@ -481,6 +481,154 @@ function SimToggle({ label, value, onChange }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Shared completed-tile card used in all review screens
+// ─────────────────────────────────────────────────────────────────────────────
+function ReviewCheckCard({ label, rows, onEdit }) {
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1.5px solid rgba(1,97,99,0.25)',
+      borderRadius: 14,
+      padding: '16px 20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+            background: '#016163',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+              <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>
+            {label}
+          </span>
+        </div>
+        <button
+          onClick={onEdit}
+          style={{
+            fontSize: 13, fontWeight: 600, color: '#254BCE',
+            background: 'rgba(37,75,206,0.06)',
+            border: '1px solid rgba(37,75,206,0.15)',
+            borderRadius: 20, padding: '5px 16px',
+            cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'background 0.12s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(37,75,206,0.12)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(37,75,206,0.06)'}
+        >
+          Edit
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {rows.map(row => (
+          <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontSize: 13, color: '#6B7280', flexShrink: 0 }}>{row.label}</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827', textAlign: 'right' }}>{row.value || '—'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Shared "Review" progress header + heading used across all review screens
+function ReviewHeader({ totalSteps, heading, sub }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>Review</span>
+        <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {totalSteps} of {totalSteps}</span>
+      </div>
+      <div style={{ height: 3, background: '#254BCE', borderRadius: 0, marginBottom: 28 }} />
+      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.4px' }}>{heading}</h1>
+      <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>{sub}</p>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Review screen — shown after all Basic Info sub-steps complete
+// ─────────────────────────────────────────────────────────────────────────────
+function BasicInfoReview({ step1, onEdit, onContinue }) {
+  const sections = [
+    {
+      index: 0,
+      label: 'Identity',
+      rows: [
+        { label: 'Name',           value: `${step1.firstName} ${step1.lastName}` },
+        { label: 'Date of birth',  value: step1.dob },
+        { label: 'Marital status', value: step1.marital },
+        { label: 'SSN (last 4)',   value: step1.ssn4 ? `•••• ${step1.ssn4}` : '—' },
+      ],
+    },
+    {
+      index: 1,
+      label: 'Contact',
+      rows: [
+        { label: 'Phone', value: step1.phone },
+        { label: 'Email', value: step1.email },
+      ],
+    },
+    {
+      index: 2,
+      label: 'Purpose',
+      rows: [
+        { label: 'Financing purpose', value: step1.purpose },
+      ],
+    },
+    {
+      index: 3,
+      label: 'Property Address',
+      rows: [
+        { label: 'Address', value: [step1.address, step1.city, step1.state, step1.zip].filter(Boolean).join(', ') },
+      ],
+    },
+    {
+      index: 4,
+      label: 'Ownership',
+      rows: [
+        { label: 'Property type', value: step1.propType },
+        { label: 'Ownership',     value: step1.ownership },
+      ],
+    },
+  ]
+
+  return (
+    <div>
+      <ReviewHeader
+        totalSteps={5}
+        heading="Review your information"
+        sub="Everything look right? Edit any section below, then continue."
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+        {sections.map(s => (
+          <ReviewCheckCard key={s.index} label={s.label} rows={s.rows} onEdit={() => onEdit(s.index)} />
+        ))}
+      </div>
+
+      <button
+        onClick={onContinue}
+        style={{
+          width: '100%', padding: '15px', borderRadius: 12, border: 'none',
+          background: '#001660', color: '#fff',
+          fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          letterSpacing: '-0.1px',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
+        onMouseLeave={e => e.currentTarget.style.background = '#001660'}
+      >
+        Save &amp; Continue →
+      </button>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Screen: Basic Info (Step 1) — 4 focused sub-steps
 // ─────────────────────────────────────────────────────────────────────────────
 const BASIC_SUB_STEPS = [
@@ -499,26 +647,19 @@ const PURPOSE_OPTIONS = [
   { value: 'Other',               icon: '✦',  desc: 'Something else entirely' },
 ]
 
-function SubStepProgress({ current }) {
+function SubStepProgress({ current, editing = false }) {
   const total = BASIC_SUB_STEPS.length
-  const pct   = Math.round(((current + 1) / total) * 100)
   const label = BASIC_SUB_STEPS[current]?.label ?? ''
 
   return (
     <div style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#001660' }}>{label}</span>
-        <span style={{ fontSize: 12, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
+        <span style={{ fontSize: 13, color: '#9CA3AF' }}>
+          {editing ? `Step ${current + 1} of ${total}` : `Step ${current + 1} of ${total}`}
+        </span>
       </div>
-      <div style={{ height: 4, background: 'rgba(0,22,96,0.08)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{
-          height: '100%',
-          width: `${pct}%`,
-          background: 'linear-gradient(90deg, #254BCE 0%, #3B63E8 100%)',
-          borderRadius: 99,
-          transition: 'width 0.35s ease',
-        }} />
-      </div>
+      <div style={{ height: 3, background: '#254BCE', borderRadius: 0 }} />
     </div>
   )
 }
@@ -557,307 +698,269 @@ function NarrowInput({ value, onChange, placeholder, maxWidth = 96, center = fal
   )
 }
 
-function ScreenBasicInfo({ step1, dispatch }) {
-  const [sub, setSub] = useState(0)
-  const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
+// Derive how far a user has already progressed through Basic Info
+// so that returning to this screen shows completed tiles rather than starting over.
+function computeBasicInfoSub(s) {
+  if (!s.firstName || !s.lastName) return 0
+  if (!s.phone) return 1
+  if (!s.purpose) return 2
+  if (!s.address || !s.city) return 3
+  if (!s.propType || !s.ownership) return 4
+  return 5
+}
 
-  const goNext = () => {
-    if (sub < BASIC_SUB_STEPS.length - 1) setSub(sub + 1)
-    else dispatch({ type: 'NEXT' })
-  }
-  const goBack = () => {
-    if (sub > 0) setSub(sub - 1)
-  }
+function ScreenBasicInfo({ step1, dispatch }) {
+  const [currentSub, setCurrentSub] = useState(() => computeBasicInfoSub(step1))
+  const [editingIndex, setEditingIndex] = useState(null)
+  const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
+  const total = BASIC_SUB_STEPS.length
+  const allDone = currentSub >= total
+  const activeIndex = editingIndex !== null ? editingIndex : allDone ? null : currentSub
 
   const SUB_META = [
-    { heading: 'Let\'s confirm who you are',            sub: 'Pre-filled from your pre-approval — just verify these look right.' },
-    { heading: 'How can we reach you?',                  sub: 'We\'ll only contact you about your application. No spam.' },
-    { heading: 'What\'s the primary purpose of this loan?', sub: 'This helps us match you with the right terms.' },
-    { heading: 'Where is the property?',                 sub: 'This is the home you\'re financing against.' },
-    { heading: 'Who owns this property?',                sub: 'Select the property type and how ownership is held.' },
+    { heading: "Let's confirm who you are",                sub: 'Pre-filled from your pre-approval — just verify.' },
+    { heading: 'How can we reach you?',                    sub: "We'll only contact you about your application." },
+    { heading: "What's the primary purpose of this loan?", sub: 'This helps us match you with the right terms.' },
+    { heading: 'Where is the property?',                   sub: "The home you're financing against." },
+    { heading: 'Who owns this property?',                  sub: 'Select the type and how ownership is held.' },
   ]
 
-  const meta = SUB_META[sub]
+  function getSummary(i) {
+    switch (i) {
+      case 0: return `${step1.firstName} ${step1.lastName} · ${step1.dob} · ${step1.marital}`
+      case 1: return `${step1.phone} · ${step1.email}`
+      case 2: return step1.purpose || '—'
+      case 3: return [step1.address, step1.city, step1.state, step1.zip].filter(Boolean).join(', ')
+      case 4: return `${step1.propType} · ${step1.ownership}`
+      default: return '—'
+    }
+  }
+
+  function handleContinue() {
+    if (editingIndex !== null) { setEditingIndex(null) }
+    else { setCurrentSub(c => c + 1) }
+  }
 
   return (
     <div>
-      <SubStepProgress current={sub} />
+      <style>{`
+        @keyframes tileSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: none; }
+        }
+      `}</style>
 
+      {/* Eyebrow + heading */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
-          {meta.heading}
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+          Step 1 of 7
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+          Tell us about yourself
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0 }}>{meta.sub}</p>
+        <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          Answer each question — your details are saved as you go.
+        </p>
       </div>
 
-      {/* ── Sub-step 1: Identity ── */}
-      {sub === 0 && (
-        <Card>
-          <CardBody>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {/* Name row — first names are typically shorter than last names */}
-              <FieldRow gap={12}>
-                <FieldWrap maxWidth={176}>
-                  <Field label="First name">
-                    <Input value={step1.firstName} onChange={v => set('firstName', v)} />
-                  </Field>
-                </FieldWrap>
-                <FieldWrap maxWidth={216}>
-                  <Field label="Last name">
-                    <Input value={step1.lastName} onChange={v => set('lastName', v)} />
-                  </Field>
-                </FieldWrap>
-              </FieldRow>
+      {/* Vertical step tiles */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        {BASIC_SUB_STEPS.map((step, index) => {
+          if (index > currentSub && editingIndex !== index) return null
+          const isCompleted = (index < currentSub || allDone) && editingIndex !== index
+          const isActive = index === activeIndex
 
-              {/* DOB */}
-              <FieldWrap maxWidth={180}>
-                <Field label="Date of birth">
-                  <Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" />
-                </Field>
-              </FieldWrap>
-
-              {/* Marital status */}
-              <FieldWrap maxWidth={170}>
-                <Field label="Marital status">
-                  <Select value={step1.marital} onChange={v => set('marital', v)}
-                    options={['Single','Married','Separated','Divorced','Widowed']} />
-                </Field>
-              </FieldWrap>
-
-              {/* SSN + hint inline */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 4, display: 'block' }}>
-                    SSN <span style={{ fontWeight: 400, color: '#9CA3AF' }}>last 4 digits</span>
-                  </label>
-                  <NarrowInput
-                    value={step1.ssn4}
-                    onChange={v => set('ssn4', v.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="_ _ _ _"
-                    maxWidth={88}
-                    center
-                  />
-                </div>
-                <div style={{
-                  flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px',
-                  background: 'rgba(37,75,206,0.04)', borderRadius: 10,
-                  border: '1px solid rgba(37,75,206,0.08)',
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                  <p style={{ fontSize: 13, color: '#4B5563', margin: 0, lineHeight: 1.6 }}>
-                    Your SSN is used only to verify identity. We use a <strong>soft pull</strong> — no impact to your credit score.
-                  </p>
-                </div>
+          // ── Completed collapsed tile ──
+          // Key includes '-done' so React remounts (and re-animates) when state flips
+          if (isCompleted) return (
+            <div key={step.id + '-done'} style={{
+              background: '#fff', border: '1.5px solid rgba(1,97,99,0.25)',
+              borderRadius: 14, padding: '14px 20px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
+            }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
+                {getSummary(index)}
+              </span>
+              <button onClick={() => setEditingIndex(index)} style={{
+                fontSize: 13, fontWeight: 600, color: '#254BCE',
+                background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
+                borderRadius: 20, padding: '5px 16px',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Edit</button>
             </div>
-          </CardBody>
-        </Card>
-      )}
+          )
 
-      {/* ── Sub-step 2: Contact ── */}
-      {sub === 1 && (
-        <Card>
-          <CardBody>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <FieldRow gap={12}>
-                <FieldWrap flex="0 0 210px">
-                  <Field label="Phone number">
-                    <Input value={step1.phone} onChange={v => set('phone', v)} placeholder="(___) ___-____" />
-                  </Field>
-                </FieldWrap>
-                <FieldWrap flex="0 0 210px">
-                  <Field label="Email address">
-                    <Input value={step1.email} onChange={v => set('email', v)} />
-                  </Field>
-                </FieldWrap>
-              </FieldRow>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* ── Sub-step 3: Financing Purpose ── */}
-      {sub === 2 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {PURPOSE_OPTIONS.map(opt => {
-            const active = step1.purpose === opt.value
+          // ── Active expanded tile ──
+          // Key includes '-active' so entering edit mode re-animates the tile
+          if (isActive) {
+            const meta = SUB_META[index]
             return (
-              <button
-                key={opt.value}
-                onClick={() => set('purpose', opt.value)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  padding: '16px 20px',
-                  background: active ? 'rgba(37,75,206,0.06)' : '#fff',
-                  border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
-                  borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-                  transition: 'all 0.15s',
-                  boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
-                }}
-              >
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                  background: active ? 'rgba(37,75,206,0.1)' : 'rgba(0,22,96,0.05)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 20,
-                }}>
-                  {opt.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#254BCE' : '#001660', marginBottom: 3 }}>
-                    {opt.value}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#6B7280' }}>{opt.desc}</div>
-                </div>
-                <div style={{
-                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                  border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`,
-                  background: active ? '#254BCE' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {active && (
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
-                  )}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ── Sub-step 4: Property Address ── */}
-      {sub === 3 && (
-        <Card>
-          <CardBody>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <Field label="Street address">
-                <Input value={step1.address} onChange={v => set('address', v)} placeholder="123 Main St" />
-              </Field>
-
-              <FieldRow gap={10}>
-                <FieldWrap maxWidth={220}>
-                  <Field label="City">
-                    <Input value={step1.city} onChange={v => set('city', v)} />
-                  </Field>
-                </FieldWrap>
-                <FieldWrap maxWidth={80}>
-                  <Field label="State">
-                    <Input value={step1.state} onChange={v => set('state', v.toUpperCase().slice(0, 2))} placeholder="CA" />
-                  </Field>
-                </FieldWrap>
-                <FieldWrap maxWidth={104}>
-                  <Field label="ZIP code">
-                    <Input value={step1.zip} onChange={v => set('zip', v.replace(/\D/g, '').slice(0, 5))} placeholder="00000" />
-                  </Field>
-                </FieldWrap>
-              </FieldRow>
-
-              {/* Map pin visual */}
-              <div style={{
-                padding: '12px 14px', borderRadius: 10,
-                background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)',
-                display: 'flex', alignItems: 'center', gap: 10,
+              <div key={step.id + '-active'} style={{
+                background: '#fff', border: '2px solid rgba(37,75,206,0.3)',
+                borderRadius: 14, padding: '20px',
+                boxShadow: '0 4px 20px rgba(37,75,206,0.1)',
+                animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
               }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span style={{ fontSize: 13, color: '#065F46', fontWeight: 500 }}>
-                  {step1.address}, {step1.city}, {step1.state} {step1.zip}
-                </span>
+                {/* Tile header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                    {index + 1}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{meta.heading}</div>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
+                  </div>
+                </div>
+
+                {/* Form content */}
+                {index === 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Names — first shorter than last */}
+                    <FieldRow gap={12}>
+                      <FieldWrap maxWidth={176}><Field label="First name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
+                      <FieldWrap maxWidth={220}><Field label="Last name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
+                    </FieldRow>
+                    {/* DOB + Marital status — sit side by side, both compact */}
+                    <FieldRow gap={12}>
+                      <FieldWrap maxWidth={160}><Field label="Date of birth"><Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" /></Field></FieldWrap>
+                      <FieldWrap maxWidth={180}><Field label="Marital status"><Select value={step1.marital} onChange={v => set('marital', v)} options={['Single','Married','Separated','Divorced','Widowed']} /></Field></FieldWrap>
+                    </FieldRow>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+                      <div>
+                        <label style={{ fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 4, display: 'block' }}>SSN <span style={{ fontWeight: 400, color: '#9CA3AF' }}>last 4</span></label>
+                        <NarrowInput value={step1.ssn4} onChange={v => set('ssn4', v.replace(/\D/g, '').slice(0, 4))} placeholder="_ _ _ _" maxWidth={88} center />
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', background: 'rgba(37,75,206,0.04)', borderRadius: 10, border: '1px solid rgba(37,75,206,0.08)' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <p style={{ fontSize: 13, color: '#4B5563', margin: 0, lineHeight: 1.6 }}>Soft pull only — <strong>no score impact.</strong></p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {index === 1 && (
+                  <FieldRow gap={12}>
+                    {/* Phone — fixed width (US number is always 14 chars) */}
+                    <FieldWrap maxWidth={190}><Field label="Phone number"><Input value={step1.phone} onChange={v => set('phone', v)} placeholder="(___) ___-____" /></Field></FieldWrap>
+                    {/* Email — grows to fill remaining space */}
+                    <FieldWrap flex="1 1 0"><Field label="Email address"><Input value={step1.email} onChange={v => set('email', v)} /></Field></FieldWrap>
+                  </FieldRow>
+                )}
+
+                {index === 2 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {PURPOSE_OPTIONS.map(opt => {
+                      const active = step1.purpose === opt.value
+                      return (
+                        <button key={opt.value} onClick={() => set('purpose', opt.value)} style={{
+                          display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px',
+                          background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+                          border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                          borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                          boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
+                        }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: active ? 'rgba(37,75,206,0.1)' : 'rgba(0,22,96,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{opt.icon}</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 15, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
+                            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{opt.desc}</div>
+                          </div>
+                          <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {index === 3 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <Field label="Street address"><Input value={step1.address} onChange={v => set('address', v)} placeholder="123 Main St" /></Field>
+                    <FieldRow gap={10}>
+                      <FieldWrap maxWidth={220}><Field label="City"><Input value={step1.city} onChange={v => set('city', v)} /></Field></FieldWrap>
+                      <FieldWrap maxWidth={80}><Field label="State"><Input value={step1.state} onChange={v => set('state', v.toUpperCase().slice(0, 2))} placeholder="CA" /></Field></FieldWrap>
+                      <FieldWrap maxWidth={104}><Field label="ZIP code"><Input value={step1.zip} onChange={v => set('zip', v.replace(/\D/g, '').slice(0, 5))} placeholder="00000" /></Field></FieldWrap>
+                    </FieldRow>
+                    <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span style={{ fontSize: 13, color: '#065F46', fontWeight: 500 }}>{step1.address}, {step1.city}, {step1.state} {step1.zip}</span>
+                    </div>
+                  </div>
+                )}
+
+                {index === 4 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Property type</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {[{ value: 'Primary residence', icon: '🏠', desc: 'Primary home' }, { value: 'Secondary residence', icon: '🏡', desc: 'Vacation / part-time' }, { value: 'Investment property', icon: '📈', desc: 'Rental / income' }].map(opt => {
+                          const active = step1.propType === opt.value
+                          return (
+                            <button key={opt.value} onClick={() => set('propType', opt.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, borderRadius: 12, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
+                              <span style={{ fontSize: 22 }}>{opt.icon}</span>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
+                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Ownership type</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {[{ value: 'Sole owner', icon: '👤', desc: 'Only owner' }, { value: 'Joint ownership', icon: '👥', desc: 'With co-owner' }, { value: 'Trust', icon: '🏛️', desc: 'Held in trust' }].map(opt => {
+                          const active = step1.ownership === opt.value
+                          return (
+                            <button key={opt.value} onClick={() => set('ownership', opt.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, borderRadius: 12, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
+                              <span style={{ fontSize: 22 }}>{opt.icon}</span>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
+                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Continue button inside tile */}
+                <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={handleContinue} style={{
+                    padding: '11px 24px', borderRadius: 10, border: 'none',
+                    background: '#254BCE', color: '#fff',
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    {editingIndex !== null ? 'Save →' : index === total - 1 ? 'Done →' : 'Continue →'}
+                  </button>
+                </div>
               </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+            )
+          }
 
-      {/* ── Sub-step 5: Ownership ── */}
-      {sub === 4 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Property type */}
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Property type</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[
-                { value: 'Primary residence',  icon: '🏠', desc: 'Primary home' },
-                { value: 'Secondary residence', icon: '🏡', desc: 'Vacation / part-time' },
-                { value: 'Investment property', icon: '📈', desc: 'Rental / income' },
-              ].map(opt => {
-                const active = step1.propType === opt.value
-                return (
-                  <button key={opt.value} onClick={() => set('propType', opt.value)} style={{
-                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    gap: 8, padding: '16px 10px',
-                    background: active ? 'rgba(37,75,206,0.06)' : '#fff',
-                    border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
-                    borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
-                    boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
-                  }}>
-                    <span style={{ fontSize: 24 }}>{opt.icon}</span>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
-                      <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3 }}>{opt.desc}</div>
-                    </div>
-                    <div style={{
-                      width: 16, height: 16, borderRadius: '50%',
-                      border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`,
-                      background: active ? '#254BCE' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+          return null
+        })}
+      </div>
 
-          <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
-
-          {/* Ownership type */}
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ownership type</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[
-                { value: 'Sole owner',      icon: '👤', desc: 'Only owner' },
-                { value: 'Joint ownership', icon: '👥', desc: 'With co-owner' },
-                { value: 'Trust',           icon: '🏛️', desc: 'Held in trust' },
-              ].map(opt => {
-                const active = step1.ownership === opt.value
-                return (
-                  <button key={opt.value} onClick={() => set('ownership', opt.value)} style={{
-                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    gap: 8, padding: '16px 10px',
-                    background: active ? 'rgba(37,75,206,0.06)' : '#fff',
-                    border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
-                    borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
-                    boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
-                  }}>
-                    <span style={{ fontSize: 24 }}>{opt.icon}</span>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
-                      <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3 }}>{opt.desc}</div>
-                    </div>
-                    <div style={{
-                      width: 16, height: 16, borderRadius: '50%',
-                      border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`,
-                      background: active ? '#254BCE' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Nav */}
-      <NavButtons
-        showBack={sub > 0}
-        onBack={goBack}
-        onNext={goNext}
-        nextLabel={sub === BASIC_SUB_STEPS.length - 1 ? 'Save & Continue' : 'Continue'}
-      />
+      {/* Bottom nav */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
+        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 14, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
+          ← Back
+        </button>
+        {allDone && editingIndex === null && (
+          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
+            Save &amp; Continue →
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -1285,6 +1388,11 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
   const [coBorrowerIncome, setCoBorrowerIncome] = useState('')
   const [switchedPrimary,  setSwitchedPrimary]  = useState(false)
 
+  // Accordion stepper for configure screen (offerSub === 1)
+  const [loanType,          setLoanType]          = useState('heloc') // 'heloc' | 'heloan'
+  const [configSub,         setConfigSub]         = useState(4)       // start all-done (goal pre-fills everything)
+  const [configEditingIndex, setConfigEditingIndex] = useState(null)
+
   // Collapse the recovery panel whenever the user adjusts any loan parameter
   useEffect(() => { setShowDecline(false) }, [withdrawNow, creditLimit, termYears, tier, deferredMonths])
 
@@ -1344,6 +1452,32 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
     }
     setShowDecline(false)
     dispatch({ type: 'NEXT', step2: { creditLimit, withdrawNow: safeWithdraw, tier, deferredMonths, autopay }, loan: { ...loan, apr: displayApr } })
+  }
+
+  // ── Configure accordion helpers ──────────────────────────────────────────
+  const CONFIG_STEPS = [
+    { id: 'loan-type', label: 'Loan type' },
+    { id: 'amounts',   label: 'Credit line & draw' },
+    { id: 'timing',    label: 'Payment timing' },
+    { id: 'structure', label: 'How your loan works', auto: true },
+  ]
+  const configTotal   = CONFIG_STEPS.length
+  const configAllDone = configSub >= configTotal
+  const configActive  = configEditingIndex !== null ? configEditingIndex : configAllDone ? null : configSub
+
+  function getConfigSummary(i) {
+    switch (i) {
+      case 0: return loanType === 'heloc' ? 'HELOC — flexible line of credit' : 'Home Equity Loan — fixed monthly payments'
+      case 1: return `${formatCurrencyFull(creditLimit)} credit line · Draw ${formatCurrencyFull(safeWithdraw)} at closing`
+      case 2: return deferredMonths === 0 ? 'Payments start right away' : `Yes — first payment starts in month ${deferredMonths}`
+      case 3: return `First ${termYears > 20 ? 10 : 5} years: interest-only draw period`
+      default: return '—'
+    }
+  }
+
+  function configContinue() {
+    if (configEditingIndex !== null) { setConfigEditingIndex(null) }
+    else { setConfigSub(c => c + 1) }
   }
 
   // ── Offer progress bar ────────────────────────────────────────────────────
@@ -1423,7 +1557,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
       {/* Heading */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
           What matters most to you?
         </h1>
         <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -1516,7 +1650,6 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
   return (
     <div>
-
       {/* DTI Recovery Modal */}
       {showDecline && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
@@ -1546,426 +1679,224 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
           </div>
         </div>
       )}
-
-      <OfferProgress current={1} />
-
-      {/* Hero */}
-      <div style={{ paddingBottom: 24, marginBottom: 24, borderBottom: '1px solid rgba(0,22,96,0.08)' }}>
-        {goalMeta ? (
-          <>
-            <h1 style={{ fontSize: 32, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.6px', lineHeight: 1.15 }}>
-              Your plan is ready
-            </h1>
-            <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-              We've configured the best setup for your goal. Adjust anything below.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 style={{ fontSize: 32, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.6px', lineHeight: 1.15 }}>
-              Pick a monthly payment that works for you
-            </h1>
-            <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-              Alex, your home qualifies for solar financing. Choose the plan that fits your budget.
-            </p>
-          </>
-        )}
+      {/* Step eyebrow */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+          Step 2 of 7
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+          Build your loan
+        </h1>
+        <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          Answer each question — your plan summary updates live on the right.
+        </p>
       </div>
 
-      {/* Plan Info — individual floating tiles */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Plan Info</div>
-          {goalMeta && (
-            <button onClick={() => setOfferSub(0)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#254BCE', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}>
-              <span style={{ fontSize: 13 }}>{goalMeta.emoji}</span>
-              {goalMeta.label}
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-              Change goal
-            </button>
-          )}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
+      {/* Accordion tiles */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        {CONFIG_STEPS.map((step, index) => {
+          if (index > configSub && configEditingIndex !== index) return null
+          const isDone   = (index < configSub || configAllDone) && configEditingIndex !== index
+          const isActive = index === configActive
 
-          {/* DTI Health */}
-          <div style={{ background: dtiTooHigh ? 'linear-gradient(135deg, #991B1B, #7f1d1d)' : 'linear-gradient(135deg, #016163, #014e50)', borderRadius: 12, padding: '14px 16px', boxShadow: dtiTooHigh ? '0 2px 10px rgba(153,27,27,0.25)' : '0 2px 10px rgba(1,97,99,0.2)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>DTI Health</div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-1px', lineHeight: 1 }}>{Math.round(dti * 100)}%</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 5 }}>{dtiTooHigh ? '⚠️ Above 45% limit' : '✓ Within threshold'}</div>
-          </div>
-
-          {/* Cash at closing */}
-          <div style={{ background: 'linear-gradient(135deg, #016163, #014e50)', borderRadius: 12, padding: '14px 16px', boxShadow: '0 2px 10px rgba(1,97,99,0.2)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Cash at closing</div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-1px', lineHeight: 1 }}>$0</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 5 }}>Fee {formatCurrencyFull(loan.originationFee)} rolled in</div>
-          </div>
-
-          {/* Monthly payment */}
-          <div style={{ background: '#fff', border: '1px solid rgba(37,75,206,0.15)', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,22,96,0.06)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: 6 }}>Monthly payment</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#254BCE', letterSpacing: '-0.5px', lineHeight: 1 }}>
-              ${selectedPayment.toLocaleString()}<span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span>
-            </div>
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 5 }}>{termYears}-yr term</div>
-          </div>
-
-          {/* Monthly savings */}
-          <div style={{ background: '#fff', border: `1px solid ${savings >= 0 ? 'rgba(1,97,99,0.15)' : 'rgba(0,22,96,0.08)'}`, borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,22,96,0.06)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: 6 }}>{savings >= 0 ? 'Monthly savings' : 'Over bill'}</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: savings >= 0 ? '#016163' : '#374151', letterSpacing: '-0.5px', lineHeight: 1 }}>
-              {savings >= 0 ? `~$${savings.toLocaleString()}` : `$${Math.abs(savings).toLocaleString()}`}
-              <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span>
-            </div>
-            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 5 }}>vs. electric bill</div>
-          </div>
-
-          {/* First payment */}
-          <div style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,22,96,0.06)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: 6 }}>First payment</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#001660', lineHeight: 1.25 }}>
-              {deferredMonths > 0 ? payStartLabel(deferredMonths) : payStartLabel(0)}
-            </div>
-          </div>
-
-          {/* Available today */}
-          <div style={{ background: '#fff', border: '1px solid rgba(37,75,206,0.12)', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,22,96,0.06)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: 6 }}>Available today</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#254BCE', letterSpacing: '-0.5px', lineHeight: 1 }}>{formatCurrencyFull(safeWithdraw)}</div>
-          </div>
-
-          {/* APR */}
-          <div style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,22,96,0.06)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: 6 }}>APR</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: '#001660', letterSpacing: '-0.5px', lineHeight: 1 }}>{displayApr}%</div>
-          </div>
-
-          {/* Rate */}
-          <div style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,22,96,0.06)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: 6 }}>Rate</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: '#001660', letterSpacing: '-0.5px', lineHeight: 1 }}>{FEE_TIERS[tier].rate}%</div>
-          </div>
-
-        </div>
-
-        {/* Plan Health */}
-        <div style={{ marginTop: 14, background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 12, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Plan Health</div>
-          {!dtiTooHigh && deferredMonths === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(1,97,99,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          if (isDone) return (
+            <div key={step.id + '-done'} style={{
+              background: '#fff', border: '1.5px solid rgba(1,97,99,0.25)',
+              borderRadius: 14, padding: '14px 20px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
+            }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <span style={{ fontSize: 13, color: '#016163', fontWeight: 600 }}>Everything looks good — no issues with this plan.</span>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
+                {getConfigSummary(index)}
+              </span>
+              {!step.auto && (
+                <button onClick={() => setConfigEditingIndex(index)} style={{
+                  fontSize: 13, fontWeight: 600, color: '#254BCE',
+                  background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
+                  borderRadius: 20, padding: '5px 16px', cursor: 'pointer', fontFamily: 'inherit',
+                }}>Edit</button>
+              )}
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {dtiTooHigh && (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: '#FFF5F5', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 10 }}>
-                  <span style={{ fontSize: 15, lineHeight: 1, marginTop: 1 }}>⚠️</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#991B1B', marginBottom: 2 }}>High DTI — {Math.round(dti * 100)}% (above 45% threshold)</div>
-                    <div style={{ fontSize: 12, color: '#DC2626', lineHeight: 1.5 }}>This configuration may not qualify. Consider reducing your draw amount or choosing a longer term to lower the payment.</div>
-                  </div>
-                  <button onClick={() => setShowDecline(true)} style={{ fontSize: 12, fontWeight: 700, color: '#DC2626', background: 'none', border: '1px solid rgba(220,38,38,0.35)', borderRadius: 7, cursor: 'pointer', whiteSpace: 'nowrap', padding: '5px 10px', flexShrink: 0 }}>See options →</button>
+          )
+
+          if (isActive) return (
+            <div key={step.id + '-active'} style={{
+              background: '#fff', border: '2px solid rgba(37,75,206,0.3)',
+              borderRadius: 14, padding: '20px',
+              boxShadow: '0 4px 20px rgba(37,75,206,0.1)',
+              animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                  {index + 1}
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{step.label}</div>
+              </div>
+
+              {/* Step 0 — Loan type */}
+              {index === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { value: 'heloc',  label: 'HELOC', sub: 'Flexible line of credit — draw when you need it, pay interest only on what you use.' },
+                    { value: 'heloan', label: 'Home Equity Loan', sub: 'Fixed lump sum — one draw, fixed monthly payments, predictable schedule.' },
+                  ].map(opt => {
+                    const active = loanType === opt.value
+                    return (
+                      <button key={opt.value} onClick={() => setLoanType(opt.value)} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px',
+                        background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+                        border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                        borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                        boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
+                      }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, marginTop: 2, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 3 }}>{opt.label}</div>
+                          <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>{opt.sub}</div>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               )}
-              {deferredMonths > 0 && (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: '#FFF9ED', border: '1px solid rgba(234,179,8,0.3)', borderRadius: 10 }}>
-                  <span style={{ fontSize: 15, lineHeight: 1, marginTop: 1 }}>🕐</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 2 }}>Payments deferred {deferredMonths} months — first due {payStartLabel(deferredMonths)}</div>
-                    <div style={{ fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>Interest accrues during the deferral period and is added to your balance. Your effective loan amount will be higher.</div>
+
+              {/* Step 1 — Credit line & draw + term */}
+              {index === 1 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>Total credit line</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#001660', letterSpacing: '-0.3px' }}>{formatCurrencyFull(creditLimit)}</div>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 10 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
+                    <RangeSlider value={creditLimit} min={SEED.minCredit} max={maxCredit} step={5000} onChange={v => { setCreditLimit(v); if (withdrawNow > v) setWithdrawNow(v) }} formatLabel={v => formatCurrencyFull(v)} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#254BCE' }}>Amount to draw at closing</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#254BCE', letterSpacing: '-0.3px' }}>{formatCurrencyFull(safeWithdraw)}</div>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 10 }}>{formatCurrencyFull(creditLimit - safeWithdraw)} stays in your line — draw it later, no rush.</div>
+                    <RangeSlider value={safeWithdraw} min={0} max={creditLimit} step={5000} onChange={v => setWithdrawNow(v)} formatLabel={v => formatCurrencyFull(v)} />
+                    <CreditBar withdrawNow={safeWithdraw} creditLimit={creditLimit} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 10 }}>Loan term</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      {TERM_OPTIONS.map(opt => {
+                        const active  = termYears === opt.years
+                        const payment = calcTermPayment(safeWithdraw, opt.apr, opt.years)
+                        const meta    = TERM_DESCRIPTORS[opt.years] ?? {}
+                        return (
+                          <button key={opt.years} onClick={() => setTermYears(opt.years)} style={{
+                            padding: '12px 10px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
+                            border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
+                            background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', transition: 'all 0.15s',
+                          }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: active ? '#254BCE' : '#9CA3AF', marginBottom: 4 }}>{opt.years}-yr · {opt.apr}%</div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: active ? '#254BCE' : '#001660', letterSpacing: '-0.4px' }}>{formatCurrencyFull(payment)}<span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span></div>
+                            {meta.popular && <div style={{ fontSize: 10, color: '#254BCE', fontWeight: 700, marginTop: 4 }}>Most popular</div>}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Two-column layout */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-          {/* Plan cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {TERM_OPTIONS.map(opt => {
-              const active  = termYears === opt.years
-              const payment = calcTermPayment(safeWithdraw, opt.apr, opt.years)
-              const saves   = ELECTRIC_BILL - payment
-              const meta    = TERM_DESCRIPTORS[opt.years] ?? {}
-              const color   = meta.popular ? '#254BCE' : '#016163'
-              return (
-                <div key={opt.years} style={{ display: 'flex', flexDirection: 'column' }}>
-                  {meta.popular && (
-                    <div style={{ background: '#254BCE', color: '#fff', fontSize: 11, fontWeight: 800, textAlign: 'center', borderRadius: '8px 8px 0 0', padding: '5px 0', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      Most popular
-                    </div>
-                  )}
-                  <button onClick={() => setTermYears(opt.years)} style={{
-                    flex: 1, position: 'relative', textAlign: 'left', cursor: 'pointer', background: '#fff',
-                    border: `2px solid ${active ? color : 'rgba(0,22,96,0.12)'}`,
-                    borderTop: active && !meta.popular ? `5px solid ${color}` : meta.popular ? 'none' : `2px solid ${active ? color : 'rgba(0,22,96,0.12)'}`,
-                    borderRadius: meta.popular ? '0 0 12px 12px' : 12,
-                    padding: '14px 14px 12px',
-                    boxShadow: active ? `0 3px 16px ${color}22` : '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'all 0.18s cubic-bezier(0.22,1,0.36,1)', outline: 'none',
-                  }}>
-                    <div style={{ width: 14, height: 14, borderRadius: '50%', marginBottom: 10, border: `2px solid ${active ? color : 'rgba(0,22,96,0.2)'}`, background: active ? color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                      {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
-                    </div>
-                    <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.6px', lineHeight: 1, color: active ? color : '#001660', marginBottom: 2, transition: 'color 0.15s' }}>
-                      {formatCurrencyFull(payment)}<span style={{ fontSize: 14, fontWeight: 600, color: '#9CA3AF', letterSpacing: 0 }}>/mo</span>
-                    </div>
-                    <div style={{ fontSize: 16, color: '#9CA3AF', marginBottom: 8 }}>{opt.years}-yr · {opt.apr}% APR</div>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: saves >= 0 ? '#065f46' : '#9CA3AF', background: saves >= 0 ? 'rgba(1,97,99,0.07)' : 'rgba(0,0,0,0.04)', borderRadius: 5, padding: '3px 7px', marginBottom: 8, display: 'inline-block' }}>
-                      {saves >= 0 ? `Save $${saves.toLocaleString()}/mo` : `$${Math.abs(saves).toLocaleString()}/mo over bill`}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.5 }}>{meta.desc}</div>
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Customize accordion */}
-          <div style={{ background: '#fff', border: '1.5px solid rgba(0,22,96,0.1)', borderRadius: 14, overflow: 'hidden' }}>
-            <button onClick={() => setCustomizeOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'none', border: 'none', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(37,75,206,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-                    <circle cx="8" cy="6" r="2.2" fill="#254BCE" stroke="none"/>
-                    <circle cx="16" cy="12" r="2.2" fill="#254BCE" stroke="none"/>
-                    <circle cx="10" cy="18" r="2.2" fill="#254BCE" stroke="none"/>
-                  </svg>
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 19, fontWeight: 700, color: '#111827' }}>Customize this plan</div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF' }}>Adjust draw amount, timing & rate</div>
-                </div>
-              </div>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"
-                style={{ transform: customizeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </button>
-
-            {customizeOpen && (
-              <div style={{ padding: '0 22px 24px', borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-                <div style={{ marginTop: 22 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>Total credit line</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', letterSpacing: '-0.5px' }}>{formatCurrencyFull(creditLimit)}</div>
-                  </div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
-                  <RangeSlider value={creditLimit} min={SEED.minCredit} max={maxCredit} step={5000}
-                    onChange={v => { setCreditLimit(v); if (withdrawNow > v) setWithdrawNow(v) }}
-                    formatLabel={v => formatCurrencyFull(v)} />
-                </div>
-                <div style={{ marginTop: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>How much do you need today?</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#254BCE', letterSpacing: '-0.5px' }}>{formatCurrencyFull(safeWithdraw)}</div>
-                  </div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>
-                    The rest ({formatCurrencyFull(creditLimit - safeWithdraw)}) stays in your credit line — draw it later, no rush.
-                  </div>
-                  <RangeSlider value={safeWithdraw} min={0} max={creditLimit} step={5000} onChange={v => setWithdrawNow(v)} formatLabel={v => formatCurrencyFull(v)} />
-                  <CreditBar withdrawNow={safeWithdraw} creditLimit={creditLimit} />
-                </div>
-                <div style={{ height: 1, background: 'rgba(0,22,96,0.07)', margin: '20px 0' }} />
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Start payments later</div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>Delay your first payment while your solar system cuts your bill from day one.</div>
+              {/* Step 2 — Payment timing */}
+              {index === 2 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 4 }}>Delay your first payment while solar savings kick in from day one.</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                     {DEFERRED_OPTIONS.map(opt => {
                       const active = deferredMonths === opt.months
                       return (
-                        <button key={opt.months} onClick={() => setDeferredMonths(opt.months)} style={{ padding: '12px 4px', borderRadius: 10, textAlign: 'center', border: `1.5px solid ${active ? '#016163' : 'rgba(0,22,96,0.12)'}`, background: active ? 'rgba(1,97,99,0.06)' : '#F8F9FC', color: active ? '#016163' : '#374151', fontSize: 15, fontWeight: active ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s' }}>
-                          {opt.months === 0 ? 'Right away' : `${opt.months}mo`}
+                        <button key={opt.months} onClick={() => setDeferredMonths(opt.months)} style={{
+                          padding: '14px 4px', borderRadius: 10, textAlign: 'center',
+                          border: `2px solid ${active ? '#016163' : 'rgba(0,22,96,0.12)'}`,
+                          background: active ? 'rgba(1,97,99,0.06)' : '#F8F9FC',
+                          color: active ? '#016163' : '#374151',
+                          fontSize: 14, fontWeight: active ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s',
+                        }}>
+                          {opt.months === 0 ? 'Right away' : `${opt.months} mo`}
                         </button>
                       )
                     })}
                   </div>
-                  {deferredMonths > 0 && <div style={{ fontSize: 15, color: '#016163', marginTop: 9, fontWeight: 600 }}>First payment due: {payStartLabel(deferredMonths)}</div>}
-                </div>
-                <div style={{ height: 1, background: 'rgba(0,22,96,0.07)', margin: '20px 0' }} />
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Lower your rate</div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>Pay a small upfront fee (rolled into your loan) to get a lower rate — no cash needed at closing.</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {FEE_TIERS.map((t, i) => {
-                      const active = tier === i
-                      return (
-                        <button key={i} onClick={() => setTier(i)} style={{ padding: '14px 10px', borderRadius: 11, textAlign: 'left', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`, background: active ? 'rgba(37,75,206,0.05)' : '#F8F9FC', cursor: 'pointer', transition: 'all 0.15s' }}>
-                          <div style={{ fontSize: 13, color: '#9CA3AF', marginBottom: 3 }}>{RATE_LABELS[i]}</div>
-                          <div style={{ fontSize: 19, fontWeight: 800, color: active ? '#254BCE' : '#001660', letterSpacing: '-0.4px' }}>{t.rateLabel}</div>
-                          <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 3 }}>{RATE_DESCS[i]}</div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div style={{ height: 1, background: 'rgba(0,22,96,0.07)', margin: '20px 0' }} />
-
-                {/* DTI improvement options — highlighted when DTI is high */}
-                <div style={{ borderRadius: 14, border: dtiTooHigh ? '2px solid rgba(220,38,38,0.3)' : '1px solid transparent', background: dtiTooHigh ? 'rgba(255,245,245,0.5)' : 'transparent', padding: dtiTooHigh ? '14px' : '0', transition: 'all 0.3s' }}>
+                  {deferredMonths > 0 && <div style={{ fontSize: 13, color: '#016163', fontWeight: 600 }}>First payment due: {payStartLabel(deferredMonths)}</div>}
                   {dtiTooHigh && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 12px', background: 'rgba(220,38,38,0.07)', borderRadius: 8 }}>
-                      <span style={{ fontSize: 14 }}>⚠️</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>DTI is high — adjust these settings to lower it</span>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: '#FFF5F5', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 10 }}>
+                      <span>⚠️</span>
+                      <div style={{ flex: 1, fontSize: 13, color: '#991B1B' }}>
+                        <strong>High DTI ({Math.round(dti * 100)}%)</strong> — consider deferring payments or reducing the draw amount.
+                      </div>
                     </div>
                   )}
-
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Roll existing debts into the loan</div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>Pay off high-interest debts through your HELOC — removes their minimums from your DTI.</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {RECOVERY_DEBTS.map(debt => {
-                      const sel = rolledDebts.includes(debt.id)
-                      return (
-                        <button key={debt.id} onClick={() => {
-                          const next = sel ? rolledDebts.filter(x => x !== debt.id) : [...rolledDebts, debt.id]
-                          setRolledDebts(next)
-                          const addedBalance = next.reduce((s, id) => s + (RECOVERY_DEBTS.find(d => d.id === id)?.balance ?? 0), 0)
-                          setCreditLimit(c => Math.max(c, safeWithdraw + addedBalance))
-                          setWithdrawNow(safeWithdraw + addedBalance)
-                        }} style={{
-                          display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                          border: `1.5px solid ${sel ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
-                          borderRadius: 11, background: sel ? 'rgba(37,75,206,0.04)' : '#F8F9FC',
-                          cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                        }}>
-                          <div style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, border: `2px solid ${sel ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: sel ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {sel && <svg width="10" height="8" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>{debt.label}</div>
-                            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{debt.rate}% APR · ${debt.monthly}/mo minimum</div>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: sel ? '#254BCE' : '#001660' }}>{formatCurrencyFull(debt.balance)}</div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {rolledDebts.length > 0 && (() => {
-                    const saved = rolledDebts.reduce((s, id) => s + (RECOVERY_DEBTS.find(d => d.id === id)?.monthly ?? 0), 0)
-                    const rolled = rolledDebts.reduce((s, id) => s + (RECOVERY_DEBTS.find(d => d.id === id)?.balance ?? 0), 0)
-                    return (
-                      <div style={{ marginTop: 10, padding: '12px 14px', background: 'rgba(37,75,206,0.05)', border: '1px solid rgba(37,75,206,0.12)', borderRadius: 10, display: 'flex', gap: 16 }}>
-                        <div>
-                          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>Added to draw</div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: '#254BCE' }}>{formatCurrencyFull(rolled)}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>Monthly minimums removed</div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: '#016163' }}>−${saved}/mo</div>
-                        </div>
-                      </div>
-                    )
-                  })()}
                 </div>
+              )}
 
-                <div style={{ height: 1, background: 'rgba(0,22,96,0.07)', margin: '16px 0' }} />
-
-                {/* Co-borrower income */}
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Add a co-borrower</div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>Adding a spouse or partner's income reduces your DTI and improves approval odds.</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 6 }}>Co-borrower name</div>
-                      <input value={coBorrowerName} onChange={e => setCoBorrowerName(e.target.value)}
-                        placeholder="Full legal name"
-                        style={{ width: '100%', boxSizing: 'border-box', padding: '11px 14px', fontSize: 15, border: '1.5px solid rgba(0,22,96,0.15)', borderRadius: 10, outline: 'none', fontFamily: 'inherit', color: '#111827' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 6 }}>Annual income</div>
-                      <input value={coBorrowerIncome} onChange={e => setCoBorrowerIncome(e.target.value)}
-                        placeholder="e.g. $80,000"
-                        style={{ width: '100%', boxSizing: 'border-box', padding: '11px 14px', fontSize: 15, border: '1.5px solid rgba(0,22,96,0.15)', borderRadius: 10, outline: 'none', fontFamily: 'inherit', color: '#111827' }} />
-                    </div>
-                    {coBorrowerDTI !== null && (
-                      <div style={{ padding: '10px 14px', background: coBorrowerDTI <= DTI_THRESHOLD ? 'rgba(1,97,99,0.07)' : '#FFF9ED', border: `1px solid ${coBorrowerDTI <= DTI_THRESHOLD ? 'rgba(1,97,99,0.2)' : 'rgba(234,179,8,0.3)'}`, borderRadius: 10 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: coBorrowerDTI <= DTI_THRESHOLD ? '#016163' : '#92400e' }}>
-                          Projected DTI: {Math.round(coBorrowerDTI * 100)}% {coBorrowerDTI <= DTI_THRESHOLD ? '✓ Qualifies' : '— still above 45%'}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3 }}>
-                          {coBorrowerDTI <= DTI_THRESHOLD ? 'Adding this co-borrower would meet lender requirements.' : 'Try a higher income amount.'}
-                        </div>
-                      </div>
-                    )}
+              {/* Step 3 — Informational */}
+              {index === 3 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.65, margin: 0 }}>
+                    For the first {termYears > 20 ? 10 : 5} years, you'll make lower monthly payments that cover interest only. Your loan balance stays about the same during this time.
+                  </p>
+                  <p style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.6, margin: 0 }}>
+                    After this period, your regular payments begin and you start paying down your loan.
+                  </p>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(0,22,96,0.04)', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '6px 14px' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>This is part of how your loan works — not a choice you make</span>
                   </div>
                 </div>
+              )}
 
-                <div style={{ height: 1, background: 'rgba(0,22,96,0.07)', margin: '16px 0' }} />
-
-                {/* Switch primary applicant */}
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Switch primary applicant to spouse</div>
-                  <div style={{ fontSize: 15, color: '#9CA3AF', marginBottom: 12 }}>Running the loan in your spouse's name uses their income and debts — often a stronger profile.</div>
-                  <div style={{ background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.09)', borderRadius: 11, padding: '14px', marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#001660', marginBottom: 10 }}>Maria Rivera — spouse profile</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      {[{ l: 'Annual income', v: '$148,000' }, { l: 'Monthly debts', v: '$1,840' }, { l: 'Credit score', v: '748' }, { l: 'Projected DTI', v: '38%', good: true }].map(r => (
-                        <div key={r.l}>
-                          <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 2 }}>{r.l}</div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: r.good ? '#016163' : '#001660' }}>{r.v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <button onClick={() => setSwitchedPrimary(p => !p)} style={{
-                    width: '100%', padding: '12px', borderRadius: 10, fontSize: 15, fontWeight: 700,
-                    background: switchedPrimary ? '#016163' : '#001660', color: '#fff', border: 'none', cursor: 'pointer', transition: 'background 0.2s'
-                  }}>
-                    {switchedPrimary ? '✓ Switched to Maria Rivera' : 'Switch to Maria Rivera →'}
-                  </button>
-                </div>
-
-                </div>{/* end DTI highlight wrapper */}
-
-                <div style={{ height: 1, background: 'rgba(0,22,96,0.07)', margin: '20px 0' }} />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 2 }}>Save 0.25% with AutoPay</div>
-                    <div style={{ fontSize: 15, color: '#9CA3AF' }}>Auto-debit from your bank — cancel anytime</div>
-                  </div>
-                  <div onClick={() => setAutopay(a => !a)} style={{ width: 46, height: 26, borderRadius: 13, cursor: 'pointer', flexShrink: 0, marginLeft: 16, background: autopay ? '#016163' : 'rgba(0,22,96,0.15)', position: 'relative', transition: 'background 0.2s' }}>
-                    <div style={{ position: 'absolute', top: 3, left: autopay ? 22 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)' }} />
-                  </div>
-                </div>
+              <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={configContinue} style={{
+                  padding: '11px 24px', borderRadius: 10, border: 'none',
+                  background: '#254BCE', color: '#fff',
+                  fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  {configEditingIndex !== null ? 'Save →' : index === configTotal - 1 ? 'Done →' : 'Continue →'}
+                </button>
               </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {['🔒 No obligation', '📋 No hard credit pull yet', '⏱️ Takes 5 minutes'].map(t => (
-              <div key={t} style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '5px 12px', fontSize: 13, fontWeight: 600, color: '#6B7280' }}>{t}</div>
-            ))}
-          </div>
-          <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.6 }}>Estimates are illustrative only. Final terms subject to full underwriting and appraisal. Not a commitment to lend.</div>
-
-          <div style={{ paddingTop: 8, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button onClick={() => setOfferSub(0)} style={{ padding: '10px 20px', fontSize: 15, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}>← Back</button>
-              <button onClick={handleNext} style={{ padding: '11px 24px', fontSize: 15, fontWeight: 800, borderRadius: 11, background: dtiTooHigh ? '#991B1B' : '#254BCE', border: 'none', color: '#fff', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)', transition: 'transform 0.15s' }}
-                onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                onMouseOut={e => e.currentTarget.style.transform = ''}>
-                {dtiTooHigh ? '⚠️ Continue anyway' : `Continue with ${formatCurrencyFull(selectedPayment)}/mo →`}
-              </button>
             </div>
-          </div>
-        </div>
+          )
 
-        {/* Right — Borrowing Power */}
-        <div style={{ width: 240, flexShrink: 0, position: 'sticky', top: 24 }}>
-          <BorrowingPowerPanel step1={step1} maxCredit={maxCredit} />
-        </div>
+          return null
+        })}
+      </div>
+
+      {/* Trust badges */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+        {['🔒 No obligation', '📋 No hard credit pull yet', '⏱️ Takes 5 minutes'].map(t => (
+          <div key={t} style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '5px 12px', fontSize: 13, fontWeight: 600, color: '#6B7280' }}>{t}</div>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 24 }}>
+        Estimates are illustrative only. Final terms subject to full underwriting and appraisal. Not a commitment to lend.
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
+        <button onClick={() => setOfferSub(0)} style={{ padding: '11px 20px', fontSize: 14, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}>
+          ← Back
+        </button>
+        {configAllDone && configEditingIndex === null && (
+          <button onClick={handleNext} style={{
+            padding: '13px 28px', fontSize: 15, fontWeight: 800, borderRadius: 10,
+            background: dtiTooHigh ? '#991B1B' : '#001660',
+            border: 'none', color: '#fff', cursor: 'pointer', letterSpacing: '-0.1px',
+          }}>
+            {dtiTooHigh ? '⚠️ Continue anyway →' : 'Confirm your plan →'}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -2175,64 +2106,249 @@ function OfferSidebar({ loan, step2 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen: More Info (Step 3a)
+// Screen: More Info (Step 3a) — two sub-steps + review
 // ─────────────────────────────────────────────────────────────────────────────
-function ScreenMoreInfo({ step3, dispatch }) {
-  const set = (field, value) => dispatch({ type: 'SET_STEP3', field, value })
+const MORE_INFO_SUB_STEPS = [
+  { id: 'property',   label: 'Property Details' },
+  { id: 'employment', label: 'Employment & Income' },
+]
+
+function MoreInfoProgress({ current }) {
+  const total = MORE_INFO_SUB_STEPS.length
+  const label = MORE_INFO_SUB_STEPS[current]?.label ?? ''
   return (
-    <div className="space-y-4">
-      <div className="mb-6">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Step 3 of 7</div>
-        <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Verify your property & income</h1>
-        <p className="text-sm text-gray-500">We already know your equity position. These details allow OWNING to confirm your final loan terms.</p>
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
+        <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
+      </div>
+      <div style={{ height: 3, background: '#254BCE', borderRadius: 0 }} />
+    </div>
+  )
+}
+
+function MoreInfoReview({ step3, onEdit, onContinue }) {
+  const sections = [
+    {
+      index: 0,
+      label: 'Property Details',
+      rows: [
+        { label: 'Occupancy',   value: step3.propOccupancy },
+        { label: 'HOA',        value: step3.hoa },
+        { label: 'Flood zone', value: step3.floodZone },
+      ],
+    },
+    {
+      index: 1,
+      label: 'Employment & Income',
+      rows: [
+        { label: 'Employment status',     value: step3.employmentStatus },
+        { label: 'Employer',              value: step3.employer },
+        { label: 'Years at employer',     value: step3.yearsEmployed },
+        { label: 'Annual gross income',   value: step3.annualIncome ? `$${Number(step3.annualIncome).toLocaleString()}` : '—' },
+        { label: 'Monthly debt payments', value: step3.monthlyExpenses ? `$${Number(step3.monthlyExpenses).toLocaleString()}` : '—' },
+      ],
+    },
+  ]
+
+  return (
+    <div>
+      <ReviewHeader
+        totalSteps={2}
+        heading="Review your details"
+        sub="Everything look right? Edit any section, then continue."
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+        {sections.map(s => (
+          <ReviewCheckCard key={s.index} label={s.label} rows={s.rows} onEdit={() => onEdit(s.index)} />
+        ))}
       </div>
 
-      <Card>
-        <CardHeader title="Property details" />
-        <CardBody>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Property occupancy">
-              <Select value={step3.propOccupancy} onChange={v => set('propOccupancy', v)}
-                options={['Primary residence','Secondary residence','Investment property']} />
-            </Field>
-            <Field label="HOA community?">
-              <Select value={step3.hoa} onChange={v => set('hoa', v)} options={['No','Yes']} />
-            </Field>
-            <Field label="In a flood zone?">
-              <Select value={step3.floodZone} onChange={v => set('floodZone', v)} options={['No','Yes — Zone A','Yes — Zone V']} />
-            </Field>
-          </div>
-        </CardBody>
-      </Card>
+      <button
+        onClick={onContinue}
+        style={{
+          width: '100%', padding: '15px', borderRadius: 12, border: 'none',
+          background: '#001660', color: '#fff',
+          fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          letterSpacing: '-0.1px',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
+        onMouseLeave={e => e.currentTarget.style.background = '#001660'}
+      >
+        Save &amp; Continue →
+      </button>
+    </div>
+  )
+}
 
-      <Card>
-        <CardHeader title="Employment & income" sub="Used for debt-to-income calculation" />
-        <CardBody>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Employment status">
-              <Select value={step3.employmentStatus} onChange={v => set('employmentStatus', v)}
-                options={['Full-time employed','Part-time employed','Self-employed','Retired','Not employed']} />
-            </Field>
-            <Field label="Employer name">
-              <Input value={step3.employer} onChange={v => set('employer', v)} />
-            </Field>
-            <Field label="Years at current employer">
-              <Input value={step3.yearsEmployed} onChange={v => set('yearsEmployed', v)} placeholder="0" />
-            </Field>
-            <Field label="Annual gross income">
-              <Input value={step3.annualIncome} onChange={v => set('annualIncome', v)} placeholder="$0" />
-            </Field>
-            <Field label="Monthly debt obligations" helper="(min payments)">
-              <Input value={step3.monthlyExpenses} onChange={v => set('monthlyExpenses', v)} placeholder="$0" />
-            </Field>
-          </div>
-        </CardBody>
-      </Card>
+function computeMoreInfoSub(s) {
+  if (!s.propOccupancy) return 0
+  if (!s.employmentStatus) return 1
+  return 2
+}
 
-      <NavButtons
-        onBack={() => dispatch({ type: 'BACK' })}
-        onNext={() => dispatch({ type: 'NEXT' })}
-        nextLabel="Continue to Income Verification" />
+function ScreenMoreInfo({ step3, dispatch }) {
+  const [currentSub, setCurrentSub] = useState(() => computeMoreInfoSub(step3))
+  const [editingIndex, setEditingIndex] = useState(null)
+  const set = (field, value) => dispatch({ type: 'SET_STEP3', field, value })
+  const total = MORE_INFO_SUB_STEPS.length
+  const allDone = currentSub >= total
+  const activeIndex = editingIndex !== null ? editingIndex : allDone ? null : currentSub
+
+  const SUB_META = [
+    { heading: 'Tell us about your property', sub: 'We already know your equity — these details confirm your final terms.' },
+    { heading: 'Employment & income',          sub: 'Used to calculate your debt-to-income ratio.' },
+  ]
+
+  function getSummary(i) {
+    switch (i) {
+      case 0: return `${step3.propOccupancy} · HOA: ${step3.hoa} · Flood zone: ${step3.floodZone}`
+      case 1: return `${step3.employmentStatus} · ${step3.employer} · $${Number(step3.annualIncome || 0).toLocaleString()}/yr`
+      default: return '—'
+    }
+  }
+
+  function handleContinue() {
+    if (editingIndex !== null) { setEditingIndex(null) }
+    else { setCurrentSub(c => c + 1) }
+  }
+
+  return (
+    <div>
+      {/* Eyebrow + heading */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+          Step 3 of 7
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+          Verify your details
+        </h1>
+        <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          These details help confirm your final loan terms.
+        </p>
+      </div>
+
+      {/* Vertical step tiles — same animation and styling as Basic Info */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+        {MORE_INFO_SUB_STEPS.map((step, index) => {
+          if (index > currentSub && editingIndex !== index) return null
+          const isCompleted = (index < currentSub || allDone) && editingIndex !== index
+          const isActive = index === activeIndex
+
+          if (isCompleted) return (
+            <div key={step.id + '-done'} style={{
+              background: '#fff', border: '1.5px solid rgba(1,97,99,0.25)',
+              borderRadius: 14, padding: '14px 20px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
+            }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
+                {getSummary(index)}
+              </span>
+              <button onClick={() => setEditingIndex(index)} style={{
+                fontSize: 13, fontWeight: 600, color: '#254BCE',
+                background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
+                borderRadius: 20, padding: '5px 16px', cursor: 'pointer', fontFamily: 'inherit',
+              }}>Edit</button>
+            </div>
+          )
+
+          if (isActive) {
+            const meta = SUB_META[index]
+            return (
+              <div key={step.id + '-active'} style={{
+                background: '#fff', border: '2px solid rgba(37,75,206,0.3)',
+                borderRadius: 14, padding: '20px',
+                boxShadow: '0 4px 20px rgba(37,75,206,0.1)',
+                animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                    {index + 1}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{meta.heading}</div>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
+                  </div>
+                </div>
+
+                {index === 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Occupancy — full width, content is long */}
+                    <Field label="Property occupancy">
+                      <Select value={step3.propOccupancy} onChange={v => set('propOccupancy', v)} options={['Primary residence','Secondary residence','Investment property']} />
+                    </Field>
+                    {/* HOA + Flood zone — short yes/no answers, sit side by side */}
+                    <FieldRow gap={16}>
+                      <FieldWrap maxWidth={160}>
+                        <Field label="HOA community?"><Select value={step3.hoa} onChange={v => set('hoa', v)} options={['No','Yes']} /></Field>
+                      </FieldWrap>
+                      <FieldWrap maxWidth={220}>
+                        <Field label="In a flood zone?"><Select value={step3.floodZone} onChange={v => set('floodZone', v)} options={['No','Yes — Zone A','Yes — Zone V']} /></Field>
+                      </FieldWrap>
+                    </FieldRow>
+                  </div>
+                )}
+
+                {index === 1 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Employment status — full width */}
+                    <Field label="Employment status">
+                      <Select value={step3.employmentStatus} onChange={v => set('employmentStatus', v)} options={['Full-time employed','Part-time employed','Self-employed','Retired','Not employed']} />
+                    </Field>
+                    {/* Employer name + years — employer wider, years narrow */}
+                    <FieldRow gap={16}>
+                      <FieldWrap flex="1 1 0">
+                        <Field label="Employer name"><Input value={step3.employer} onChange={v => set('employer', v)} /></Field>
+                      </FieldWrap>
+                      <FieldWrap maxWidth={120}>
+                        <Field label="Years there"><Input value={step3.yearsEmployed} onChange={v => set('yearsEmployed', v)} placeholder="0" /></Field>
+                      </FieldWrap>
+                    </FieldRow>
+                    {/* Income + monthly debt — both dollar amounts, equal half-width */}
+                    <FieldRow gap={16}>
+                      <FieldWrap flex="1 1 0">
+                        <Field label="Annual gross income"><Input value={step3.annualIncome} onChange={v => set('annualIncome', v)} placeholder="$0" /></Field>
+                      </FieldWrap>
+                      <FieldWrap flex="1 1 0">
+                        <Field label="Monthly debt payments" helper="(min payments)"><Input value={step3.monthlyExpenses} onChange={v => set('monthlyExpenses', v)} placeholder="$0" /></Field>
+                      </FieldWrap>
+                    </FieldRow>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={handleContinue} style={{
+                    padding: '11px 24px', borderRadius: 10, border: 'none',
+                    background: '#254BCE', color: '#fff',
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>
+                    {editingIndex !== null ? 'Save →' : index === total - 1 ? 'Done →' : 'Continue →'}
+                  </button>
+                </div>
+              </div>
+            )
+          }
+
+          return null
+        })}
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
+        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 14, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
+          ← Back
+        </button>
+        {allDone && editingIndex === null && (
+          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
+            Save &amp; Continue →
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -2269,8 +2385,8 @@ function ScreenLinkIncome({ dispatch }) {
   return (
     <div className="">
       <div className="mb-6">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Step 3 of 7 — Income Verification</div>
-        <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Verify your income</h1>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px' }}>Verify your income</h1>
         <p className="text-sm text-gray-500">OWNING requires income verification to finalize your loan. Securely link your bank — read-only access, takes about 30 seconds.</p>
       </div>
 
@@ -2360,8 +2476,8 @@ function ScreenVerifyIdentity({ dispatch }) {
   return (
     <div className="space-y-4">
       <div className="mb-6">
-        <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Step 3 of 7 — Identity Verification</div>
-        <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Verify your identity</h1>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px' }}>Verify your identity</h1>
         <p className="text-sm text-gray-500">Required by federal law. Your information is encrypted and never shared.</p>
       </div>
 

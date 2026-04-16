@@ -69,12 +69,16 @@ export default function EmailPreview() {
             justifyContent: 'space-between', borderBottom: `1px solid ${C.gray100}`,
           }}>
             <img src="/westhaven-logo-new.avif" alt="Westhaven Power" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 11, color: C.gray400, fontWeight: 500 }}>Financing powered by</span>
-                <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 13, width: 'auto' }} />
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#001660' }}>Financing powered by</span>
+                <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto' }} />
               </div>
-              <span style={{ fontSize: 10, color: C.muted }}>Lending by Owning · NMLS #2611</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
+                <img src="/grand-bank-logo.png" alt="Grand Bank" style={{ height: 11, width: 'auto', objectFit: 'contain' }} />
+                <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #2611</span>
+              </div>
             </div>
           </div>
 
