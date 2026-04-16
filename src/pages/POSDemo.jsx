@@ -489,7 +489,6 @@ const BASIC_SUB_STEPS = [
   { id: 'purpose',   label: 'Purpose' },
   { id: 'address',   label: 'Property Address' },
   { id: 'ownership', label: 'Ownership' },
-  { id: 'equity',    label: 'Estimated Equity' },
 ]
 
 const PURPOSE_OPTIONS = [
@@ -576,7 +575,6 @@ function ScreenBasicInfo({ step1, dispatch }) {
     { heading: 'What\'s the primary purpose of this loan?', sub: 'This helps us match you with the right terms.' },
     { heading: 'Where is the property?',                 sub: 'This is the home you\'re financing against.' },
     { heading: 'Who owns this property?',                sub: 'Select the property type and how ownership is held.' },
-    { heading: 'What\'s your estimated equity?',         sub: 'We use this to size your credit line.' },
   ]
 
   const meta = SUB_META[sub]
@@ -852,58 +850,6 @@ function ScreenBasicInfo({ step1, dispatch }) {
           </div>
         </div>
       )}
-
-      {/* ── Sub-step 6: Estimated Equity ── */}
-      {sub === 5 && (() => {
-        const propVal  = Number((step1.propValue || '').replace(/\D/g,''))
-        const mortgage = Number((step1.mortgageBalance || '').replace(/\D/g,''))
-        const equity   = propVal && mortgage ? propVal - mortgage : null
-        const ltv      = propVal && mortgage ? mortgage / propVal : null
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <Card>
-              <CardBody>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <FieldRow gap={12}>
-                    <FieldWrap flex="0 0 168px">
-                      <Field label="Property value" helper="USD">
-                        <Input value={step1.propValue} onChange={v => set('propValue', v)} placeholder="$485,000" />
-                      </Field>
-                    </FieldWrap>
-                    <FieldWrap flex="0 0 168px">
-                      <Field label="Mortgage balance" helper="USD">
-                        <Input value={step1.mortgageBalance} onChange={v => set('mortgageBalance', v)} placeholder="$190,000" />
-                      </Field>
-                    </FieldWrap>
-                  </FieldRow>
-
-                  {equity !== null && equity > 0 && (
-                    <div style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(37,75,206,0.04)', border: '1px solid rgba(37,75,206,0.1)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 3 }}>Estimated equity</div>
-                          <div style={{ fontSize: 24, fontWeight: 700, color: '#001660', letterSpacing: '-0.5px' }}>
-                            ${equity.toLocaleString()}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 3 }}>Loan-to-value</div>
-                          <div style={{ fontSize: 20, fontWeight: 700, color: ltv > 0.8 ? '#EF4444' : '#10B981' }}>
-                            {Math.round(ltv * 100)}%
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ height: 6, borderRadius: 3, background: 'rgba(0,22,96,0.08)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${Math.min(ltv * 100, 100)}%`, background: ltv > 0.8 ? '#EF4444' : '#254BCE', borderRadius: 3, transition: 'width 0.35s' }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        )
-      })()}
 
       {/* Nav */}
       <NavButtons
