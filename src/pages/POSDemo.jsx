@@ -710,7 +710,7 @@ function computeBasicInfoSub(s) {
 }
 
 function ScreenBasicInfo({ step1, dispatch }) {
-  const [currentSub, setCurrentSub] = useState(() => computeBasicInfoSub(step1))
+  const [currentSub, setCurrentSub] = useState(0)
   const [editingIndex, setEditingIndex] = useState(null)
   const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
   const total = BASIC_SUB_STEPS.length
@@ -1390,7 +1390,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
   // Accordion stepper for configure screen (offerSub === 1)
   const [loanType,          setLoanType]          = useState('heloc') // 'heloc' | 'heloan'
-  const [configSub,         setConfigSub]         = useState(4)       // start all-done (goal pre-fills everything)
+  const [configSub,         setConfigSub]         = useState(0)
   const [configEditingIndex, setConfigEditingIndex] = useState(null)
 
   // Collapse the recovery panel whenever the user adjusts any loan parameter
@@ -2189,7 +2189,7 @@ function computeMoreInfoSub(s) {
 }
 
 function ScreenMoreInfo({ step3, dispatch }) {
-  const [currentSub, setCurrentSub] = useState(() => computeMoreInfoSub(step3))
+  const [currentSub, setCurrentSub] = useState(0)
   const [editingIndex, setEditingIndex] = useState(null)
   const set = (field, value) => dispatch({ type: 'SET_STEP3', field, value })
   const total = MORE_INFO_SUB_STEPS.length
