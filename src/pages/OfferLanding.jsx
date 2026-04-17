@@ -52,7 +52,7 @@ function calcSavings(bill) {
 
 const inputStyle = {
   width: '100%', boxSizing: 'border-box',
-  padding: '11px 14px', fontSize: 16,
+  padding: '11px 14px', fontSize: 18,
   border: `1.5px solid ${C.border}`, borderRadius: 8,
   background: C.white, color: C.text,
   outline: 'none',
@@ -70,7 +70,7 @@ const selectStyle = {
 
 function FieldLabel({ children, required }) {
   return (
-    <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+    <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 6 }}>
       {children}{required && <span style={{ color: '#EF4444', marginLeft: 2 }}>*</span>}
     </div>
   )
@@ -79,7 +79,7 @@ function FieldLabel({ children, required }) {
 function SectionHeader({ children }) {
   return (
     <div style={{
-      fontSize: 14, fontWeight: 800, color: C.blue,
+      fontSize: 16, fontWeight: 800, color: C.blue,
       textTransform: 'uppercase', letterSpacing: '0.07em',
       marginBottom: 16, marginTop: 8,
     }}>
@@ -184,7 +184,7 @@ export default function OfferLanding() {
                 <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '0em' }}>
                   Hi Alex, let&apos;s check your eligibility
                 </h1>
-                <p style={{ fontSize: 15, color: C.muted, margin: '0 0 28px' }}>
+                <p style={{ fontSize: 17, color: C.muted, margin: '0 0 28px' }}>
                   {step === 2 && "Tell us about the property you\u2019d like to use for your HELOC."}
                   {step === 3 && 'For verification purposes, please provide your legal name as it appears on your government-issued ID.'}
                   {step === 4 && 'This helps us determine your loan eligibility.'}
@@ -232,13 +232,13 @@ export default function OfferLanding() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
                 <button onClick={handleBack} style={{
                   background: 'none', border: `1.5px solid ${C.border}`, borderRadius: 12,
-                  padding: '11px 20px', fontSize: 15, fontWeight: 600, color: C.navy, cursor: 'pointer',
+                  padding: '11px 20px', fontSize: 17, fontWeight: 600, color: C.navy, cursor: 'pointer',
                 }}>
                   ← Back
                 </button>
                 <button onClick={handleNext} style={{
                   background: C.blue, border: 'none', borderRadius: 12,
-                  padding: '12px 28px', fontSize: 16, fontWeight: 700, color: C.white, cursor: 'pointer',
+                  padding: '12px 28px', fontSize: 18, fontWeight: 700, color: C.white, cursor: 'pointer',
                 }}>
                   {step === 1 ? 'See plans that fit your budget →' : step === TOTAL_STEPS ? 'Check My Eligibility →' : 'Continue →'}
                 </button>
@@ -396,7 +396,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
               onChange={e => setAddress(e.target.value)}
               style={{
                 width: '100%', boxSizing: 'border-box',
-                padding: '11px 14px', fontSize: 16,
+                padding: '11px 14px', fontSize: 18,
                 border: 'none', borderRadius: 10,
                 background: 'rgba(255,255,255,0.1)',
                 color: C.white, outline: 'none',
@@ -430,17 +430,17 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Based on your current bill</div>
             </div>
             <div style={{ fontSize: 32, fontWeight: 900, color: C.green, letterSpacing: '-1px', lineHeight: 1 }}>
-              ~${saves}<span style={{ fontSize: 16, fontWeight: 700 }}>/mo</span>
+              ~${saves}<span style={{ fontSize: 18, fontWeight: 700 }}>/mo</span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px' }}>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>Est. system size</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.white }}>{systemKw} kW</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.white }}>{systemKw} kW</div>
             </div>
             <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px' }}>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>Est. project cost</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.white }}>${projectCost.toLocaleString()}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.white }}>${projectCost.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -455,7 +455,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
             style={{ width: '100%', accentColor: C.green, height: 4, cursor: 'pointer' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>$50</span>
-            <span style={{ fontSize: 14, color: C.green, fontWeight: 800, letterSpacing: '0em' }}>${billAmount}/mo</span>
+            <span style={{ fontSize: 16, color: C.green, fontWeight: 800, letterSpacing: '0em' }}>${billAmount}/mo</span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>$500</span>
           </div>
         </div>
@@ -464,13 +464,13 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
       {/* ── WHAT HAPPENS NEXT ────────────────────────────────────────── */}
       <div style={{ background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', marginBottom: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>What happens next</div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 8px' }}>A solar specialist will:</p>
+        <p style={{ fontSize: 17, fontWeight: 600, color: C.text, margin: '0 0 8px' }}>A solar specialist will:</p>
         <ul style={{ margin: 0, padding: '0 0 0 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {['Confirm your setup', 'Walk you through your exact plan', 'Answer any questions'].map(item => (
-            <li key={item} style={{ fontSize: 15, color: C.muted }}>{item}</li>
+            <li key={item} style={{ fontSize: 17, color: C.muted }}>{item}</li>
           ))}
         </ul>
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`, fontSize: 14, color: C.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`, fontSize: 16, color: C.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>🕐</span> Takes ~10 minutes
         </div>
       </div>
@@ -511,7 +511,7 @@ function PropertyStep({ address, setAddress, apt, setApt, city, setCity, propSta
                   </svg>
                 )}
               </div>
-              <span style={{ fontSize: 14, color: C.text, fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: 16, color: C.text, fontWeight: 500 }}>{label}</span>
             </button>
           ))}
         </div>
@@ -560,7 +560,7 @@ function PropertyStep({ address, setAddress, apt, setApt, city, setCity, propSta
                 transition: 'all 0.15s',
               }}>
                 <span style={{ fontSize: 18 }}>{opt.icon}</span>
-                <span style={{ fontSize: 15, fontWeight: active ? 700 : 500, color: active ? C.teal : C.text }}>
+                <span style={{ fontSize: 17, fontWeight: active ? 700 : 500, color: active ? C.teal : C.text }}>
                   {opt.label}
                 </span>
               </button>
@@ -574,7 +574,7 @@ function PropertyStep({ address, setAddress, apt, setApt, city, setCity, propSta
         <div style={{ display: 'flex', gap: 10 }}>
           {[true, false].map(val => (
             <button key={String(val)} onClick={() => setForSale(val)} style={{
-              padding: '10px 28px', borderRadius: 24, cursor: 'pointer', fontSize: 15, fontWeight: 600,
+              padding: '10px 28px', borderRadius: 24, cursor: 'pointer', fontSize: 17, fontWeight: 600,
               border: `1.5px solid ${forSale === val ? C.navy : C.border}`,
               background: forSale === val ? C.navy : C.white,
               color: forSale === val ? C.white : C.text,
@@ -640,7 +640,7 @@ function IncomeStep({ annualIncome, setAnnualIncome, otherIncome, setOtherIncome
           borderRadius: 8, padding: '10px 14px',
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span style={{ fontSize: 14, color: '#15803D', fontWeight: 500 }}>Annual pre-tax income confirmed</span>
+          <span style={{ fontSize: 16, color: '#15803D', fontWeight: 500 }}>Annual pre-tax income confirmed</span>
         </div>
       )}
       <div>
@@ -665,10 +665,10 @@ function ProjectStep({ projectCost, setProjectCost }) {
         <input value={projectCost} onChange={e => setProjectCost(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }} placeholder="$" />
       </div>
       <div style={{ background: '#F8F9FC', border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.navy, marginBottom: 6 }}>What this covers</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: C.navy, marginBottom: 6 }}>What this covers</div>
         <ul style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: 5 }}>
           {['Solar panel installation', 'Permits & inspection fees', 'Battery storage (optional)', 'Any remaining home improvement'].map(item => (
-            <li key={item} style={{ fontSize: 14, color: C.muted }}>{item}</li>
+            <li key={item} style={{ fontSize: 16, color: C.muted }}>{item}</li>
           ))}
         </ul>
       </div>
@@ -769,7 +769,7 @@ function ProcessingScreen({ onDone, onEdgeCase, initialShowHub }) {
                 ) : (
                   <div style={{ width: 28, height: 28, flexShrink: 0 }} />
                 )}
-                <span style={{ fontSize: 16, fontWeight: isDone ? 500 : isActive ? 700 : 400, color: isDone || isActive ? C.text : '#C4C9D4' }}>
+                <span style={{ fontSize: 18, fontWeight: isDone ? 500 : isActive ? 700 : 400, color: isDone || isActive ? C.text : '#C4C9D4' }}>
                   {label}
                 </span>
               </div>
@@ -797,7 +797,7 @@ function ProcessingScreen({ onDone, onEdgeCase, initialShowHub }) {
                 Demo Mode
               </span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: C.white, marginBottom: 4 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.white, marginBottom: 4 }}>
               Jump to any qualification outcome
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 20 }}>

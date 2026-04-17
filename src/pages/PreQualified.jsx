@@ -83,7 +83,7 @@ function Accordion({ title, children, noBorder }) {
         padding: '16px 0', background: 'none', border: 'none', cursor: 'pointer',
         fontFamily: 'inherit', textAlign: 'left',
       }}>
-        <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{title}</span>
+        <span style={{ fontSize: 17, fontWeight: 600, color: C.text }}>{title}</span>
         <Chevron open={open} />
       </button>
       {open && <div style={{ paddingBottom: 20 }}>{children}</div>}
@@ -118,7 +118,7 @@ export default function PreQualified() {
               Good news, {OFFER.name}! You&apos;re pre-qualified for solar financing.
             </h1>
 
-            <p style={{ fontSize: 16, color: C.label, lineHeight: 1.65, margin: '0 0 22px', maxWidth: 520 }}>
+            <p style={{ fontSize: 18, color: C.label, lineHeight: 1.65, margin: '0 0 22px', maxWidth: 520 }}>
               Your home qualifies for a Solar Home Equity Line of Credit. Review your estimated offer below and choose how you&apos;d like to continue.
             </p>
 
@@ -182,7 +182,7 @@ export default function PreQualified() {
                 {/* Payment amount */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
                   <span style={{ fontSize: 34, fontWeight: 900, color: C.navy, letterSpacing: '-1.5px', lineHeight: 1 }}>{OFFER.monthly}</span>
-                  <span style={{ fontSize: 16, fontWeight: 600, color: C.muted }}>/mo</span>
+                  <span style={{ fontSize: 18, fontWeight: 600, color: C.muted }}>/mo</span>
                 </div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Interest-only during draw period</div>
 
@@ -214,21 +214,21 @@ export default function PreQualified() {
             <div style={{ background: C.white, border: `2px solid ${C.blue}`, borderRadius: 18, padding: '28px 28px 24px' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Self-serve · Fastest</div>
               <div style={{ fontSize: 34, fontWeight: 900, color: C.navy, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 10 }}>Continue Online</div>
-              <p style={{ fontSize: 15, color: C.label, lineHeight: 1.65, margin: '0 0 20px' }}>
+              <p style={{ fontSize: 17, color: C.label, lineHeight: 1.65, margin: '0 0 20px' }}>
                 Your offer is already configured. Complete income verification, confirm your identity, and e-sign — all in one secure flow.
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 22 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
-                <span style={{ fontSize: 16, color: C.muted, fontWeight: 500 }}>Takes about 5–10 minutes</span>
+                <span style={{ fontSize: 18, color: C.muted, fontWeight: 500 }}>Takes about 5–10 minutes</span>
               </div>
               <button
                 onClick={() => navigate('/create-account')}
                 style={{
                   width: '100%', padding: '15px 0', borderRadius: 12,
                   border: 'none', background: C.blue, color: C.white,
-                  fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 18, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
                   letterSpacing: '-0.1px',
                 }}
                 onMouseOver={e => e.currentTarget.style.background = '#1e3fa8'}
@@ -244,7 +244,7 @@ export default function PreQualified() {
             {/* SECONDARY */}
             <div style={{ background: C.offwhite, border: `1.5px solid ${C.border}`, borderRadius: 18, padding: '28px 24px 24px', display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: C.navy, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 12 }}>Talk to a Specialist</div>
-              <p style={{ fontSize: 15, color: C.label, lineHeight: 1.65, margin: '0 0 20px', flex: 1 }}>
+              <p style={{ fontSize: 17, color: C.label, lineHeight: 1.65, margin: '0 0 20px', flex: 1 }}>
                 Have questions? A GreenLyne specialist will walk you through every line of your offer — no pressure, on your schedule.
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20 }}>
@@ -257,7 +257,7 @@ export default function PreQualified() {
                 <div style={{
                   width: '100%', padding: '14px 0', borderRadius: 12, boxSizing: 'border-box',
                   background: 'rgba(1,97,99,0.08)', color: C.teal,
-                  fontSize: 15, fontWeight: 700, textAlign: 'center',
+                  fontSize: 17, fontWeight: 700, textAlign: 'center',
                 }}>
                   ✓ We&apos;ll call you shortly
                 </div>
@@ -267,7 +267,7 @@ export default function PreQualified() {
                   style={{
                     width: '100%', padding: '14px 0', borderRadius: 12,
                     border: `1.5px solid ${C.border}`, background: 'transparent',
-                    color: C.navy, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    color: C.navy, fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                   }}
                   onMouseOver={e => e.currentTarget.style.background = C.bg}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
@@ -296,8 +296,8 @@ export default function PreQualified() {
                     {s.icon}
                   </div>
                   <div style={{ paddingTop: 7 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{s.title}</span>
-                    <span style={{ fontSize: 15, color: C.label }}> — {s.body}</span>
+                    <span style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{s.title}</span>
+                    <span style={{ fontSize: 17, color: C.label }}> — {s.body}</span>
                   </div>
                 </div>
               ))}
@@ -322,8 +322,8 @@ export default function PreQualified() {
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '10px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
                   }}>
-                    <span style={{ fontSize: 14, color: C.label }}>{row.label}</span>
-                    <span style={{ fontSize: 16, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
+                    <span style={{ fontSize: 16, color: C.label }}>{row.label}</span>
+                    <span style={{ fontSize: 18, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
                   </div>
                 ))}
               </div>
@@ -343,8 +343,8 @@ export default function PreQualified() {
                     display: 'flex', justifyContent: 'space-between', padding: '10px 0',
                     borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
                   }}>
-                    <span style={{ fontSize: 14, color: row.accent ? C.teal : C.label, fontWeight: row.accent ? 600 : 400 }}>{row.label}</span>
-                    <span style={{ fontSize: 16, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
+                    <span style={{ fontSize: 16, color: row.accent ? C.teal : C.label, fontWeight: row.accent ? 600 : 400 }}>{row.label}</span>
+                    <span style={{ fontSize: 18, fontWeight: row.accent ? 800 : 600, color: row.accent ? C.teal : C.navy }}>{row.value}</span>
                   </div>
                 ))}
               </div>
