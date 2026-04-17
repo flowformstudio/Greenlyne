@@ -1,28 +1,98 @@
 @import "tailwindcss";
 
+/* ── Post Grotesk — Accent / display font ────────────────────────────────── */
 @font-face {
   font-family: 'PostGrotesk';
   src: url('/fonts/PostGrotesk-Book.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: 'PostGrotesk';
   src: url('/fonts/PostGrotesk-Medium.otf') format('opentype');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 @font-face {
   font-family: 'PostGrotesk';
   src: url('/fonts/PostGrotesk-Bold.otf') format('opentype');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
+}
+
+/* ── Sharp Sans No. 1 — Primary UI font ──────────────────────────────────── */
+@font-face {
+  font-family: 'SharpSans';
+  src: url('/fonts/SharpSansDispNo1-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SharpSans';
+  src: url('/fonts/SharpSansDispNo1-Extrabold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Tailwind v4 theme tokens ────────────────────────────────────────────── */
+@theme {
+  --font-sharp:   'SharpSans', system-ui, -apple-system, sans-serif;
+  --font-grotesk: 'PostGrotesk', system-ui, -apple-system, sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+
+/* Sharp Sans is the default — covers ~85 % of the interface */
 body {
   margin: 0;
+  font-family: 'SharpSans', system-ui, -apple-system, sans-serif;
+}
+
+/* Post Grotesk on all headings — page titles & section headers */
+h1, h2 {
   font-family: 'PostGrotesk', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Typography utility classes ──────────────────────────────────────────── */
+/* Apply explicitly where inline styles override the body default */
+.font-sharp   { font-family: 'SharpSans',   system-ui, sans-serif !important; }
+.font-grotesk { font-family: 'PostGrotesk', system-ui, sans-serif !important; }
+
+/* Display — page hero titles (Post Grotesk, lighter weight for warmth) */
+.type-display {
+  font-family: 'PostGrotesk', system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+/* Section / step titles */
+.type-title {
+  font-family: 'PostGrotesk', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* Summary key labels (e.g. "Your Loan Plan", "Est. Monthly Payment") */
+.type-label-accent {
+  font-family: 'PostGrotesk', system-ui, sans-serif;
+  font-weight: 500;
+}
+/* All financial data & UI chrome — Sharp Sans is inherited, this makes it explicit */
+.type-data {
+  font-family: 'SharpSans', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+/* Small uppercase eyebrow labels */
+.type-eyebrow {
+  font-family: 'SharpSans', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 /* ── Single range slider ─────────────────────────────────────────────────── */

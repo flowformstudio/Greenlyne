@@ -668,11 +668,11 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
       {/* Page header — full width, above the two-column layout */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontFamily: "'SharpSans', sans-serif" }}>
           Configure Your Offer · Step 2 of 7
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 5 }}>
-          <h1 style={{ fontSize: 25, fontWeight: 800, color: '#001660', margin: 0, letterSpacing: '-0.4px' }}>
+          <h1 style={{ fontSize: 25, fontWeight: 700, color: '#001660', margin: 0, letterSpacing: '-0.3px', fontFamily: "'PostGrotesk', sans-serif" }}>
             Build your loan, one step at a time
           </h1>
           <button

@@ -73,7 +73,7 @@ export default function DemoLayout() {
                       fontWeight: isActive ? 700 : 500,
                       color: isActive ? '#ffffff' : isDone ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)',
                       letterSpacing: '-0.1px',
-                      fontFamily: "'Inter', -apple-system, sans-serif",
+                      fontFamily: "'SharpSans', system-ui, sans-serif",
                       whiteSpace: 'nowrap',
                       lineHeight: 1.2,
                     }}>
@@ -85,7 +85,7 @@ export default function DemoLayout() {
                       color: isActive ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.2)',
                       whiteSpace: 'nowrap',
                       letterSpacing: '0.01em',
-                      fontFamily: "'Inter', -apple-system, sans-serif",
+                      fontFamily: "'SharpSans', system-ui, sans-serif",
                     }}>
                       {step.subtitle}
                     </span>

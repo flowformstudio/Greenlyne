@@ -2010,7 +2010,7 @@ function OfferSidebar({ loan, step2 }) {
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div style={{ padding: '18px 20px 16px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginBottom: 10 }}>Your Loan Plan</div>
+        <div style={{ fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.45)', marginBottom: 10, fontFamily: "'PostGrotesk', sans-serif" }}>Your Loan Plan</div>
 
         {accrued > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
