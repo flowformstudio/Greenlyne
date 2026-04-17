@@ -25,7 +25,7 @@ function Shell({ children, navigate }) {
                 onClick={() => navigate('/offer', { state: { showHub: true } })}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 13, color: C.muted, fontWeight: 500,
+                  fontSize: 14, color: C.muted, fontWeight: 500,
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
@@ -66,16 +66,16 @@ function LoanOfficerCard() {
         justifyContent: 'center', fontSize: 20,
       }}>👤</div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 2 }}>
           Speak with a loan officer
         </div>
-        <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>
           A Westhaven specialist can review your options in detail.
         </div>
       </div>
       <button style={{
         background: C.navy, border: 'none', borderRadius: 10,
-        padding: '10px 16px', fontSize: 13, fontWeight: 700,
+        padding: '10px 16px', fontSize: 14, fontWeight: 700,
         color: C.white, cursor: 'pointer', flexShrink: 0,
       }}>Connect</button>
     </div>
@@ -109,7 +109,7 @@ function RadioList({ items, selected, onSelect, disabled }) {
             )}
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: C.text }}>{label}</div>
+            <div style={{ fontSize: 16, fontWeight: 500, color: C.text }}>{label}</div>
             {sub && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{sub}</div>}
           </div>
         </button>
@@ -123,7 +123,7 @@ function PrimaryBtn({ onClick, disabled, children, color }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       width: '100%', padding: '15px', background: bg,
-      border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700,
+      border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700,
       color: disabled ? C.muted : C.white, cursor: disabled ? 'default' : 'pointer',
       transition: 'background 0.15s',
     }}>
@@ -147,7 +147,7 @@ function MiniSpinner({ label, sub, navigate }) {
           <style>{`@keyframes qfspin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 6 }}>{label}</div>
-        {sub && <div style={{ fontSize: 14, color: C.muted }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 15, color: C.muted }}>{sub}</div>}
       </div>
     </Shell>
   )
@@ -183,13 +183,13 @@ function IdentityChallengeScreen({ onPass, onFail, navigate }) {
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
         We need to confirm your identity
       </h1>
-      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 10px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 16, color: C.muted, margin: '0 0 10px', lineHeight: 1.6 }}>
         Your application name is a close match to the homeowner of record.
         Please select the name that appears on your government-issued ID.
       </p>
       <div style={{
         background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 10,
-        padding: '12px 15px', marginBottom: 24, fontSize: 13, color: '#78350F',
+        padding: '12px 15px', marginBottom: 24, fontSize: 14, color: '#78350F',
       }}>
         <strong>Why this step?</strong> Property ownership is verified against public records. Name on application: <strong>Alex Rivera</strong>
       </div>
@@ -220,16 +220,16 @@ function PropertyDeclineScreen({ navigate }) {
           <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>
             Your property doesn't have enough equity
           </h2>
-          <p style={{ fontSize: 15, color: C.muted, margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 16, color: C.muted, margin: 0, lineHeight: 1.6 }}>
             We couldn't approve a HELOC based on your current equity position.
           </p>
         </div>
         <div style={{ padding: '24px 28px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Reason for decline</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Reason for decline</div>
           <div style={{
             background: C.redBg, border: `1px solid ${C.redBorder}`,
             borderRadius: 10, padding: '14px 16px',
-            fontSize: 14, color: '#7F1D1D', lineHeight: 1.6, marginBottom: 20,
+            fontSize: 15, color: '#7F1D1D', lineHeight: 1.6, marginBottom: 20,
           }}>
             Your combined loan-to-value (CLTV) ratio of <strong>91%</strong> exceeds our maximum of <strong>85%</strong>.
             Your property does not have sufficient equity to secure a home equity line of credit at this time.
@@ -243,11 +243,11 @@ function PropertyDeclineScreen({ navigate }) {
             ].map(({ label, value, warn }) => (
               <div key={label} style={{ background: C.bg, borderRadius: 10, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{label}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: warn ? C.red : C.text }}>{value}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: warn ? C.red : C.text }}>{value}</div>
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, margin: 0 }}>
             As your home appreciates or your mortgage balance decreases, you may qualify in the future. No hard credit inquiry was performed.
           </p>
         </div>
@@ -287,12 +287,12 @@ function AddressChallengeScreen({ onPass, onFail, navigate }) {
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
         We found your credit file
       </h1>
-      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 10px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 16, color: C.muted, margin: '0 0 10px', lineHeight: 1.6 }}>
         Your credit file was located under a previous address. To confirm your identity, please select an address you have lived at.
       </p>
       <div style={{
         background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10,
-        padding: '12px 15px', marginBottom: 24, fontSize: 13, color: '#1E40AF',
+        padding: '12px 15px', marginBottom: 24, fontSize: 14, color: '#1E40AF',
       }}>
         <strong>Why this step?</strong> Credit bureaus use address history to match files. Your entered address returned no credit record, but a past address did.
       </div>
@@ -313,7 +313,7 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
 
   const iStyle = {
     width: '100%', boxSizing: 'border-box', padding: '11px 14px',
-    fontSize: 15, border: `1.5px solid ${C.border}`, borderRadius: 8,
+    fontSize: 16, border: `1.5px solid ${C.border}`, borderRadius: 8,
     background: C.white, color: C.text, outline: 'none',
   }
 
@@ -344,7 +344,7 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
             <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 8px' }}>
               You qualify with {firstName}!
             </h2>
-            <p style={{ fontSize: 15, color: C.muted, margin: 0 }}>
+            <p style={{ fontSize: 16, color: C.muted, margin: 0 }}>
               Combined household income brings your DTI within range.
             </p>
           </div>
@@ -358,7 +358,7 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
               ].map(({ label, value, warn, ok }) => (
                 <div key={label} style={{ background: C.bg, borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>{label}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: ok ? C.greenDark : warn ? C.red : C.text }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: ok ? C.greenDark : warn ? C.red : C.text }}>
                     {value}
                   </div>
                 </div>
@@ -377,13 +377,13 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
         Add your spouse's income
       </h1>
-      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 12px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 16, color: C.muted, margin: '0 0 12px', lineHeight: 1.6 }}>
         Your current DTI ratio is <strong>58%</strong> — above our 50% maximum. Adding your spouse's income lowers the ratio and can unlock qualification.
       </p>
       <div style={{
         background: '#FEF3C7', border: '1px solid #FDE68A',
         borderRadius: 10, padding: '12px 15px', marginBottom: 24,
-        fontSize: 13, color: '#78350F', lineHeight: 1.5,
+        fontSize: 14, color: '#78350F', lineHeight: 1.5,
       }}>
         <strong>Note:</strong> This adds income to the numerator only. Your spouse's debts are not pulled into this application at this stage.
       </div>
@@ -394,16 +394,16 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>First Name *</label>
+            <label style={{ fontSize: 14, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>First Name *</label>
             <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" style={iStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>Last Name</label>
+            <label style={{ fontSize: 14, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>Last Name</label>
             <input placeholder="Rivera" style={iStyle} />
           </div>
         </div>
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>Annual Income *</label>
+          <label style={{ fontSize: 14, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>Annual Income *</label>
           <input value={income} onChange={e => setIncome(e.target.value)} placeholder="$75,000" style={iStyle} />
         </div>
       </div>
@@ -453,12 +453,12 @@ function DebtBucket({ label, sublabel, accent, bg, border: bdr, debts, locked, c
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: accent, marginBottom: 2 }}>{label}</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: accent, marginBottom: 2 }}>{label}</div>
           <div style={{ fontSize: 11, color: C.muted }}>{sublabel}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 10, color: C.muted }}>Total balance</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>${balTotal.toLocaleString()}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>${balTotal.toLocaleString()}</div>
         </div>
       </div>
       <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -485,10 +485,10 @@ function DebtBucket({ label, sublabel, accent, bg, border: bdr, debts, locked, c
               </button>
             )}
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{debt.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{debt.name}</div>
               <div style={{ fontSize: 11, color: C.muted }}>Balance: ${debt.balance.toLocaleString()}</div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, flexShrink: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, flexShrink: 0 }}>
               ${debt.monthly}/mo
             </div>
           </div>
@@ -525,10 +525,10 @@ function DebtConsolidationScreen({ onQualify, onDecline, navigate }) {
       <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
         Here's how you can still qualify
       </h1>
-      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 8px', lineHeight: 1.6 }}>
+      <p style={{ fontSize: 16, color: C.muted, margin: '0 0 8px', lineHeight: 1.6 }}>
         Your DTI is <strong>{beforeDTI}%</strong>, above our <strong>50%</strong> maximum. Rolling existing debts into your HELOC lowers your monthly obligations and can bring DTI into range.
       </p>
-      <p style={{ fontSize: 13, color: C.muted, margin: '0 0 24px', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: C.muted, margin: '0 0 24px', lineHeight: 1.5 }}>
         Select which debts to consolidate. Required items are mandatory per lender policy.
       </p>
 
@@ -588,7 +588,7 @@ function DebtConsolidationScreen({ onQualify, onDecline, navigate }) {
           ].map(({ label, value, green }) => (
             <div key={label}>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 3 }}>{label}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: green ? C.green : C.white }}>{value}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: green ? C.green : C.white }}>{value}</div>
             </div>
           ))}
         </div>
@@ -620,7 +620,7 @@ function DebtConsolidationScreen({ onQualify, onDecline, navigate }) {
           <div style={{
             background: C.redBg, border: `1px solid ${C.redBorder}`,
             borderRadius: 12, padding: '14px 16px', marginBottom: 14,
-            fontSize: 14, color: '#7F1D1D', lineHeight: 1.5,
+            fontSize: 15, color: '#7F1D1D', lineHeight: 1.5,
           }}>
             Even including all optional debts, your DTI of {newDTI}% still exceeds our 50% maximum. We're unable to approve through consolidation alone.
           </div>
@@ -650,20 +650,20 @@ function FullDeclineScreen({ navigate }) {
           <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>
             We're unable to approve your application
           </h2>
-          <p style={{ fontSize: 15, color: C.muted, margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 16, color: C.muted, margin: 0, lineHeight: 1.6 }}>
             Based on our review, your application does not meet our current qualifying criteria.
           </p>
         </div>
         <div style={{ padding: '24px 28px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Reason for decline</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Reason for decline</div>
           <div style={{
             background: C.redBg, border: `1px solid ${C.redBorder}`,
             borderRadius: 10, padding: '14px 16px', marginBottom: 20,
-            fontSize: 14, color: '#7F1D1D', lineHeight: 1.6,
+            fontSize: 15, color: '#7F1D1D', lineHeight: 1.6,
           }}>
             Your debt-to-income ratio of <strong>72%</strong> significantly exceeds our maximum qualifying threshold of <strong>50%</strong>. Debt consolidation alone is not sufficient to bring your DTI into range.
           </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Your options going forward</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Your options going forward</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
             {[
               { icon: '📉', title: 'Pay down existing debt', desc: 'Reducing monthly obligations will lower your DTI over time.' },
@@ -673,13 +673,13 @@ function FullDeclineScreen({ navigate }) {
               <div key={title} style={{ display: 'flex', gap: 14, padding: '14px 16px', background: C.bg, borderRadius: 10 }}>
                 <span style={{ fontSize: 20, flexShrink: 0 }}>{icon}</span>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 3 }}>{title}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 3 }}>{title}</div>
                   <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>{desc}</div>
                 </div>
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, margin: 0 }}>
             No hard credit inquiry was performed. You may reapply at any time.
           </p>
         </div>
@@ -722,7 +722,7 @@ function DeclineScreen({ reason, navigate }) {
           <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>
             {copy.title}
           </h2>
-          <p style={{ fontSize: 15, color: C.muted, margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 16, color: C.muted, margin: 0, lineHeight: 1.6 }}>
             {copy.body}
           </p>
         </div>
@@ -759,7 +759,7 @@ function CreditOkScreen({ navigate }) {
         <div style={{ fontSize: 17, fontWeight: 700, color: C.navy, marginBottom: 6 }}>
           {phase === 'credit' ? 'Identity verified ✓' : 'Credit check complete ✓'}
         </div>
-        <div style={{ fontSize: 14, color: C.muted }}>
+        <div style={{ fontSize: 15, color: C.muted }}>
           {phase === 'credit' ? 'Running credit check…' : 'Loading your offer…'}
         </div>
       </div>

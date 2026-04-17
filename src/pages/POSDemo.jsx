@@ -149,7 +149,7 @@ function fmt(n)  { return '$' + Math.round(n).toLocaleString() }
 function Field({ label, helper, children }) {
   return (
     <div>
-      <label className="block font-semibold mb-1" style={{ fontSize: 13, color: '#001660' }}>
+      <label className="block font-semibold mb-1" style={{ fontSize: 14, color: '#001660' }}>
         {label}
         {helper && <span className="ml-1.5 font-normal text-gray-400">{helper}</span>}
       </label>
@@ -165,7 +165,7 @@ function Input({ value, onChange, placeholder, type = 'text', readOnly }) {
       onChange={onChange ? e => onChange(e.target.value) : undefined}
       placeholder={placeholder} readOnly={readOnly}
       className="w-full rounded-xl px-3.5 py-2.5 outline-none transition-all"
-      style={{ fontSize: 15, border: '1px solid rgba(0,22,96,0.15)', background: readOnly ? '#F8F9FC' : '#fff', color: readOnly ? 'rgba(0,22,96,0.5)' : '#001660' }}
+      style={{ fontSize: 16, border: '1px solid rgba(0,22,96,0.15)', background: readOnly ? '#F8F9FC' : '#fff', color: readOnly ? 'rgba(0,22,96,0.5)' : '#001660' }}
       onFocus={e => !readOnly && (e.target.style.borderColor = '#254BCE')}
       onBlur={e => (e.target.style.borderColor = 'rgba(0,22,96,0.15)')}
     />
@@ -177,7 +177,7 @@ function Select({ value, onChange, options }) {
     <div style={{ position: 'relative' }}>
       <select value={value} onChange={e => onChange(e.target.value)}
         className="w-full rounded-xl px-3.5 py-2.5 outline-none appearance-none"
-        style={{ fontSize: 15, border: '1px solid rgba(0,22,96,0.15)', background: '#fff', color: '#001660', paddingRight: '2rem', cursor: 'pointer' }}>
+        style={{ fontSize: 16, border: '1px solid rgba(0,22,96,0.15)', background: '#fff', color: '#001660', paddingRight: '2rem', cursor: 'pointer' }}>
         {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
       </select>
       <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
@@ -212,14 +212,14 @@ function NavButtons({ onBack, onNext, nextLabel = 'Continue', disabled = false, 
       <div className="flex items-center gap-3">
         {showBack && (
           <button onClick={onBack} className="px-5 py-2.5 font-semibold rounded-xl border transition-colors"
-            style={{ fontSize: 15, borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}
+            style={{ fontSize: 16, borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}
             onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
             onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
             ← Back
           </button>
         )}
         <button className="px-5 py-2.5 font-medium rounded-xl border transition-colors"
-          style={{ fontSize: 15, borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.55)', background: '#fff' }}
+          style={{ fontSize: 16, borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.55)', background: '#fff' }}
           onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
           onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
           Save for later
@@ -227,7 +227,7 @@ function NavButtons({ onBack, onNext, nextLabel = 'Continue', disabled = false, 
       </div>
       <button onClick={onNext} disabled={disabled}
         className="py-2.5 px-6 font-bold rounded-xl transition-all flex items-center gap-2"
-        style={{ fontSize: 15, background: disabled ? 'rgba(0,22,96,0.2)' : '#254BCE', color: '#fff',
+        style={{ fontSize: 16, background: disabled ? 'rgba(0,22,96,0.2)' : '#254BCE', color: '#fff',
           boxShadow: disabled ? 'none' : '0 4px 16px rgba(37,75,206,0.3)', cursor: disabled ? 'not-allowed' : 'pointer' }}
         onMouseOver={e => { if (!disabled) e.currentTarget.style.background = '#1e3fa8' }}
         onMouseOut={e => { if (!disabled) e.currentTarget.style.background = '#254BCE' }}>
@@ -502,14 +502,14 @@ function ReviewCheckCard({ label, rows, onEdit }) {
               <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>
             {label}
           </span>
         </div>
         <button
           onClick={onEdit}
           style={{
-            fontSize: 13, fontWeight: 600, color: '#254BCE',
+            fontSize: 14, fontWeight: 600, color: '#254BCE',
             background: 'rgba(37,75,206,0.06)',
             border: '1px solid rgba(37,75,206,0.15)',
             borderRadius: 20, padding: '5px 16px',
@@ -526,8 +526,8 @@ function ReviewCheckCard({ label, rows, onEdit }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         {rows.map(row => (
           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 13, color: '#6B7280', flexShrink: 0 }}>{row.label}</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827', textAlign: 'right' }}>{row.value || '—'}</span>
+            <span style={{ fontSize: 14, color: '#6B7280', flexShrink: 0 }}>{row.label}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#111827', textAlign: 'right' }}>{row.value || '—'}</span>
           </div>
         ))}
       </div>
@@ -540,12 +540,12 @@ function ReviewHeader({ totalSteps, heading, sub }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>Review</span>
-        <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {totalSteps} of {totalSteps}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>Review</span>
+        <span style={{ fontSize: 14, color: '#9CA3AF' }}>Step {totalSteps} of {totalSteps}</span>
       </div>
       <div style={{ height: 3, background: '#254BCE', borderRadius: 0, marginBottom: 28 }} />
       <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>{heading}</h1>
-      <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>{sub}</p>
+      <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>{sub}</p>
     </div>
   )
 }
@@ -616,7 +616,7 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
         style={{
           width: '100%', padding: '15px', borderRadius: 12, border: 'none',
           background: '#001660', color: '#fff',
-          fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           letterSpacing: '-0.1px',
         }}
         onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
@@ -654,8 +654,8 @@ function SubStepProgress({ current, editing = false }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
-        <span style={{ fontSize: 13, color: '#9CA3AF' }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
+        <span style={{ fontSize: 14, color: '#9CA3AF' }}>
           {editing ? `Step ${current + 1} of ${total}` : `Step ${current + 1} of ${total}`}
         </span>
       </div>
@@ -689,7 +689,7 @@ function NarrowInput({ value, onChange, placeholder, maxWidth = 96, center = fal
         textAlign: center ? 'center' : 'left',
         border: '1px solid rgba(0,22,96,0.15)',
         borderRadius: 10, padding: '10px 12px',
-        fontSize: 15, outline: 'none', background: '#fff', color: '#001660',
+        fontSize: 16, outline: 'none', background: '#fff', color: '#001660',
         letterSpacing: center ? '0.15em' : 0,
       }}
       onFocus={e => (e.target.style.borderColor = '#254BCE')}
@@ -782,11 +782,11 @@ function ScreenBasicInfo({ step1, dispatch }) {
               <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
+              <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
                 {getSummary(index)}
               </span>
               <button onClick={() => setEditingIndex(index)} style={{
-                fontSize: 13, fontWeight: 600, color: '#254BCE',
+                fontSize: 14, fontWeight: 600, color: '#254BCE',
                 background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
                 borderRadius: 20, padding: '5px 16px',
                 cursor: 'pointer', fontFamily: 'inherit',
@@ -807,12 +807,12 @@ function ScreenBasicInfo({ step1, dispatch }) {
               }}>
                 {/* Tile header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>
                     {index + 1}
                   </div>
                   <div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{meta.heading}</div>
-                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
+                    <div style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
                   </div>
                 </div>
 
@@ -831,12 +831,12 @@ function ScreenBasicInfo({ step1, dispatch }) {
                     </FieldRow>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
                       <div>
-                        <label style={{ fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 4, display: 'block' }}>SSN <span style={{ fontWeight: 400, color: '#9CA3AF' }}>last 4</span></label>
+                        <label style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 4, display: 'block' }}>SSN <span style={{ fontWeight: 400, color: '#9CA3AF' }}>last 4</span></label>
                         <NarrowInput value={step1.ssn4} onChange={v => set('ssn4', v.replace(/\D/g, '').slice(0, 4))} placeholder="_ _ _ _" maxWidth={88} center />
                       </div>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', background: 'rgba(37,75,206,0.04)', borderRadius: 10, border: '1px solid rgba(37,75,206,0.08)' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <p style={{ fontSize: 13, color: '#4B5563', margin: 0, lineHeight: 1.6 }}>Soft pull only — <strong>no score impact.</strong></p>
+                        <p style={{ fontSize: 14, color: '#4B5563', margin: 0, lineHeight: 1.6 }}>Soft pull only — <strong>no score impact.</strong></p>
                       </div>
                     </div>
                   </div>
@@ -865,7 +865,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
                         }}>
                           <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: active ? 'rgba(37,75,206,0.1)' : 'rgba(0,22,96,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{opt.icon}</div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 15, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
+                            <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
                             <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{opt.desc}</div>
                           </div>
                           <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -887,7 +887,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
                     </FieldRow>
                     <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                      <span style={{ fontSize: 13, color: '#065F46', fontWeight: 500 }}>{step1.address}, {step1.city}, {step1.state} {step1.zip}</span>
+                      <span style={{ fontSize: 14, color: '#065F46', fontWeight: 500 }}>{step1.address}, {step1.city}, {step1.state} {step1.zip}</span>
                     </div>
                   </div>
                 )}
@@ -902,7 +902,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
                           return (
                             <button key={opt.value} onClick={() => set('propType', opt.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, borderRadius: 12, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
                               <span style={{ fontSize: 22 }}>{opt.icon}</span>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
                               <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
                               </div>
@@ -920,7 +920,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
                           return (
                             <button key={opt.value} onClick={() => set('ownership', opt.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, borderRadius: 12, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
                               <span style={{ fontSize: 22 }}>{opt.icon}</span>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
                               <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
                               </div>
@@ -937,7 +937,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
                   <button onClick={handleContinue} style={{
                     padding: '11px 24px', borderRadius: 10, border: 'none',
                     background: '#254BCE', color: '#fff',
-                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     {editingIndex !== null ? 'Save →' : index === total - 1 ? 'Done →' : 'Continue →'}
                   </button>
@@ -952,11 +952,11 @@ function ScreenBasicInfo({ step1, dispatch }) {
 
       {/* Bottom nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 14, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 15, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back
         </button>
         {allDone && editingIndex === null && (
-          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
+          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
             Save &amp; Continue →
           </button>
         )}
@@ -1095,7 +1095,7 @@ function BorrowingPowerPanel({ step1, maxCredit }) {
       background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.09)',
       borderRadius: 14, padding: '14px 16px', marginBottom: 20,
     }}>
-      <div style={{ fontSize: 13, fontWeight: 800, color: '#001660', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#001660', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
         Your borrowing power
       </div>
 
@@ -1127,7 +1127,7 @@ function BorrowingPowerPanel({ step1, maxCredit }) {
         ].map(r => (
           <div key={r.label}>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{r.label}</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: r.accent ? '#254BCE' : '#001660', letterSpacing: '0em' }}>{r.value}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: r.accent ? '#254BCE' : '#001660', letterSpacing: '0em' }}>{r.value}</div>
             {r.note && <div style={{ fontSize: 11, color: '#9CA3AF' }}>{r.note}</div>}
           </div>
         ))}
@@ -1148,7 +1148,7 @@ function RecoveryOption({ id, icon, title, badge, badgeColor, expandedOption, se
       }}>
         <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#001660' }}>{title}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>{title}</div>
           {badge && <div style={{ fontSize: 10, fontWeight: 600, color: badgeColor || '#016163', marginTop: 2 }}>{badge}</div>}
         </div>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"
@@ -1233,13 +1233,13 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
               <div style={{ fontSize: 11, fontWeight: 600, color: '#001660', marginBottom: 5 }}>Co-borrower name</div>
               <input value={coBorrowerName} onChange={e => setCoBorrowerName(e.target.value)}
                 placeholder="Full legal name"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: 13, border: '1px solid rgba(0,22,96,0.15)', borderRadius: 9, outline: 'none', fontFamily: 'inherit' }} />
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: 14, border: '1px solid rgba(0,22,96,0.15)', borderRadius: 9, outline: 'none', fontFamily: 'inherit' }} />
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#001660', marginBottom: 5 }}>Annual income</div>
               <input value={spouseIncome} onChange={e => setSpouseIncome(e.target.value)}
                 placeholder="$0"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: 13, border: '1px solid rgba(0,22,96,0.15)', borderRadius: 9, outline: 'none', fontFamily: 'inherit' }} />
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', fontSize: 14, border: '1px solid rgba(0,22,96,0.15)', borderRadius: 9, outline: 'none', fontFamily: 'inherit' }} />
             </div>
             {coBorrowerDTI && (
               <div style={{ background: coBorrowerDTI <= DTI_THRESHOLD ? 'rgba(1,97,99,0.07)' : '#FFF9ED', border: `1px solid ${coBorrowerDTI <= DTI_THRESHOLD ? 'rgba(1,97,99,0.2)' : 'rgba(234,179,8,0.3)'}`, borderRadius: 10, padding: '10px 12px' }}>
@@ -1253,7 +1253,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
             )}
             {coBorrowerDTI && coBorrowerDTI <= DTI_THRESHOLD && (
               <button onClick={onDismiss}
-                style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#001660', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, background: '#001660', color: '#fff', border: 'none', cursor: 'pointer' }}>
                 Done — return to plan →
               </button>
             )}
@@ -1288,7 +1288,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
               Running the loan in Maria's name brings DTI well below 40%, significantly improving approval odds and potentially qualifying for a better rate.
             </div>
             <button onClick={() => onApply('switch_primary', {})}
-              style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#001660', color: '#fff', border: 'none', cursor: 'pointer' }}>
+              style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, background: '#001660', color: '#fff', border: 'none', cursor: 'pointer' }}>
               Re-run eligibility as Maria →
             </button>
           </div>
@@ -1349,7 +1349,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
 
             {selectedDebts.length > 0 && (
               <button onClick={() => onApply('debt_payoff', { selectedDebts, newWithdraw })}
-                style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: debtPayoffDTI <= DTI_THRESHOLD ? '#001660' : 'rgba(0,22,96,0.4)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, background: debtPayoffDTI <= DTI_THRESHOLD ? '#001660' : 'rgba(0,22,96,0.4)', color: '#fff', border: 'none', cursor: 'pointer' }}>
                 {debtPayoffDTI <= DTI_THRESHOLD ? 'Apply with debt roll-in →' : `DTI still ${Math.round(debtPayoffDTI*100)}% — select more debts`}
               </button>
             )}
@@ -1487,8 +1487,8 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
     return (
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
-          <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
+          <span style={{ fontSize: 14, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
         </div>
         <div style={{ height: 3, background: '#254BCE', borderRadius: 0 }} />
       </div>
@@ -1525,7 +1525,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
           {goalMeta && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)', borderRadius: 100, padding: '5px 16px' }}>
               <span style={{ fontSize: 16 }}>{goalMeta.emoji}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#254BCE' }}>{goalMeta.label}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#254BCE' }}>{goalMeta.label}</span>
             </div>
           )}
         </div>
@@ -1542,7 +1542,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                   <path d="M1 4L3.5 6.5L9 1" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span style={{ fontSize: 13, color: '#374151' }}>{label}</span>
+              <span style={{ fontSize: 14, color: '#374151' }}>{label}</span>
             </div>
           ))}
         </div>
@@ -1605,7 +1605,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
       {/* "or choose" divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <div style={{ flex: 1, height: 1, background: 'rgba(0,22,96,0.07)' }} />
-        <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 500, whiteSpace: 'nowrap' }}>or choose your priority</span>
+        <span style={{ fontSize: 14, color: '#9CA3AF', fontWeight: 500, whiteSpace: 'nowrap' }}>or choose your priority</span>
         <div style={{ flex: 1, height: 1, background: 'rgba(0,22,96,0.07)' }} />
       </div>
 
@@ -1627,7 +1627,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
             >
               <span style={{ fontSize: 22, lineHeight: 1 }}>{g.emoji}</span>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: active ? '#254BCE' : '#001660', lineHeight: 1.3, marginBottom: 2 }}>{g.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: active ? '#254BCE' : '#001660', lineHeight: 1.3, marginBottom: 2 }}>{g.label}</div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.4 }}>{g.desc}</div>
               </div>
             </button>
@@ -1637,7 +1637,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
       {/* Back */}
       <div style={{ paddingTop: 12, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '10px 20px', fontSize: 15, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}>
+        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '10px 20px', fontSize: 16, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}>
           ← Back
         </button>
       </div>
@@ -1661,7 +1661,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
             <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,22,96,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#991B1B', marginBottom: 2 }}>Fix high DTI</div>
-                <div style={{ fontSize: 13, color: '#9CA3AF' }}>Choose an option to improve your approval odds</div>
+                <div style={{ fontSize: 14, color: '#9CA3AF' }}>Choose an option to improve your approval odds</div>
               </div>
               <button onClick={() => setShowDecline(false)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', borderRadius: 8, cursor: 'pointer', padding: '7px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -1709,12 +1709,12 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
+              <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
                 {getConfigSummary(index)}
               </span>
               {!step.auto && (
                 <button onClick={() => setConfigEditingIndex(index)} style={{
-                  fontSize: 13, fontWeight: 600, color: '#254BCE',
+                  fontSize: 14, fontWeight: 600, color: '#254BCE',
                   background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
                   borderRadius: 20, padding: '5px 16px', cursor: 'pointer', fontFamily: 'inherit',
                 }}>Edit</button>
@@ -1730,7 +1730,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>
                   {index + 1}
                 </div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{step.label}</div>
@@ -1756,8 +1756,8 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                           {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                         </div>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 3 }}>{opt.label}</div>
-                          <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>{opt.sub}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 3 }}>{opt.label}</div>
+                          <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.5 }}>{opt.sub}</div>
                         </div>
                       </button>
                     )
@@ -1770,23 +1770,23 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>Total credit line</div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: '#001660' }}>Total credit line</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#001660', letterSpacing: '0em' }}>{formatCurrencyFull(creditLimit)}</div>
                     </div>
-                    <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 10 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
+                    <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 10 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
                     <RangeSlider value={creditLimit} min={SEED.minCredit} max={maxCredit} step={5000} onChange={v => { setCreditLimit(v); if (withdrawNow > v) setWithdrawNow(v) }} formatLabel={v => formatCurrencyFull(v)} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#254BCE' }}>Amount to draw at closing</div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: '#254BCE' }}>Amount to draw at closing</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(safeWithdraw)}</div>
                     </div>
-                    <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 10 }}>{formatCurrencyFull(creditLimit - safeWithdraw)} stays in your line — draw it later, no rush.</div>
+                    <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 10 }}>{formatCurrencyFull(creditLimit - safeWithdraw)} stays in your line — draw it later, no rush.</div>
                     <RangeSlider value={safeWithdraw} min={0} max={creditLimit} step={5000} onChange={v => setWithdrawNow(v)} formatLabel={v => formatCurrencyFull(v)} />
                     <CreditBar withdrawNow={safeWithdraw} creditLimit={creditLimit} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 10 }}>Loan term</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#001660', marginBottom: 10 }}>Loan term</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                       {TERM_OPTIONS.map(opt => {
                         const active  = termYears === opt.years
@@ -1812,7 +1812,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               {/* Step 2 — Payment timing */}
               {index === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 4 }}>Delay your first payment while solar savings kick in from day one.</div>
+                  <div style={{ fontSize: 15, color: '#6B7280', marginBottom: 4 }}>Delay your first payment while solar savings kick in from day one.</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                     {DEFERRED_OPTIONS.map(opt => {
                       const active = deferredMonths === opt.months
@@ -1822,18 +1822,18 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                           border: `2px solid ${active ? '#016163' : 'rgba(0,22,96,0.12)'}`,
                           background: active ? 'rgba(1,97,99,0.06)' : '#F8F9FC',
                           color: active ? '#016163' : '#374151',
-                          fontSize: 14, fontWeight: active ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s',
+                          fontSize: 15, fontWeight: active ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s',
                         }}>
                           {opt.months === 0 ? 'Right away' : `${opt.months} mo`}
                         </button>
                       )
                     })}
                   </div>
-                  {deferredMonths > 0 && <div style={{ fontSize: 13, color: '#016163', fontWeight: 600 }}>First payment due: {payStartLabel(deferredMonths)}</div>}
+                  {deferredMonths > 0 && <div style={{ fontSize: 14, color: '#016163', fontWeight: 600 }}>First payment due: {payStartLabel(deferredMonths)}</div>}
                   {dtiTooHigh && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: '#FFF5F5', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 10 }}>
                       <span>⚠️</span>
-                      <div style={{ flex: 1, fontSize: 13, color: '#991B1B' }}>
+                      <div style={{ flex: 1, fontSize: 14, color: '#991B1B' }}>
                         <strong>High DTI ({Math.round(dti * 100)}%)</strong> — consider deferring payments or reducing the draw amount.
                       </div>
                     </div>
@@ -1844,10 +1844,10 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               {/* Step 3 — Informational */}
               {index === 3 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.65, margin: 0 }}>
+                  <p style={{ fontSize: 16, color: '#374151', lineHeight: 1.65, margin: 0 }}>
                     For the first {termYears > 20 ? 10 : 5} years, you'll make lower monthly payments that cover interest only. Your loan balance stays about the same during this time.
                   </p>
-                  <p style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.6, margin: 0 }}>
+                  <p style={{ fontSize: 15, color: '#9CA3AF', lineHeight: 1.6, margin: 0 }}>
                     After this period, your regular payments begin and you start paying down your loan.
                   </p>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(0,22,96,0.04)', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '6px 14px' }}>
@@ -1861,7 +1861,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                 <button onClick={configContinue} style={{
                   padding: '11px 24px', borderRadius: 10, border: 'none',
                   background: '#254BCE', color: '#fff',
-                  fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}>
                   {configEditingIndex !== null ? 'Save →' : index === configTotal - 1 ? 'Done →' : 'Continue →'}
                 </button>
@@ -1876,7 +1876,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
       {/* Trust badges */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {['🔒 No obligation', '📋 No hard credit pull yet', '⏱️ Takes 5 minutes'].map(t => (
-          <div key={t} style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '5px 12px', fontSize: 13, fontWeight: 600, color: '#6B7280' }}>{t}</div>
+          <div key={t} style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '5px 12px', fontSize: 14, fontWeight: 600, color: '#6B7280' }}>{t}</div>
         ))}
       </div>
       <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 24 }}>
@@ -1885,12 +1885,12 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
       {/* Bottom nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-        <button onClick={() => setOfferSub(0)} style={{ padding: '11px 20px', fontSize: 14, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}>
+        <button onClick={() => setOfferSub(0)} style={{ padding: '11px 20px', fontSize: 15, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}>
           ← Back
         </button>
         {configAllDone && configEditingIndex === null && (
           <button onClick={handleNext} style={{
-            padding: '13px 28px', fontSize: 15, fontWeight: 800, borderRadius: 10,
+            padding: '13px 28px', fontSize: 16, fontWeight: 800, borderRadius: 10,
             background: dtiTooHigh ? '#991B1B' : '#001660',
             border: 'none', color: '#fff', cursor: 'pointer', letterSpacing: '-0.1px',
           }}>
@@ -1909,7 +1909,7 @@ function SummaryRow({ label, value, sub, accent }) {
         <div style={{ fontSize: 12, color: '#9CA3AF' }}>{label}</div>
         {sub && <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 1 }}>{sub}</div>}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: accent ? '#254BCE' : '#001660', flexShrink: 0 }}>{value}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: accent ? '#254BCE' : '#001660', flexShrink: 0 }}>{value}</div>
     </div>
   )
 }
@@ -2023,12 +2023,12 @@ function OfferSidebar({ loan, step2 }) {
             {/* Row 2 — Added amount (SECONDARY) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.45)', lineHeight: 1.45, flex: 1 }}>To let you skip payments for the first 6 months, this is added to your loan and will be held in escrow</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
             </div>
             {/* Row 3 — Total loan (LABELED) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 5, borderTop: '1px dashed rgba(255,255,255,0.15)' }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)' }}>Total starting loan</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,0.8)', letterSpacing: '0em' }}>{formatCurrencyFull(heroAmount)}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.8)', letterSpacing: '0em' }}>{formatCurrencyFull(heroAmount)}</span>
             </div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
               {productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR
@@ -2119,8 +2119,8 @@ function MoreInfoProgress({ current }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
-        <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
+        <span style={{ fontSize: 14, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
       </div>
       <div style={{ height: 3, background: '#254BCE', borderRadius: 0 }} />
     </div>
@@ -2170,7 +2170,7 @@ function MoreInfoReview({ step3, onEdit, onContinue }) {
         style={{
           width: '100%', padding: '15px', borderRadius: 12, border: 'none',
           background: '#001660', color: '#fff',
-          fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           letterSpacing: '-0.1px',
         }}
         onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
@@ -2246,11 +2246,11 @@ function ScreenMoreInfo({ step3, dispatch }) {
               <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
+              <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
                 {getSummary(index)}
               </span>
               <button onClick={() => setEditingIndex(index)} style={{
-                fontSize: 13, fontWeight: 600, color: '#254BCE',
+                fontSize: 14, fontWeight: 600, color: '#254BCE',
                 background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
                 borderRadius: 20, padding: '5px 16px', cursor: 'pointer', fontFamily: 'inherit',
               }}>Edit</button>
@@ -2267,12 +2267,12 @@ function ScreenMoreInfo({ step3, dispatch }) {
                 animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#fff' }}>
                     {index + 1}
                   </div>
                   <div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{meta.heading}</div>
-                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
+                    <div style={{ fontSize: 14, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
                   </div>
                 </div>
 
@@ -2325,7 +2325,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
                   <button onClick={handleContinue} style={{
                     padding: '11px 24px', borderRadius: 10, border: 'none',
                     background: '#254BCE', color: '#fff',
-                    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     {editingIndex !== null ? 'Save →' : index === total - 1 ? 'Done →' : 'Continue →'}
                   </button>
@@ -2340,11 +2340,11 @@ function ScreenMoreInfo({ step3, dispatch }) {
 
       {/* Bottom nav */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 14, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 15, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Back
         </button>
         {allDone && editingIndex === null && (
-          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
+          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
             Save &amp; Continue →
           </button>
         )}

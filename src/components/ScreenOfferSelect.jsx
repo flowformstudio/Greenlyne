@@ -82,8 +82,8 @@ function OfferConfigSummaryLegacy({
             <path d="M8 12h8M12 8v8"/>
           </svg>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Your loan plan</div>
-        <div style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.65 }}>Choose your loan type on the left to see your personalized payment plan here — it updates live as you make each selection.</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Your loan plan</div>
+        <div style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.65 }}>Choose your loan type on the left to see your personalized payment plan here — it updates live as you make each selection.</div>
       </div>
     )
   }
@@ -143,7 +143,7 @@ function OfferConfigSummaryLegacy({
         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 5 }}>Live Plan Summary</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3 }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '0em' }}>{formatCurrencyFull(draw)}</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
             {product === 'heloc' ? 'HELOC draw' : 'HELOAN'}
           </div>
         </div>
@@ -252,8 +252,8 @@ function OfferConfigSummary({
             <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
           </svg>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 8 }}>Your loan plan</div>
-        <div style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.65 }}>Choose your loan type on the left to see your personalized payment plan here — it updates live as you make each selection.</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 8 }}>Your loan plan</div>
+        <div style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.65 }}>Choose your loan type on the left to see your personalized payment plan here — it updates live as you make each selection.</div>
       </div>
     )
   }
@@ -339,7 +339,7 @@ function OfferConfigSummary({
             {/* Row 2 — Added for payment break (SECONDARY) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.45)', lineHeight: 1.45, flex: 1 }}>To let you skip payments for the first 6 months, this amount is added to your loan and will be held in escrow</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0em', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#fbbf24', letterSpacing: '0em', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
             </div>
 
             {/* Row 3 — Total starting loan (LABELED) */}
@@ -381,7 +381,7 @@ function OfferConfigSummary({
       <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* ── Narrative ────────────────────────────────────────────── */}
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#374151', lineHeight: 1.6 }}>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#374151', lineHeight: 1.6 }}>
           {narrative}
         </p>
 
@@ -423,7 +423,7 @@ function OfferConfigSummary({
                       {step.payment === 0 ? '$0' : step.payment != null ? formatCurrencyFull(step.payment) : '—'}
                     </span>
                     {step.payment !== 0 && step.payment != null && (
-                      <span style={{ fontSize: 13, color: '#9CA3AF', fontWeight: 500 }}>/month</span>
+                      <span style={{ fontSize: 14, color: '#9CA3AF', fontWeight: 500 }}>/month</span>
                     )}
                   </div>
                   {/* Plain-English note */}
@@ -498,7 +498,7 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
         <div style={{ flex: 1, minWidth: 0 }}>
           {answered && !editing ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', flex: 1, minWidth: 0 }}>{summary}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#001660', flex: 1, minWidth: 0 }}>{summary}</span>
               <button onClick={onEdit} style={{ fontSize: 12, fontWeight: 600, color: '#254BCE', background: 'rgba(37,75,206,0.08)', border: 'none', borderRadius: 7, padding: '3px 10px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s' }}
                 onMouseOver={e => e.currentTarget.style.background = 'rgba(37,75,206,0.15)'}
                 onMouseOut={e => e.currentTarget.style.background = 'rgba(37,75,206,0.08)'}>
@@ -507,7 +507,7 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
             </div>
           ) : answered && editing ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', flex: 1, minWidth: 0, lineHeight: 1.35 }}>{title}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', flex: 1, minWidth: 0, lineHeight: 1.35 }}>{title}</span>
               <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, color: '#016163', background: 'rgba(1,97,99,0.08)', border: 'none', borderRadius: 7, padding: '3px 10px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s' }}
                 onMouseOver={e => e.currentTarget.style.background = 'rgba(1,97,99,0.15)'}
                 onMouseOut={e => e.currentTarget.style.background = 'rgba(1,97,99,0.08)'}>
@@ -515,7 +515,7 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
               </button>
             </div>
           ) : (
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#001660', lineHeight: 1.35 }}>{title}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', lineHeight: 1.35 }}>{title}</span>
           )}
         </div>
       </div>
@@ -684,7 +684,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             ↺ Reset this step · demo only
           </button>
         </div>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
           Answer each question — your plan summary updates live on the right.
         </p>
       </div>
@@ -748,7 +748,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                       {badge}
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55 }}>{desc}</div>
+                  <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.55 }}>{desc}</div>
                 </button>
               )
             })}
@@ -775,7 +775,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
               <div>
                 {/* Loan amount */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Loan amount</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>Loan amount</div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(Math.min(creditLim, heloanEffectiveMax))}</div>
                 </div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
@@ -822,7 +822,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                           <div style={{ width: 13, height: 13, borderRadius: '50%', marginBottom: 8, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
                           </div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 2 }}>{label}</div>
                           <div style={{ fontSize: 11, color: '#9CA3AF' }}>{sub}</div>
                         </button>
                       )
@@ -845,7 +845,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                     setAmtDone(true)
                     if (editingCard === null) closeEdit()
                   }}
-                  style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 11, fontSize: 14, fontWeight: 700, background: '#254BCE', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)' }}
+                  style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 11, fontSize: 15, fontWeight: 700, background: '#254BCE', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)' }}
                 >
                   Confirm {formatCurrencyFull(Math.min(creditLim, heloanEffectiveMax))} →
                 </button>
@@ -855,7 +855,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 {/* Credit line */}
                 <div style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Total credit line</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>Total credit line</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', letterSpacing: '0em' }}>{formatCurrencyFull(creditLim)}</div>
                   </div>
                   <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 10 }}>Your approved maximum. You only pay interest on what you draw.</div>
@@ -869,7 +869,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 {/* Initial draw */}
                 <div style={{ padding: '14px 16px', background: 'rgba(37,75,206,0.04)', border: '1px solid rgba(37,75,206,0.1)', borderRadius: 12, marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Initial draw at closing</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>Initial draw at closing</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(safeDraw)}</div>
                   </div>
                   <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 10 }}>Minimum 80% of your credit line. The remainder stays available to draw anytime.</div>
@@ -883,7 +883,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
                 <button
                   onClick={() => { setAmtDone(true); closeEdit() }}
-                  style={{ width: '100%', padding: '12px', borderRadius: 11, fontSize: 14, fontWeight: 700, background: '#254BCE', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: 11, fontSize: 15, fontWeight: 700, background: '#254BCE', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,75,206,0.3)' }}
                 >
                   Confirm — draw {formatCurrencyFull(safeDraw)} →
                 </button>
@@ -944,7 +944,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                           {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
                         </div>
                         {/* Label */}
-                        <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{label}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{label}</div>
                         {/* Plain-English benefit */}
                         <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>{benefit}</div>
                         {/* Concrete impact */}
@@ -984,11 +984,11 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                     : <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>4</span>
                   }
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>First 5 years: lower payments</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#001660' }}>First 5 years: lower payments</div>
               </div>
               {/* Body */}
               <div style={{ padding: '14px 18px 18px', borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-                <p style={{ margin: '0 0 8px', fontSize: 13, color: '#374151', lineHeight: 1.65 }}>
+                <p style={{ margin: '0 0 8px', fontSize: 14, color: '#374151', lineHeight: 1.65 }}>
                   For the first 5 years, you'll make lower monthly payments that cover interest only. Your loan balance stays about the same during this time.
                 </p>
                 <p style={{ margin: '0 0 12px', fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
@@ -1003,7 +1003,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                     <button
                       onClick={() => setIoYrs(5)}
                       style={{
-                        padding: '10px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+                        padding: '10px 22px', borderRadius: 10, fontSize: 15, fontWeight: 700,
                         background: '#016163', border: 'none', color: '#fff', cursor: 'pointer',
                         boxShadow: '0 3px 12px rgba(1,97,99,0.3)', transition: 'transform 0.15s, box-shadow 0.15s',
                       }}
@@ -1033,7 +1033,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             onEdit={() => goEdit(4)}
             onClose={closeEdit}
           >
-            <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.55, marginBottom: 14 }}>
+            <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.55, marginBottom: 14 }}>
               Instead of jumping straight to the full payment, you can ease in with a smaller amount for a few months. A little extra gets added to your loan balance during this time, but it gives you breathing room while you adjust.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))', gap: 10 }}>
@@ -1081,14 +1081,14 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         <div style={{ paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.08)', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button
             onClick={() => dispatch({ type: 'BACK' })}
-            style={{ padding: '10px 20px', fontSize: 14, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}
+            style={{ padding: '10px 20px', fontSize: 15, fontWeight: 600, borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', color: '#001660', cursor: 'pointer' }}
           >
             ← Back
           </button>
           {allDone && (
             <button
               onClick={handleConfirm}
-              style={{ padding: '11px 26px', fontSize: 14, fontWeight: 800, borderRadius: 11, background: '#254BCE', border: 'none', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 16px rgba(37,75,206,0.35)', transition: 'transform 0.15s' }}
+              style={{ padding: '11px 26px', fontSize: 15, fontWeight: 800, borderRadius: 11, background: '#254BCE', border: 'none', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 16px rgba(37,75,206,0.35)', transition: 'transform 0.15s' }}
               onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
               onMouseOut={e => (e.currentTarget.style.transform = '')}
             >

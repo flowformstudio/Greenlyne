@@ -39,7 +39,7 @@ const SEED = {
 // ─── Shared primitives ─────────────────────────────────────────────────────
 const inputBase = {
   width: '100%', boxSizing: 'border-box',
-  padding: '11px 14px', fontSize: 15,
+  padding: '11px 14px', fontSize: 16,
   border: `1.5px solid ${C.border}`, borderRadius: 8,
   background: C.white, color: C.text, outline: 'none',
   fontFamily: 'inherit',
@@ -66,7 +66,7 @@ function GreenLyneHeader() {
         <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 20, width: 'auto' }} />
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: C.navy }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: C.navy }}>
           Financing by <strong>Owning</strong> · NMLS #2611
         </div>
         <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>Project by Westhaven Power</div>
@@ -77,7 +77,7 @@ function GreenLyneHeader() {
 
 function FieldLabel({ htmlFor, children, required }) {
   return (
-    <label htmlFor={htmlFor} style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>
+    <label htmlFor={htmlFor} style={{ display: 'block', fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 6 }}>
       {children}{required && <span style={{ color: C.error, marginLeft: 2 }} aria-hidden="true">*</span>}
     </label>
   )
@@ -114,7 +114,7 @@ function PillToggle({ options, value, onChange, name }) {
             name={name}
             onClick={() => onChange(opt.value)}
             style={{
-              padding: '9px 18px', borderRadius: 24, cursor: 'pointer', fontSize: 14,
+              padding: '9px 18px', borderRadius: 24, cursor: 'pointer', fontSize: 15,
               fontWeight: active ? 700 : 500, fontFamily: 'inherit',
               border: `1.5px solid ${active ? C.navy : C.border}`,
               background: active ? C.navy : C.white,
@@ -164,7 +164,7 @@ function TermsSidebar({ step, loanSummary }) {
               <div key={row.label} style={{ paddingBottom: 10, marginBottom: 10, borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 11, color: C.muted, lineHeight: 1.3 }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: row.accent ? C.blue : C.navy, marginLeft: 8 }}>{row.value}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: row.accent ? C.blue : C.navy, marginLeft: 8 }}>{row.value}</span>
                 </div>
                 {row.sub && <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{row.sub}</div>}
               </div>
@@ -193,7 +193,7 @@ function TermsSidebar({ step, loanSummary }) {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Est. Monthly Payment</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: C.navy, letterSpacing: '-0.5px', lineHeight: 1 }}>
-              ${loanSummary.drawPayment}<span style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>/mo</span>
+              ${loanSummary.drawPayment}<span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>/mo</span>
             </div>
             <div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>Interest-only draw period</div>
           </div>
@@ -228,7 +228,7 @@ function StepperVertical({ step }) {
       <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
         Application steps
       </div>
-      <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Application progress</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Application progress</div>
       <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, marginBottom: 20 }}>
         Complete the loan process today and get funded in as little as five days.
       </div>
@@ -262,7 +262,7 @@ function StepperVertical({ step }) {
               </div>
               {/* Label */}
               <div style={{ paddingTop: 4, paddingBottom: last ? 0 : 36 }}>
-                <div style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? C.navy : done ? C.teal : C.muted, lineHeight: 1.3 }}>
+                <div style={{ fontSize: 14, fontWeight: active ? 700 : 500, color: active ? C.navy : done ? C.teal : C.muted, lineHeight: 1.3 }}>
                   {label}
                 </div>
                 {active && (
@@ -286,11 +286,11 @@ function NavButtons({ step, onBack, onNext, ctaLabel, disabled = false }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
       <div style={{ display: 'flex', gap: 10 }}>
         {step > 1 && (
-          <button onClick={onBack} style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 14, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={onBack} style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 15, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit' }}>
             ← Back
           </button>
         )}
-        <button style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 14, fontWeight: 500, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 15, fontWeight: 500, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
           Save for later
         </button>
       </div>
@@ -300,7 +300,7 @@ function NavButtons({ step, onBack, onNext, ctaLabel, disabled = false }) {
         style={{
           padding: '12px 28px', borderRadius: 10, border: 'none',
           background: disabled ? '#9CA3AF' : C.blue, color: C.white,
-          fontSize: 15, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
+          fontSize: 16, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
           fontFamily: 'inherit', letterSpacing: '-0.1px',
         }}
       >
@@ -334,25 +334,25 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Confirm Details</h2>
-      <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Verify your property and personal details before we build your formal offer.</p>
+      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 28px' }}>Verify your property and personal details before we build your formal offer.</p>
 
       {/* ── Lien Attestation ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Property & Liens</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Property & Liens</legend>
 
         <div style={{ background: C.offwhite, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '16px 18px', marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>1482 Sunridge Drive, Sacramento, CA 95814</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 6 }}>1482 Sunridge Drive, Sacramento, CA 95814</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: C.muted }}>Estimated property value</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>~$680,000</span>
+            <span style={{ fontSize: 14, color: C.muted }}>Estimated property value</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>~$680,000</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: C.muted }}>First mortgage balance</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>$412,000</span>
+            <span style={{ fontSize: 14, color: C.muted }}>First mortgage balance</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>$412,000</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, color: C.muted }}>Available equity</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>~$268,000</span>
+            <span style={{ fontSize: 14, color: C.muted }}>Available equity</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.teal }}>~$268,000</span>
           </div>
         </div>
 
@@ -364,7 +364,7 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
             onChange={e => setState(s => ({ ...s, lienAcknowledged: e.target.checked }))}
             style={{ marginTop: 2, width: 16, height: 16, accentColor: C.blue, flexShrink: 0, cursor: 'pointer' }}
           />
-          <label htmlFor="lienAck" style={{ fontSize: 13, color: C.label, lineHeight: 1.5, cursor: 'pointer' }}>
+          <label htmlFor="lienAck" style={{ fontSize: 14, color: C.label, lineHeight: 1.5, cursor: 'pointer' }}>
             I confirm the lien information above is accurate. I understand I must disclose any additional mortgages, liens, or judgments not listed.
           </label>
         </div>
@@ -376,7 +376,7 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
 
       {/* ── Personal Details ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Personal Details</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Personal Details</legend>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
@@ -427,7 +427,7 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
 
       {/* ── Disclosures ── */}
       <fieldset style={{ border: 'none', margin: '0 0 8px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Disclosures</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Disclosures</legend>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <input
@@ -438,7 +438,7 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
             style={{ marginTop: 2, width: 16, height: 16, accentColor: C.blue, flexShrink: 0, cursor: 'pointer' }}
             aria-describedby="err-disclosures"
           />
-          <label htmlFor="disclosures" style={{ fontSize: 13, color: C.label, lineHeight: 1.5, cursor: 'pointer' }}>
+          <label htmlFor="disclosures" style={{ fontSize: 14, color: C.label, lineHeight: 1.5, cursor: 'pointer' }}>
             I acknowledge that I have read and agree to the{' '}
             <a href="#" style={{ color: C.blue }} onClick={e => e.preventDefault()}>Important Disclosures</a>
             , including GreenLyne&apos;s Privacy Policy and the Credit Authorization Notice.
@@ -449,9 +449,9 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
         <details style={{ marginTop: 14 }}>
           <summary style={{ fontSize: 12, color: C.blue, cursor: 'pointer', listStyle: 'none' }}>View full disclosure text</summary>
           <div style={{ marginTop: 10, padding: '14px 16px', background: C.offwhite, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 11, color: C.muted, lineHeight: 1.65 }}>
-            <strong>Credit Authorization:</strong> By checking the box above, you authorize GreenLyne and its lending partner Owning (a dba of Guaranteed Rate, Inc., NMLS #2611) to access your credit information solely for the purpose of evaluating this HELOC application, as permitted under 15 U.S.C. § 1681b. A soft credit inquiry has already been used to pre-qualify you. A hard credit inquiry will only be made after your explicit written consent on the following screen.
+            <strong>Credit Authorization:</strong> By checking the box above, you authorize GreenLyne and its lending partner Owning (a dba of Guaranteed Rate, Inc., NMLS #2611) to access your credit information solely for the purpose of evaluating this HELOC application, as permitted under 15 U.S.C.  1681b. A soft credit inquiry has already been used to pre-qualify you. A hard credit inquiry will only be made after your explicit written consent on the following screen.
             <br /><br />
-            <strong>E-SIGN Consent:</strong> By proceeding, you consent to receive application disclosures electronically in accordance with the Electronic Signatures in Global and National Commerce Act (E-SIGN, 15 U.S.C. § 7001). You may withdraw this consent at any time; however, doing so may require you to complete the application in person.
+            <strong>E-SIGN Consent:</strong> By proceeding, you consent to receive application disclosures electronically in accordance with the Electronic Signatures in Global and National Commerce Act (E-SIGN, 15 U.S.C.  7001). You may withdraw this consent at any time; however, doing so may require you to complete the application in person.
           </div>
         </details>
       </fieldset>
@@ -477,11 +477,11 @@ function ScreenLoanOptions({ state, setState, loanSummary, onBack, onNext }) {
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Loan Options</h2>
-      <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Customize your draw amount, term, and origination fee to find the right balance for your budget.</p>
+      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 28px' }}>Customize your draw amount, term, and origination fee to find the right balance for your budget.</p>
 
       {/* ── Draw Amount ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Draw Amount</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Draw Amount</legend>
 
         <div style={{ background: C.navy, borderRadius: 14, padding: '20px 22px', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
@@ -518,7 +518,7 @@ function ScreenLoanOptions({ state, setState, loanSummary, onBack, onNext }) {
 
       {/* ── Term Selection ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Loan Term</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Loan Term</legend>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {TERM_OPTIONS.map(opt => {
             const active = state.termYears === opt.years
@@ -545,7 +545,7 @@ function ScreenLoanOptions({ state, setState, loanSummary, onBack, onNext }) {
 
       {/* ── Origination Fee Tier ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Rate & Fee</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Rate & Fee</legend>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FEE_TIERS.map((tier, i) => {
             const active = state.feeOption === i
@@ -573,12 +573,12 @@ function ScreenLoanOptions({ state, setState, loanSummary, onBack, onNext }) {
                     {active && <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.white }} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>{tier.rateLabel} rate — {tier.feeLabel} origination</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{tier.rateLabel} rate — {tier.feeLabel} origination</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{tier.label} option</div>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: active ? C.blue : C.navy }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: active ? C.blue : C.navy }}>
                     ${Math.round(state.drawAmount * (tier.rate / 100 / 12)).toLocaleString()}/mo
                   </div>
                   <div style={{ fontSize: 11, color: C.muted }}>est. payment</div>
@@ -600,7 +600,7 @@ function ScreenLoanOptions({ state, setState, loanSummary, onBack, onNext }) {
           style={{ marginTop: 2, width: 16, height: 16, accentColor: C.blue, flexShrink: 0, cursor: 'pointer' }}
         />
         <label htmlFor="autopay" style={{ cursor: 'pointer' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>Enroll in autopay</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: C.navy }}>Enroll in autopay</div>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Qualify for a 0.25% rate discount when you set up automatic monthly payments from your bank account.</div>
         </label>
       </div>
@@ -638,17 +638,17 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Verify &amp; Confirm</h2>
-      <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Complete income and identity verification, then authorize your full credit check.</p>
+      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 28px' }}>Complete income and identity verification, then authorize your full credit check.</p>
 
       {/* ── Income Verification ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Income Verification</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Income Verification</legend>
 
         {state.incomeConnected ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: 10, marginBottom: 12 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#15803D' }}>Income verified</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#15803D' }}>Income verified</div>
               <div style={{ fontSize: 12, color: '#16A34A' }}>Connected via {state.incomeMethod === 'plaid' ? 'Plaid bank connection' : 'document upload'}</div>
             </div>
             <button onClick={() => setState(s => ({ ...s, incomeConnected: false }))} style={{ marginLeft: 'auto', fontSize: 12, color: C.muted, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Change</button>
@@ -672,7 +672,7 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
               >
                 <span style={{ fontSize: 20 }}>{opt.icon}</span>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{opt.title}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.navy }}>{opt.title}</div>
                   <div style={{ fontSize: 12, color: C.muted }}>{opt.sub}</div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginLeft: 'auto', flexShrink: 0 }}><path d="M5 3l4 4-4 4" stroke={C.muted} strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -692,13 +692,13 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
 
       {/* ── Identity Verification ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Identity Verification</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Identity Verification</legend>
 
         {state.idVerified ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: 10 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#15803D' }}>ID verified</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#15803D' }}>ID verified</div>
               <div style={{ fontSize: 12, color: '#16A34A' }}>Government-issued ID accepted</div>
             </div>
             <button onClick={() => setState(s => ({ ...s, idVerified: false }))} style={{ marginLeft: 'auto', fontSize: 12, color: C.muted, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Re-upload</button>
@@ -707,12 +707,12 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
           <div>
             <div style={{ background: C.offwhite, border: `1.5px dashed ${C.border}`, borderRadius: 10, padding: '24px', textAlign: 'center', marginBottom: 10 }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.navy, marginBottom: 4 }}>Upload a photo of your ID</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: C.navy, marginBottom: 4 }}>Upload a photo of your ID</div>
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>Driver&apos;s license, passport, or state ID accepted</div>
               <button
                 type="button"
                 onClick={() => setState(s => ({ ...s, idVerified: true }))}
-                style={{ padding: '10px 24px', borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.white, fontSize: 14, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '10px 24px', borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.white, fontSize: 15, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 Select Photo
               </button>
@@ -726,7 +726,7 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
 
       {/* ── HMDA ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Government Monitoring (HMDA)</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Government Monitoring (HMDA)</legend>
         <p style={{ fontSize: 12, color: C.muted, margin: '0 0 14px', lineHeight: 1.55 }}>
           Federal law requires us to ask about your ethnicity, race, and gender. This information <strong>does not affect</strong> your approval, rate, or terms in any way.
         </p>
@@ -758,10 +758,10 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
 
       {/* ── Full SSN + Hard Pull consent ── */}
       <fieldset style={{ border: 'none', margin: 0, padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Credit Authorization</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Credit Authorization</legend>
 
         <div style={{ padding: '16px', background: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>Hard credit pull ahead</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>Hard credit pull ahead</div>
           <p style={{ fontSize: 12, color: '#78350F', margin: 0, lineHeight: 1.55 }}>
             Proceeding will authorize a hard inquiry with all three credit bureaus. This may temporarily affect your credit score by a small amount (typically 2–5 points). It will not affect your score if you do not proceed.
           </p>
@@ -781,7 +781,7 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
             style={errors.ssn ? inputError : inputBase}
           />
           <FieldError id="err-ssn" msg={errors.ssn} />
-          <WhyWeAsk text="Your full SSN is required to perform the hard credit inquiry with the credit bureaus, as required under the Fair Credit Reporting Act (15 U.S.C. § 1681b)." />
+          <WhyWeAsk text="Your full SSN is required to perform the hard credit inquiry with the credit bureaus, as required under the Fair Credit Reporting Act (15 U.S.C.  1681b)." />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
@@ -793,8 +793,8 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
             style={{ marginTop: 2, width: 16, height: 16, accentColor: C.blue, flexShrink: 0, cursor: 'pointer' }}
             aria-describedby="err-hardPull"
           />
-          <label htmlFor="hardPull" style={{ fontSize: 13, color: C.label, lineHeight: 1.5, cursor: 'pointer' }}>
-            I authorize GreenLyne and Owning (NMLS #2611) to obtain my credit report from one or more consumer reporting agencies for the purpose of evaluating my HELOC application, as permitted under the Fair Credit Reporting Act (15 U.S.C. § 1681b).
+          <label htmlFor="hardPull" style={{ fontSize: 14, color: C.label, lineHeight: 1.5, cursor: 'pointer' }}>
+            I authorize GreenLyne and Owning (NMLS #2611) to obtain my credit report from one or more consumer reporting agencies for the purpose of evaluating my HELOC application, as permitted under the Fair Credit Reporting Act (15 U.S.C.  1681b).
           </label>
         </div>
         <FieldError id="err-hardPull" msg={errors.hardPull} />
@@ -832,7 +832,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
   return (
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Final Offer &amp; Sign</h2>
-      <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Review your final terms and e-sign your loan documents to activate your HELOC.</p>
+      <p style={{ fontSize: 15, color: C.muted, margin: '0 0 28px' }}>Review your final terms and e-sign your loan documents to activate your HELOC.</p>
 
       {/* ── Final offer summary ── */}
       <div style={{ background: C.navy, borderRadius: 16, padding: '24px', marginBottom: 24 }}>
@@ -875,19 +875,19 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
         ].map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < 2 ? 8 : 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round" style={{ marginTop: 2, flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span style={{ fontSize: 13, color: C.label, lineHeight: 1.5 }}>{item}</span>
+            <span style={{ fontSize: 14, color: C.label, lineHeight: 1.5 }}>{item}</span>
           </div>
         ))}
       </div>
 
       {/* ── Disbursement account ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Disbursement Account</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Disbursement Account</legend>
         {state.disbursementConnected ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: 10 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#15803D' }}>Checking account connected</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#15803D' }}>Checking account connected</div>
               <div style={{ fontSize: 12, color: '#16A34A' }}>Funds will be disbursed within 3 business days of closing</div>
             </div>
           </div>
@@ -900,7 +900,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
             >
               <span style={{ fontSize: 20 }}>🏦</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>Connect via Plaid</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.navy }}>Connect via Plaid</div>
                 <div style={{ fontSize: 12, color: C.muted }}>Fastest — instant account verification</div>
               </div>
             </button>
@@ -911,7 +911,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
             >
               <span style={{ fontSize: 20 }}>📝</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>Enter routing &amp; account number manually</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.navy }}>Enter routing &amp; account number manually</div>
                 <div style={{ fontSize: 12, color: C.muted }}>Standard bank transfer, verified by micro-deposits</div>
               </div>
             </button>
@@ -921,7 +921,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
 
       {/* ── E-Sign documents ── */}
       <fieldset style={{ border: 'none', margin: '0 0 24px', padding: 0 }}>
-        <legend style={{ fontSize: 13, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Sign Documents</legend>
+        <legend style={{ fontSize: 14, fontWeight: 800, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Sign Documents</legend>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {DOCS.map(doc => {
             const signed = state.signedDocs.includes(doc.id)
@@ -936,7 +936,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.navy }}>{doc.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.navy }}>{doc.label}</div>
                 </div>
                 <button
                   type="button"
@@ -944,7 +944,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
                   style={{
                     padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     background: signed ? '#DCFCE7' : C.blue, color: signed ? '#15803D' : C.white,
-                    fontSize: 13, fontWeight: 700, fontFamily: 'inherit', flexShrink: 0,
+                    fontSize: 14, fontWeight: 700, fontFamily: 'inherit', flexShrink: 0,
                   }}
                 >
                   {signed ? '✓ Signed' : 'Review & Sign'}
@@ -964,10 +964,10 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
       {/* Submit */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onBack} style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 14, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={onBack} style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 15, fontWeight: 600, color: C.navy, cursor: 'pointer', fontFamily: 'inherit' }}>
             ← Back
           </button>
-          <button style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 14, fontWeight: 500, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button style={{ padding: '11px 20px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: 'none', fontSize: 15, fontWeight: 500, color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
             Save for later
           </button>
         </div>
@@ -978,7 +978,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
             style={{
               padding: '13px 28px', borderRadius: 10, border: 'none',
               background: allSigned && state.disbursementConnected ? C.teal : '#9CA3AF',
-              color: C.white, fontSize: 15, fontWeight: 800,
+              color: C.white, fontSize: 16, fontWeight: 800,
               cursor: allSigned && state.disbursementConnected ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',
             }}
