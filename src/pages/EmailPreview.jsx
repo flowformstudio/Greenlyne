@@ -104,7 +104,7 @@ export default function EmailPreview() {
             </div>
 
             {/* Headline — 39px, dark, red highlights */}
-            <h1 style={{ fontSize: 39, fontWeight: 800, color: C.dark2, lineHeight: 1.05, letterSpacing: '-0.5px', margin: '0 0 16px' }}>
+            <h1 style={{ fontSize: 39, fontWeight: 700, color: C.dark2, lineHeight: 1.05, letterSpacing: '-0.5px', margin: '0 0 16px' }}>
               Hi Alex! Your home <span style={{ color: C.red }}>qualifies</span> for <span style={{ color: C.red }}>solar financing.</span>
             </h1>
 

@@ -181,7 +181,7 @@ export default function OfferLanding() {
             {/* Steps 2–5: info collection */}
             {step > 1 && (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 4px', letterSpacing: '0em' }}>
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '0em' }}>
                   Hi Alex, let&apos;s check your eligibility
                 </h1>
                 <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>
@@ -335,7 +335,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
 
       {/* Heading */}
       <div style={{ padding: '24px 0 16px' }}>
-        <h1 style={{ fontSize: 36, fontWeight: 800, color: C.navy, margin: 0, letterSpacing: '0em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 36, fontWeight: 700, color: C.navy, margin: 0, letterSpacing: '0em', lineHeight: 1.2 }}>
           Hi Alex, Your roof looks great for solar!&nbsp; Now let&apos;s refine your estimate
         </h1>
       </div>

@@ -137,7 +137,7 @@ export default function CreateAccount() {
         </div>
 
         {/* Intro */}
-        <h1 style={{ fontSize: 24, fontWeight: 900, color: C.navy, margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 6px', letterSpacing: '-0.4px' }}>
           You're one step away
         </h1>
         <p style={{ fontSize: 14, color: C.label, margin: '0 0 28px', lineHeight: 1.6 }}>

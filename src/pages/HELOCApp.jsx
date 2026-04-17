@@ -333,7 +333,7 @@ function ScreenConfirmDetails({ state, setState, onNext }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 900, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Confirm Details</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Confirm Details</h2>
       <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Verify your property and personal details before we build your formal offer.</p>
 
       {/* ── Lien Attestation ── */}
@@ -476,7 +476,7 @@ function ScreenLoanOptions({ state, setState, loanSummary, onBack, onNext }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 900, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Loan Options</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Loan Options</h2>
       <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Customize your draw amount, term, and origination fee to find the right balance for your budget.</p>
 
       {/* ── Draw Amount ── */}
@@ -637,7 +637,7 @@ function ScreenVerifyConfirm({ state, setState, onBack, onNext }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 900, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Verify &amp; Confirm</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Verify &amp; Confirm</h2>
       <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Complete income and identity verification, then authorize your full credit check.</p>
 
       {/* ── Income Verification ── */}
@@ -831,7 +831,7 @@ function ScreenFinalSign({ state, setState, loanSummary, onBack, navigate }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 900, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Final Offer &amp; Sign</h2>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.3px' }}>Final Offer &amp; Sign</h2>
       <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>Review your final terms and e-sign your loan documents to activate your HELOC.</p>
 
       {/* ── Final offer summary ── */}

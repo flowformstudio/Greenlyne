@@ -180,7 +180,7 @@ function IdentityChallengeScreen({ onPass, onFail, navigate }) {
   return (
     <Shell navigate={navigate}>
       <Badge color="#92400E" bg="#FEF3C7" border="#FDE68A">🪪 Identity Verification Required</Badge>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
         We need to confirm your identity
       </h1>
       <p style={{ fontSize: 15, color: C.muted, margin: '0 0 10px', lineHeight: 1.6 }}>
@@ -217,7 +217,7 @@ function PropertyDeclineScreen({ navigate }) {
           <div style={{ fontSize: 11, fontWeight: 700, color: C.red, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Property Not Qualified
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 10px' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>
             Your property doesn't have enough equity
           </h2>
           <p style={{ fontSize: 15, color: C.muted, margin: 0, lineHeight: 1.6 }}>
@@ -284,7 +284,7 @@ function AddressChallengeScreen({ onPass, onFail, navigate }) {
   return (
     <Shell navigate={navigate}>
       <Badge color="#1E40AF" bg="#EFF6FF" border="#BFDBFE">📍 Address Verification Required</Badge>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
         We found your credit file
       </h1>
       <p style={{ fontSize: 15, color: C.muted, margin: '0 0 10px', lineHeight: 1.6 }}>
@@ -341,7 +341,7 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
               Co-Borrower Added
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 8px' }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 8px' }}>
               You qualify with {firstName}!
             </h2>
             <p style={{ fontSize: 15, color: C.muted, margin: 0 }}>
@@ -374,7 +374,7 @@ function SpouseAdditionScreen({ onQualify, navigate }) {
   return (
     <Shell navigate={navigate}>
       <Badge color="#1E40AF" bg="#EFF6FF" border="#BFDBFE">👥 Co-Borrower Can Help You Qualify</Badge>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px' }}>
         Add your spouse's income
       </h1>
       <p style={{ fontSize: 15, color: C.muted, margin: '0 0 12px', lineHeight: 1.6 }}>
@@ -522,7 +522,7 @@ function DebtConsolidationScreen({ onQualify, onDecline, navigate }) {
   return (
     <Shell navigate={navigate}>
       <Badge color="#5B21B6" bg="#F5F3FF" border="#DDD6FE">💳 Debt Consolidation Path Available</Badge>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: C.navy, margin: '0 0 8px', letterSpacing: '-0.5px', lineHeight: 1.2 }}>
         Here's how you can still qualify
       </h1>
       <p style={{ fontSize: 15, color: C.muted, margin: '0 0 8px', lineHeight: 1.6 }}>
@@ -647,7 +647,7 @@ function FullDeclineScreen({ navigate }) {
           <div style={{ fontSize: 11, fontWeight: 700, color: C.red, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Application Not Approved
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 10px' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>
             We're unable to approve your application
           </h2>
           <p style={{ fontSize: 15, color: C.muted, margin: 0, lineHeight: 1.6 }}>
@@ -719,7 +719,7 @@ function DeclineScreen({ reason, navigate }) {
           <div style={{ fontSize: 11, fontWeight: 700, color: C.red, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
             Verification Failed
           </div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 10px' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>
             {copy.title}
           </h2>
           <p style={{ fontSize: 15, color: C.muted, margin: 0, lineHeight: 1.6 }}>

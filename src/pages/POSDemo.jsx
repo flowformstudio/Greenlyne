@@ -544,7 +544,7 @@ function ReviewHeader({ totalSteps, heading, sub }) {
         <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {totalSteps} of {totalSteps}</span>
       </div>
       <div style={{ height: 3, background: '#254BCE', borderRadius: 0, marginBottom: 28 }} />
-      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>{heading}</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>{heading}</h1>
       <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>{sub}</p>
     </div>
   )
@@ -755,7 +755,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 1 of 7
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Tell us about yourself
         </h1>
         <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -1557,7 +1557,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
       {/* Heading */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>
           What matters most to you?
         </h1>
         <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -1684,7 +1684,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 2 of 7
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Build your loan
         </h1>
         <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -2221,7 +2221,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 3 of 7
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Verify your details
         </h1>
         <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -2386,7 +2386,7 @@ function ScreenLinkIncome({ dispatch }) {
     <div className="">
       <div className="mb-6">
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your income</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your income</h1>
         <p className="text-sm text-gray-500">OWNING requires income verification to finalize your loan. Securely link your bank — read-only access, takes about 30 seconds.</p>
       </div>
 
@@ -2477,7 +2477,7 @@ function ScreenVerifyIdentity({ dispatch }) {
     <div className="space-y-4">
       <div className="mb-6">
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your identity</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your identity</h1>
         <p className="text-sm text-gray-500">Required by federal law. Your information is encrypted and never shared.</p>
       </div>
 

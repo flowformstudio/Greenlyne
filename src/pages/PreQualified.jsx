@@ -114,7 +114,7 @@ export default function PreQualified() {
               <span style={{ fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Pre-qualification complete</span>
             </div>
 
-            <h1 style={{ fontSize: 38, fontWeight: 900, color: C.navy, letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 16px' }}>
+            <h1 style={{ fontSize: 38, fontWeight: 700, color: C.navy, letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 16px' }}>
               Good news, {OFFER.name}! You&apos;re pre-qualified for solar financing.
             </h1>
 

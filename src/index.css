@@ -57,8 +57,9 @@ body {
 /* ── Sharp Sans Display No. 1 — headlines, primary CTAs, key emphasis ──────── */
 h1, h2 {
   font-family: 'SharpSans', system-ui, -apple-system, sans-serif;
-  letter-spacing: 0em;   /* reset tight negative tracking — Sharp Sans is already compact */
-  line-height: 1.25;
+  font-weight: 700;        /* Bold — Extrabold is too heavy at UI sizes */
+  letter-spacing: 0.02em; /* open it up — Sharp Sans is naturally compact */
+  line-height: 1.3;
 }
 
 /* All button text uses Sharp Sans — decisive, action-oriented */
