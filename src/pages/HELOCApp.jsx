@@ -1041,7 +1041,7 @@ export default function HELOCApp() {
   return (
     <div style={{
       minHeight: '100vh', background: C.bg,
-      fontFamily: "'SharpSans', system-ui, sans-serif",
+      fontFamily: "'PostGrotesk', system-ui, sans-serif",
       WebkitFontSmoothing: 'antialiased', display: 'flex', flexDirection: 'column',
     }}>
       <GreenLyneHeader />

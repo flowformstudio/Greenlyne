@@ -142,7 +142,7 @@ function OfferConfigSummaryLegacy({
       <div style={{ padding: '18px 22px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 5 }}>Live Plan Summary</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3 }}>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{formatCurrencyFull(draw)}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '0em' }}>{formatCurrencyFull(draw)}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
             {product === 'heloc' ? 'HELOC draw' : 'HELOAN'}
           </div>
@@ -167,7 +167,7 @@ function OfferConfigSummaryLegacy({
           ].map(({ label, value }) => (
             <div key={label} style={{ background: '#F8F9FC', borderRadius: 10, padding: '10px 12px' }}>
               <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', letterSpacing: '-0.4px', lineHeight: 1 }}>{value}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', letterSpacing: '0em', lineHeight: 1 }}>{value}</div>
             </div>
           ))}
         </div>
@@ -183,7 +183,7 @@ function OfferConfigSummaryLegacy({
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF' }}>Baseline — no options</div>
                 <div style={{ fontSize: 10, color: '#C4C9D4', marginTop: 1 }}>P+I from day 1 · {TERM_MO / 12}-yr term</div>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#9CA3AF', letterSpacing: '-0.2px' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#9CA3AF', letterSpacing: '0em' }}>
                 {basePayment !== null ? formatCurrencyFull(basePayment) : '—'}
                 <span style={{ fontSize: 10, fontWeight: 400, color: '#C4C9D4' }}>/mo</span>
               </div>
@@ -203,7 +203,7 @@ function OfferConfigSummaryLegacy({
                     <div style={{ fontSize: 10, color: '#9CA3AF' }}>{ph.desc}</div>
                   </div>
                   <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                    <span style={{ fontSize: ph.payment === 0 ? 18 : 15, fontWeight: 900, color: ph.color, letterSpacing: '-0.3px' }}>
+                    <span style={{ fontSize: ph.payment === 0 ? 18 : 15, fontWeight: 900, color: ph.color, letterSpacing: '0em' }}>
                       {ph.payment === 0 ? '$0' : ph.payment != null ? formatCurrencyFull(ph.payment) : '—'}
                     </span>
                     {ph.payment !== 0 && ph.payment != null && (
@@ -220,7 +220,7 @@ function OfferConfigSummaryLegacy({
         {accrued > 0 && (
           <div style={{ padding: '9px 13px', background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Balance after $0 period</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#92400e', letterSpacing: '-0.3px' }}>{formatCurrencyFull(newPrinc)}</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#92400e', letterSpacing: '0em' }}>{formatCurrencyFull(newPrinc)}</div>
             <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>Includes {formatCurrencyFull(accrued)} accrued interest</div>
           </div>
         )}
@@ -330,7 +330,7 @@ function OfferConfigSummary({
             {/* Row 1 — You receive (PRIMARY) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>You receive</span>
-              <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.4px' }}>{formatCurrencyFull(draw)}</span>
+              <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '0em' }}>{formatCurrencyFull(draw)}</span>
             </div>
 
             {/* Divider */}
@@ -339,13 +339,13 @@ function OfferConfigSummary({
             {/* Row 2 — Added for payment break (SECONDARY) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
               <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.45)', lineHeight: 1.45, flex: 1 }}>To let you skip payments for the first 6 months, this amount is added to your loan and will be held in escrow</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '-0.2px', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#fbbf24', letterSpacing: '0em', flexShrink: 0 }}>+{formatCurrencyFull(accrued)}</span>
             </div>
 
             {/* Row 3 — Total starting loan (LABELED) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 6, borderTop: '1px dashed rgba(255,255,255,0.15)' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Total starting loan</span>
-              <span style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.85)', letterSpacing: '-0.3px' }}>{formatCurrencyFull(newPrinc)}</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.85)', letterSpacing: '0em' }}>{formatCurrencyFull(newPrinc)}</span>
             </div>
 
             {/* Product + APR */}
@@ -357,7 +357,7 @@ function OfferConfigSummary({
         ) : (
           /* ── Standard: no deferred period ── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '0em' }}>
               {formatCurrencyFull(draw)}
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
@@ -417,7 +417,7 @@ function OfferConfigSummary({
                       fontSize: step.payment === 0 ? 30 : 26,
                       fontWeight: 900,
                       color: step.final ? '#001660' : getDot(i),
-                      letterSpacing: '-0.6px',
+                      letterSpacing: '0em',
                       lineHeight: 1,
                     }}>
                       {step.payment === 0 ? '$0' : step.payment != null ? formatCurrencyFull(step.payment) : '—'}
@@ -672,7 +672,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           Configure Your Offer · Step 2 of 7
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 5 }}>
-          <h1 style={{ fontSize: 25, fontWeight: 700, color: '#001660', margin: 0, letterSpacing: '-0.3px', fontFamily: "'PostGrotesk', sans-serif" }}>
+          <h1 style={{ fontSize: 25, fontWeight: 700, color: '#001660', margin: 0, letterSpacing: '0em', fontFamily: "'PostGrotesk', sans-serif" }}>
             Build your loan, one step at a time
           </h1>
           <button
@@ -776,7 +776,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 {/* Loan amount */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Loan amount</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: '#254BCE', letterSpacing: '-0.5px' }}>{formatCurrencyFull(Math.min(creditLim, heloanEffectiveMax))}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(Math.min(creditLim, heloanEffectiveMax))}</div>
                 </div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 14 }}>
                   Full amount disbursed at closing. Fixed rate for the life of the loan.
@@ -856,7 +856,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 <div style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Total credit line</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', letterSpacing: '-0.3px' }}>{formatCurrencyFull(creditLim)}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', letterSpacing: '0em' }}>{formatCurrencyFull(creditLim)}</div>
                   </div>
                   <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 10 }}>Your approved maximum. You only pay interest on what you draw.</div>
                   <RangeSlider
@@ -870,7 +870,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 <div style={{ padding: '14px 16px', background: 'rgba(37,75,206,0.04)', border: '1px solid rgba(37,75,206,0.1)', borderRadius: 12, marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Initial draw at closing</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#254BCE', letterSpacing: '-0.3px' }}>{formatCurrencyFull(safeDraw)}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(safeDraw)}</div>
                   </div>
                   <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 10 }}>Minimum 80% of your credit line. The remainder stays available to draw anytime.</div>
                   <RangeSlider

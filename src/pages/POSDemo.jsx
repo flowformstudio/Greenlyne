@@ -544,7 +544,7 @@ function ReviewHeader({ totalSteps, heading, sub }) {
         <span style={{ fontSize: 13, color: '#9CA3AF' }}>Step {totalSteps} of {totalSteps}</span>
       </div>
       <div style={{ height: 3, background: '#254BCE', borderRadius: 0, marginBottom: 28 }} />
-      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.4px' }}>{heading}</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>{heading}</h1>
       <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>{sub}</p>
     </div>
   )
@@ -755,7 +755,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 1 of 7
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Tell us about yourself
         </h1>
         <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -1127,7 +1127,7 @@ function BorrowingPowerPanel({ step1, maxCredit }) {
         ].map(r => (
           <div key={r.label}>
             <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{r.label}</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: r.accent ? '#254BCE' : '#001660', letterSpacing: '-0.3px' }}>{r.value}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: r.accent ? '#254BCE' : '#001660', letterSpacing: '0em' }}>{r.value}</div>
             {r.note && <div style={{ fontSize: 11, color: '#9CA3AF' }}>{r.note}</div>}
           </div>
         ))}
@@ -1519,7 +1519,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
         </div>
         {/* Message */}
         <div style={{ textAlign: 'center', animation: 'offerFadeUp 0.4s ease both' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', marginBottom: 6, letterSpacing: '-0.3px' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#001660', marginBottom: 6, letterSpacing: '0em' }}>
             Calculating your ideal plan…
           </div>
           {goalMeta && (
@@ -1557,7 +1557,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
 
       {/* Heading */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>
           What matters most to you?
         </h1>
         <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -1684,7 +1684,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 2 of 7
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Build your loan
         </h1>
         <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -1771,7 +1771,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>Total credit line</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#001660', letterSpacing: '-0.3px' }}>{formatCurrencyFull(creditLimit)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#001660', letterSpacing: '0em' }}>{formatCurrencyFull(creditLimit)}</div>
                     </div>
                     <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 10 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
                     <RangeSlider value={creditLimit} min={SEED.minCredit} max={maxCredit} step={5000} onChange={v => { setCreditLimit(v); if (withdrawNow > v) setWithdrawNow(v) }} formatLabel={v => formatCurrencyFull(v)} />
@@ -1779,7 +1779,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: '#254BCE' }}>Amount to draw at closing</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#254BCE', letterSpacing: '-0.3px' }}>{formatCurrencyFull(safeWithdraw)}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(safeWithdraw)}</div>
                     </div>
                     <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 10 }}>{formatCurrencyFull(creditLimit - safeWithdraw)} stays in your line — draw it later, no rush.</div>
                     <RangeSlider value={safeWithdraw} min={0} max={creditLimit} step={5000} onChange={v => setWithdrawNow(v)} formatLabel={v => formatCurrencyFull(v)} />
@@ -1799,7 +1799,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                             background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', transition: 'all 0.15s',
                           }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: active ? '#254BCE' : '#9CA3AF', marginBottom: 4 }}>{opt.years}-yr · {opt.apr}%</div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: active ? '#254BCE' : '#001660', letterSpacing: '-0.4px' }}>{formatCurrencyFull(payment)}<span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span></div>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: active ? '#254BCE' : '#001660', letterSpacing: '0em' }}>{formatCurrencyFull(payment)}<span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span></div>
                             {meta.popular && <div style={{ fontSize: 10, color: '#254BCE', fontWeight: 700, marginTop: 4 }}>Most popular</div>}
                           </button>
                         )
@@ -2010,14 +2010,14 @@ function OfferSidebar({ loan, step2 }) {
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div style={{ padding: '18px 20px 16px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
-        <div style={{ fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.45)', marginBottom: 10, fontFamily: "'PostGrotesk', sans-serif" }}>Your Loan Plan</div>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.45)', marginBottom: 10, fontFamily: "'SharpSans', sans-serif" }}>Your Loan Plan</div>
 
         {accrued > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {/* Row 1 — You receive (PRIMARY) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>You receive</span>
-              <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.4px' }}>{formatCurrencyFull(raw.withdrawNow)}</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '0em' }}>{formatCurrencyFull(raw.withdrawNow)}</span>
             </div>
             <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
             {/* Row 2 — Added amount (SECONDARY) */}
@@ -2028,7 +2028,7 @@ function OfferSidebar({ loan, step2 }) {
             {/* Row 3 — Total loan (LABELED) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 5, borderTop: '1px dashed rgba(255,255,255,0.15)' }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.45)' }}>Total starting loan</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,0.8)', letterSpacing: '-0.2px' }}>{formatCurrencyFull(heroAmount)}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,0.8)', letterSpacing: '0em' }}>{formatCurrencyFull(heroAmount)}</span>
             </div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
               {productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR
@@ -2036,7 +2036,7 @@ function OfferSidebar({ loan, step2 }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 2 }}>{formatCurrencyFull(raw.withdrawNow)}</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '0em', marginBottom: 2 }}>{formatCurrencyFull(raw.withdrawNow)}</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{productType === 'heloan' ? 'HELOAN' : 'HELOC'} · {apr}% APR</div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', lineHeight: 1.5 }}>
               {productType === 'heloc'
@@ -2062,7 +2062,7 @@ function OfferSidebar({ loan, step2 }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{step.label}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 4 }}>
-                    <span style={{ fontSize: step.payment === 0 ? 22 : 19, fontWeight: 900, color: step.final ? '#001660' : dotColors[Math.min(i, dotColors.length - 1)], letterSpacing: '-0.4px', lineHeight: 1 }}>
+                    <span style={{ fontSize: step.payment === 0 ? 22 : 19, fontWeight: 900, color: step.final ? '#001660' : dotColors[Math.min(i, dotColors.length - 1)], letterSpacing: '0em', lineHeight: 1 }}>
                       {step.payment === 0 ? '$0' : step.payment != null ? formatCurrencyFull(step.payment) : '—'}
                     </span>
                     {step.payment !== 0 && step.payment != null && (
@@ -2221,7 +2221,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 3 of 7
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Verify your details
         </h1>
         <p style={{ fontSize: 16, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
@@ -2386,7 +2386,7 @@ function ScreenLinkIncome({ dispatch }) {
     <div className="">
       <div className="mb-6">
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px' }}>Verify your income</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your income</h1>
         <p className="text-sm text-gray-500">OWNING requires income verification to finalize your loan. Securely link your bank — read-only access, takes about 30 seconds.</p>
       </div>
 
@@ -2477,7 +2477,7 @@ function ScreenVerifyIdentity({ dispatch }) {
     <div className="space-y-4">
       <div className="mb-6">
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.4px' }}>Verify your identity</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your identity</h1>
         <p className="text-sm text-gray-500">Required by federal law. Your information is encrypted and never shared.</p>
       </div>
 

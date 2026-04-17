@@ -47,46 +47,61 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-/* Sharp Sans is the default — covers ~85 % of the interface */
+/* ── Post Grotesk is the functional default — covers ~80% of the interface ── */
+/* Body copy, forms, inputs, labels, descriptions, financial tables            */
 body {
   margin: 0;
-  font-family: 'SharpSans', system-ui, -apple-system, sans-serif;
-}
-
-/* Post Grotesk on all headings — page titles & section headers */
-h1, h2 {
   font-family: 'PostGrotesk', system-ui, -apple-system, sans-serif;
 }
 
+/* ── Sharp Sans Display No. 1 — headlines, primary CTAs, key emphasis ──────── */
+h1, h2 {
+  font-family: 'SharpSans', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0em;   /* reset tight negative tracking — Sharp Sans is already compact */
+  line-height: 1.25;
+}
+
+/* All button text uses Sharp Sans — decisive, action-oriented */
+button {
+  font-family: 'SharpSans', system-ui, sans-serif;
+}
+
 /* ── Typography utility classes ──────────────────────────────────────────── */
-/* Apply explicitly where inline styles override the body default */
 .font-sharp   { font-family: 'SharpSans',   system-ui, sans-serif !important; }
 .font-grotesk { font-family: 'PostGrotesk', system-ui, sans-serif !important; }
 
-/* Display — page hero titles (Post Grotesk, lighter weight for warmth) */
+/* Headlines & page titles — Sharp Sans Display, max impact */
 .type-display {
-  font-family: 'PostGrotesk', system-ui, sans-serif;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-family: 'SharpSans', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
-/* Section / step titles */
+/* Section headers — Sharp Sans, slightly lighter */
 .type-title {
-  font-family: 'PostGrotesk', system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-/* Summary key labels (e.g. "Your Loan Plan", "Est. Monthly Payment") */
-.type-label-accent {
-  font-family: 'PostGrotesk', system-ui, sans-serif;
-  font-weight: 500;
-}
-/* All financial data & UI chrome — Sharp Sans is inherited, this makes it explicit */
-.type-data {
   font-family: 'SharpSans', system-ui, sans-serif;
   font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* Key summary labels: "Your Loan Plan", "Est. Monthly Payment" → Sharp Sans */
+.type-label-accent {
+  font-family: 'SharpSans', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+/* Financial data rows & supporting numbers → Post Grotesk (readable, functional) */
+.type-data {
+  font-family: 'PostGrotesk', system-ui, sans-serif;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
-/* Small uppercase eyebrow labels */
+/* Subheadings (h3/h4 equivalents) → Post Grotesk Medium */
+.type-sub {
+  font-family: 'PostGrotesk', system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+/* Small uppercase eyebrow labels → Sharp Sans, crisp */
 .type-eyebrow {
   font-family: 'SharpSans', system-ui, sans-serif;
   font-weight: 700;

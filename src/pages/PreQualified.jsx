@@ -98,7 +98,7 @@ export default function PreQualified() {
   return (
     <div style={{
       minHeight: '100vh', background: C.bg,
-      fontFamily: "'SharpSans', system-ui, sans-serif",
+      fontFamily: "'PostGrotesk', system-ui, sans-serif",
       WebkitFontSmoothing: 'antialiased', display: 'flex', flexDirection: 'column',
     }}>
       <WesthavenHeader lender="grand-bank" />
@@ -156,11 +156,11 @@ export default function PreQualified() {
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                 <div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Initial draw</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: C.green, letterSpacing: '-0.5px' }}>{OFFER.initialDraw}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.green, letterSpacing: '0em' }}>{OFFER.initialDraw}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Available after</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '-0.5px' }}>{OFFER.available}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0em' }}>{OFFER.available}</div>
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ export default function PreQualified() {
                 <div style={{ background: 'rgba(1,97,99,0.07)', border: '1.5px solid rgba(1,97,99,0.2)', borderRadius: 10, padding: '10px 12px', marginTop: 'auto' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: C.teal, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Est. Electricity Savings</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: C.teal, letterSpacing: '-0.5px', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: C.teal, letterSpacing: '0em', lineHeight: 1, whiteSpace: 'nowrap' }}>
                       −{OFFER.savings}<span style={{ fontSize: 11, fontWeight: 600 }}>/mo</span>
                     </div>
                   </div>

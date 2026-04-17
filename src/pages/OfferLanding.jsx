@@ -181,7 +181,7 @@ export default function OfferLanding() {
             {/* Steps 2–5: info collection */}
             {step > 1 && (
               <>
-                <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 4px', letterSpacing: '-0.4px' }}>
+                <h1 style={{ fontSize: 24, fontWeight: 800, color: C.navy, margin: '0 0 4px', letterSpacing: '0em' }}>
                   Hi Alex, let&apos;s check your eligibility
                 </h1>
                 <p style={{ fontSize: 14, color: C.muted, margin: '0 0 28px' }}>
@@ -335,7 +335,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
 
       {/* Heading */}
       <div style={{ padding: '24px 0 16px' }}>
-        <h1 style={{ fontSize: 36, fontWeight: 800, color: C.navy, margin: 0, letterSpacing: '-0.8px', lineHeight: 1.2 }}>
+        <h1 style={{ fontSize: 36, fontWeight: 800, color: C.navy, margin: 0, letterSpacing: '0em', lineHeight: 1.2 }}>
           Hi Alex, Your roof looks great for solar!&nbsp; Now let&apos;s refine your estimate
         </h1>
       </div>
@@ -347,7 +347,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
           background: C.white, border: `1.5px solid ${C.border}`,
           borderRadius: 14, padding: '15px 11px 12px', textAlign: 'center',
         }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.navy, letterSpacing: '-0.5px', lineHeight: 1 }}>1,804</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.navy, letterSpacing: '0em', lineHeight: 1 }}>1,804</div>
           <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 5, lineHeight: 1.4 }}>
             hrs/yr<br/>usable sunlight
           </div>
@@ -358,7 +358,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
           background: C.white, border: `1.5px solid ${C.border}`,
           borderRadius: 14, padding: '15px 11px 12px', textAlign: 'center',
         }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.navy, letterSpacing: '-0.5px', lineHeight: 1 }}>1,226</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: C.navy, letterSpacing: '0em', lineHeight: 1 }}>1,226</div>
           <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 5, lineHeight: 1.4 }}>
             sq ft<br/>available
           </div>
@@ -368,7 +368,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
         <div style={{
           background: C.navy, borderRadius: 14, padding: '14px 11px 12px', textAlign: 'center',
         }}>
-          <div style={{ fontSize: savings20yr >= 100000 ? 14 : 18, fontWeight: 900, color: C.green, letterSpacing: '-0.5px', lineHeight: 1 }}>
+          <div style={{ fontSize: savings20yr >= 100000 ? 14 : 18, fontWeight: 900, color: C.green, letterSpacing: '0em', lineHeight: 1 }}>
             ${savings20yr.toLocaleString()}
           </div>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 5, lineHeight: 1.4 }}>
@@ -410,11 +410,11 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>Current bill</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: C.white, letterSpacing: '-0.5px' }}>~${bill}/mo</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: C.white, letterSpacing: '0em' }}>~${bill}/mo</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>With solar</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: C.green, letterSpacing: '-0.5px' }}>~${solar}/mo</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: C.green, letterSpacing: '0em' }}>~${solar}/mo</div>
             </div>
           </div>
           <div style={{
@@ -455,7 +455,7 @@ function RefineStep({ billAmount, setBillAmount, singleFamily, setSingleFamily, 
             style={{ width: '100%', accentColor: C.green, height: 4, cursor: 'pointer' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>$50</span>
-            <span style={{ fontSize: 13, color: C.green, fontWeight: 800, letterSpacing: '-0.3px' }}>${billAmount}/mo</span>
+            <span style={{ fontSize: 13, color: C.green, fontWeight: 800, letterSpacing: '0em' }}>${billAmount}/mo</span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>$500</span>
           </div>
         </div>
