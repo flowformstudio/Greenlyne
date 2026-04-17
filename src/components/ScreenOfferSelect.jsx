@@ -476,7 +476,7 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        background: answered && !editing ? 'rgba(1,97,99,0.03)' : '#fff',
+        background: '#fff',
         transition: 'background 0.3s ease',
         cursor: answered && !editing ? 'default' : 'default',
       }}>
@@ -498,7 +498,7 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
         <div style={{ flex: 1, minWidth: 0 }}>
           {answered && !editing ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#016163', flex: 1, minWidth: 0 }}>{summary}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#001660', flex: 1, minWidth: 0 }}>{summary}</span>
               <button onClick={onEdit} style={{ fontSize: 12, fontWeight: 600, color: '#254BCE', background: 'rgba(37,75,206,0.08)', border: 'none', borderRadius: 7, padding: '3px 10px', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s' }}
                 onMouseOver={e => e.currentTarget.style.background = 'rgba(37,75,206,0.15)'}
                 onMouseOut={e => e.currentTarget.style.background = 'rgba(37,75,206,0.08)'}>
