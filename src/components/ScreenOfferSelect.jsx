@@ -705,7 +705,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           onEdit={() => goEdit(0)}
           onClose={closeEdit}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
             {[
               {
                 id: 'heloc',
@@ -730,25 +730,36 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                     if (editingCard === null) closeEdit()
                   }}
                   style={{
-                    padding: '16px', borderRadius: 13, cursor: 'pointer', textAlign: 'left',
+                    padding: '18px', borderRadius: 13, cursor: 'pointer', textAlign: 'left',
                     border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
                     background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
                     boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
                     transition: 'all 0.15s', outline: 'none',
+                    display: 'flex', flexDirection: 'column', gap: 10,
                   }}
                 >
-                  <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: active ? '#254BCE' : '#001660', marginBottom: 6 }}>{name}</div>
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center',
-                      background: active ? 'rgba(37,75,206,0.12)' : 'rgba(0,22,96,0.07)',
-                      borderRadius: 100, padding: '2px 9px',
-                      fontSize: 11, fontWeight: 600, color: active ? '#254BCE' : '#6B7280',
-                    }}>
-                      {badge}
-                    </div>
+                  {/* Title — Sharp Sans, tracked out */}
+                  <div style={{
+                    fontSize: 18, fontWeight: 700, color: active ? '#254BCE' : '#001660',
+                    letterSpacing: '0.06em', fontFamily: "'SharpSans', sans-serif",
+                  }}>{name}</div>
+
+                  {/* APR badge */}
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', alignSelf: 'flex-start',
+                    background: active ? 'rgba(37,75,206,0.12)' : 'rgba(0,22,96,0.07)',
+                    borderRadius: 100, padding: '3px 10px',
+                    fontSize: 12, fontWeight: 500, color: active ? '#254BCE' : '#6B7280',
+                    fontFamily: "'PostGrotesk', sans-serif",
+                  }}>
+                    {badge}
                   </div>
-                  <div style={{ fontSize: 16, color: '#6B7280', lineHeight: 1.55 }}>{desc}</div>
+
+                  {/* Description — Post Grotesk Book, not bold */}
+                  <div style={{
+                    fontSize: 16, fontWeight: 400, color: '#6B7280', lineHeight: 1.6,
+                    fontFamily: "'PostGrotesk', sans-serif",
+                  }}>{desc}</div>
                 </button>
               )
             })}

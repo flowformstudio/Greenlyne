@@ -62,9 +62,12 @@ h1, h2 {
   line-height: 1.3;
 }
 
-/* All button text uses Sharp Sans — decisive, action-oriented */
-button {
-  font-family: 'SharpSans', system-ui, sans-serif;
+/* Primary CTA buttons — Sharp Sans via .btn-sharp utility
+   Do NOT set font-family on all buttons: description text inside
+   option tiles would be forced into SharpSans Bold (no lighter weight) */
+.btn-sharp {
+  font-family: 'SharpSans', system-ui, sans-serif !important;
+  font-weight: 700;
 }
 
 /* ── Typography utility classes ──────────────────────────────────────────── */
