@@ -338,6 +338,210 @@ function LoanSummary({ product, draw, creditLim, rate, cltv, calc, ioYrsId, zero
   )
 }
 
+// ─── Baseline panel (Design 2) ────────────────────────────────────────────────
+function BaselinePanel({ draw, rate, calc, baseline, ioYrsId, zeroStart, tierId, s0Done }) {
+  if (!s0Done) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 18, border: '1px solid rgba(0,22,96,0.08)', padding: '32px 24px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,22,96,0.05)' }}>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(37,75,206,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#374151', marginBottom: 8, fontFamily: "'SharpSans', sans-serif" }}>Your Loan Plan</div>
+        <div style={{ fontSize: 15, color: '#9CA3AF', lineHeight: 1.65 }}>Confirm your credit line to see your baseline loan — then customize from there.</div>
+      </div>
+    )
+  }
+
+  const ioOpt = IO_OPTIONS.find(o => o.id === ioYrsId)
+  const tier  = REDUCTION_TIERS.find(t => t.id === tierId)
+  const ioYrs = ioOpt?.years ?? 0
+  const s     = tier?.s ?? 0
+  const hasZ  = zeroStart === true
+  const hasIO = ioYrs > 0
+  const hasRed = s > 0
+  const rateDisplay = (rate * 100).toFixed(2)
+
+  // Baseline values (always defined once s0Done)
+  const bIO = baseline?.IO_custom ?? 0   // baseline IO payment
+  const bPI = baseline?.PI_custom ?? 0   // baseline P&I payment
+  const bL  = baseline?.L ?? draw        // baseline total loan
+
+  // Modifiers derived from custom calc
+  const modifiers = []
+
+  if (hasZ && calc) {
+    const saved = bIO * 6
+    modifiers.push({
+      id: 'zero',
+      label: '6-month $0 opening',
+      color: '#016163',
+      bg: 'rgba(1,97,99,0.05)',
+      border: 'rgba(1,97,99,0.15)',
+      lines: [
+        { text: 'Months 1–6', before: `${formatCurrencyFull(bIO)}/mo`, after: '$0/mo', saved: true },
+        { text: `Saves ${formatCurrencyFull(saved)} upfront`, note: true },
+      ]
+    })
+  }
+
+  if (hasIO && hasRed && calc) {
+    const reducedMo = ioYrs * 12 - (hasZ ? 6 : 0)
+    const savedPerMo = bIO - calc.Red_IO
+    const savedTotal = savedPerMo * reducedMo
+    const startMo = hasZ ? 7 : 1
+    const endMo = ioYrs * 12
+    modifiers.push({
+      id: 'reduction',
+      label: `${Math.round(s * 100)}% payment reduction`,
+      color: '#254BCE',
+      bg: 'rgba(37,75,206,0.05)',
+      border: 'rgba(37,75,206,0.18)',
+      lines: [
+        { text: `Months ${startMo}–${endMo}`, before: `${formatCurrencyFull(bIO)}/mo`, after: `${formatCurrencyFull(calc.Red_IO)}/mo`, saved: true },
+        { text: `Saves ${formatCurrencyFull(Math.round(savedPerMo))}/mo × ${reducedMo} months = ${formatCurrencyFull(Math.round(savedTotal))}`, note: true },
+      ]
+    })
+  } else if (hasIO && !hasRed && calc) {
+    const startMo = hasZ ? 7 : 1
+    const endMo = ioYrs * 12
+    modifiers.push({
+      id: 'io',
+      label: `${ioYrs}-year interest-only period`,
+      color: '#254BCE',
+      bg: 'rgba(37,75,206,0.05)',
+      border: 'rgba(37,75,206,0.18)',
+      lines: [
+        { text: `Months ${startMo}–${endMo}`, before: `${formatCurrencyFull(bPI)}/mo (P&I)`, after: `${formatCurrencyFull(bIO)}/mo (IO)`, saved: true },
+        { text: `Lower by ${formatCurrencyFull(Math.round(bPI - bIO))}/mo — no principal paydown`, note: true },
+      ]
+    })
+  }
+
+  // 5-year total comparison
+  let custom5yr = 0
+  let baseline5yr = bIO * 60
+  if (calc) {
+    const n1 = hasZ ? 6 : 0
+    const reducedMo = hasIO && hasRed ? ioYrs * 12 - n1 : 0
+    const ioMo = hasIO && !hasRed ? ioYrs * 12 - n1 : 0
+    const piMo = Math.max(0, 60 - n1 - reducedMo - ioMo)
+    custom5yr = n1 * 0 + reducedMo * (calc.Red_IO || 0) + ioMo * (calc.IO_custom || 0) + piMo * (calc.PI_custom || 0)
+  }
+  const savings5yr = baseline5yr - custom5yr
+  const extraPrincipal = calc ? calc.L - bL : 0
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+      {/* ── BASELINE anchor ── */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(0,22,96,0.13)', boxShadow: '0 2px 10px rgba(0,22,96,0.07)' }}>
+        <div style={{ padding: '14px 18px 12px', background: 'linear-gradient(135deg, #0a1f5c 0%, #001660 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#93DDBA', boxShadow: '0 0 6px rgba(147,221,186,0.6)' }} />
+            <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)', fontFamily: "'SharpSans', sans-serif" }}>
+              Baseline · Standard HELOC
+            </div>
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1 }}>
+            {formatCurrencyFull(bL)}
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>Total loan · {rateDisplay}% fixed · no payment support</div>
+        </div>
+        <div style={{ background: 'rgba(0,22,96,0.03)', padding: '12px 18px', display: 'flex', gap: 0, borderTop: '1px solid rgba(0,22,96,0.08)' }}>
+          <div style={{ flex: 1, borderRight: '1px solid rgba(0,22,96,0.08)', paddingRight: 14 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>IO payment</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#374151', letterSpacing: '-0.01em' }}>{formatCurrencyFull(bIO)}<span style={{ fontSize: 11, fontWeight: 400, color: '#9CA3AF' }}>/mo</span></div>
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>Months 1–60</div>
+          </div>
+          <div style={{ flex: 1, paddingLeft: 14 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>P&I payment</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#374151', letterSpacing: '-0.01em' }}>{formatCurrencyFull(bPI)}<span style={{ fontSize: 11, fontWeight: 400, color: '#9CA3AF' }}>/mo</span></div>
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>Months 61–360</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Modifiers ── */}
+      {modifiers.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9CA3AF', paddingLeft: 2, fontFamily: "'SharpSans', sans-serif" }}>
+            Your customizations
+          </div>
+          {modifiers.map(mod => (
+            <div key={mod.id} style={{ borderRadius: 12, border: `1px solid ${mod.border}`, background: mod.bg, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: mod.color, marginBottom: 8 }}>✓ {mod.label}</div>
+              {mod.lines.map((line, i) => (
+                line.note
+                  ? <div key={i} style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.5 }}>{line.text}</div>
+                  : <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontSize: 11, color: '#9CA3AF', minWidth: 70 }}>{line.text}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', textDecoration: 'line-through' }}>{line.before}</span>
+                      <span style={{ fontSize: 10, color: '#9CA3AF' }}>→</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: mod.color }}>{line.after}</span>
+                    </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Impact summary (shown once calc is ready) ── */}
+      {calc && (
+        <div style={{ borderRadius: 14, background: '#fff', border: '1px solid rgba(0,22,96,0.1)', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,22,96,0.06)' }}>
+          <div style={{ padding: '14px 18px', background: 'linear-gradient(135deg, #001660 0%, #0d2380 100%)' }}>
+            <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', marginBottom: 8, fontFamily: "'SharpSans', sans-serif" }}>Your plan</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1 }}>{formatCurrencyFull(calc.L)}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>Total loan · {rateDisplay}% fixed</div>
+          </div>
+
+          <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* 5-year impact */}
+            {savings5yr !== 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: savings5yr > 0 ? 'rgba(1,97,99,0.06)' : 'rgba(37,75,206,0.04)', borderRadius: 10, border: `1px solid ${savings5yr > 0 ? 'rgba(1,97,99,0.15)' : 'rgba(37,75,206,0.1)'}` }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: savings5yr > 0 ? '#016163' : '#254BCE', textTransform: 'uppercase', letterSpacing: '0.07em' }}>5-year payment savings</div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>vs standard baseline</div>
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: savings5yr > 0 ? '#016163' : '#254BCE' }}>
+                  {savings5yr > 0 ? '+' : ''}{formatCurrencyFull(Math.round(savings5yr))}
+                </div>
+              </div>
+            )}
+
+            {/* Extra principal */}
+            {extraPrincipal > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#6B7280' }}>Added to principal (escrow + fee)</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#92400E' }}>+{formatCurrencyFull(Math.round(extraPrincipal))}</span>
+              </div>
+            )}
+
+            {/* After-IO payment */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#6B7280' }}>P&I payment (month {ioYrs * 12 + 1}+)</div>
+                <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>vs baseline {formatCurrencyFull(bPI)}/mo</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#001660' }}>{formatCurrencyFull(calc.PI_custom)}/mo</div>
+                <div style={{ fontSize: 10, color: calc.PI_custom > bPI ? '#92400E' : '#016163', fontWeight: 600 }}>
+                  {calc.PI_custom > bPI ? '+' : ''}{formatCurrencyFull(Math.round(calc.PI_custom - bPI))}/mo
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Lender ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
+        <div style={{ fontSize: 11, color: '#9CA3AF' }}>Financed by <span style={{ fontWeight: 700, color: '#374151' }}>Grand Bank</span></div>
+        <div style={{ fontSize: 10, color: '#B0B7C3' }}>NMLS #2611</div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig }) {
 
@@ -349,6 +553,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   const [ioYrsId,     setIoYrsId]     = useState(savedConfig?.ioYrsId     ?? null)  // IO_OPTIONS id
   const [tierId,      setTierId]      = useState(savedConfig?.tierId      ?? null)  // REDUCTION_TIERS id
   const [editingCard, setEditingCard] = useState(null)
+  const [designTab,   setDesignTab]   = useState('design1')
 
   // ── Persist to POSDemo state ───────────────────────────────────────────────
   useEffect(() => {
@@ -393,6 +598,12 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   useEffect(() => {
     if (s2Done && ioYrs === 0 && tierId === null) setTierId('none')
   }, [s2Done, ioYrs, tierId])
+
+  // ── Baseline loan (no escrow features — always computed once amount is set) ──
+  const baseline = useMemo(() => {
+    if (!amtDone || !rate) return null
+    return calcEscrowLoan({ C: safeDraw, rate, f: ORIGINATION_FEE, n1: 0, n2_IO: 0, n2_PI: 0, s: 0, amortMo: AMORT_TERM_MO })
+  }, [amtDone, rate, safeDraw])
 
   // ── Escrow loan calculation ────────────────────────────────────────────────
   const calc = useMemo(() => {
@@ -461,9 +672,24 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           HELOC · Step 2 of 7
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 5 }}>
-          <h1 style={{ fontSize: 25, fontWeight: 700, color: '#001660', margin: 0, letterSpacing: '0em', fontFamily: "'PostGrotesk', sans-serif" }}>
-            Build your loan plan
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+            <h1 style={{ fontSize: 25, fontWeight: 700, color: '#001660', margin: 0, letterSpacing: '0em', fontFamily: "'PostGrotesk', sans-serif" }}>
+              Build your loan plan
+            </h1>
+            {/* Design toggle */}
+            <div style={{ display: 'flex', gap: 2, background: 'rgba(0,22,96,0.06)', borderRadius: 8, padding: 3 }}>
+              {['design1', 'design2'].map((d, i) => (
+                <button key={d} onClick={() => setDesignTab(d)}
+                  style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                    background: designTab === d ? '#fff' : 'transparent',
+                    color: designTab === d ? '#254BCE' : '#9CA3AF',
+                    boxShadow: designTab === d ? '0 1px 4px rgba(0,22,96,0.12)' : 'none',
+                  }}>
+                  {i === 0 ? 'Design 1' : 'Design 2'}
+                </button>
+              ))}
+            </div>
+          </div>
           <button onClick={handleReset}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: '#C4C9D4', whiteSpace: 'nowrap', flexShrink: 0 }}
             onMouseOver={e => e.currentTarget.style.color = '#9CA3AF'}
@@ -472,7 +698,9 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           </button>
         </div>
         <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-          Answer each question — your plan summary updates live on the right.
+          {designTab === 'design1'
+            ? 'Answer each question — your plan summary updates live on the right.'
+            : 'Every choice shows how it shifts from your baseline standard loan.'}
         </p>
       </div>
 
@@ -677,18 +905,31 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
         {/* ── Right: sticky summary ── */}
         <div style={{ width: 296, flexShrink: 0, position: 'sticky', top: 24 }}>
-          <LoanSummary
-            product="heloc"
-            draw={safeDraw}
-            creditLim={creditLim}
-            rate={rate}
-            cltv={cltv}
-            calc={calc}
-            ioYrsId={ioYrsId}
-            zeroStart={zeroStart}
-            tierId={tierId}
-            s0Done={amtDone}
-          />
+          {designTab === 'design1' ? (
+            <LoanSummary
+              product="heloc"
+              draw={safeDraw}
+              creditLim={creditLim}
+              rate={rate}
+              cltv={cltv}
+              calc={calc}
+              ioYrsId={ioYrsId}
+              zeroStart={zeroStart}
+              tierId={tierId}
+              s0Done={amtDone}
+            />
+          ) : (
+            <BaselinePanel
+              draw={safeDraw}
+              rate={rate}
+              calc={calc}
+              baseline={baseline}
+              ioYrsId={ioYrsId}
+              zeroStart={zeroStart}
+              tierId={tierId}
+              s0Done={amtDone}
+            />
+          )}
         </div>
 
       </div>{/* end two-column */}
