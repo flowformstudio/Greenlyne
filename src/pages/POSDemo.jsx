@@ -52,12 +52,16 @@ const SEED = { projectCost: 45000, maxCredit: 294821, minCredit: 25000, defaultC
 
 const SEED_STEP1 = {
   firstName: 'Alex', lastName: 'Rivera',
-  dob: '03/14/1982', ssn4: '8241',
+  dob: '03/14/1982',
+  // SSN and marital status collected later in the flow (post-offer)
   phone: '(408) 555-0183', email: 'alex.rivera@email.com',
-  marital: 'Married', purpose: 'Home improvement',
+  marital: '', purpose: 'Home improvement',
   address: '4821 Oakbrook Dr', city: 'San Jose', state: 'CA', zip: '95126',
   propType: 'Primary residence', ownership: 'Joint ownership',
   propValue: '485000', mortgageBalance: '190000',
+  // Income + loan ask — collected in Step 1, needed to generate offer
+  annualIncome: '124000', incomeSource: 'Employment',
+  loanAmount: '120000', projectCost: '96000',
 }
 
 const SEED_STEP3 = {
@@ -557,12 +561,10 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
   const sections = [
     {
       index: 0,
-      label: 'Identity',
+      label: 'Your info',
       rows: [
-        { label: 'Name',           value: `${step1.firstName} ${step1.lastName}` },
-        { label: 'Date of birth',  value: step1.dob },
-        { label: 'Marital status', value: step1.marital },
-        { label: 'SSN (last 4)',   value: step1.ssn4 ? `•••• ${step1.ssn4}` : '—' },
+        { label: 'Name',          value: `${step1.firstName} ${step1.lastName}` },
+        { label: 'Date of birth', value: step1.dob || '—' },
       ],
     },
     {
@@ -589,10 +591,22 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
     },
     {
       index: 4,
-      label: 'Ownership',
+      label: 'Property Details',
       rows: [
-        { label: 'Property type', value: step1.propType },
-        { label: 'Ownership',     value: step1.ownership },
+        { label: 'Property type',  value: step1.propType },
+        { label: 'Ownership',      value: step1.ownership },
+        { label: 'Est. value',     value: step1.propValue ? `$${Number(step1.propValue).toLocaleString()}` : '—' },
+        { label: 'Mortgage bal.',  value: step1.mortgageBalance ? `$${Number(step1.mortgageBalance).toLocaleString()}` : '—' },
+      ],
+    },
+    {
+      index: 5,
+      label: 'Income & Loan',
+      rows: [
+        { label: 'Annual income',   value: step1.annualIncome ? `$${Number(step1.annualIncome).toLocaleString()}` : '—' },
+        { label: 'Income source',   value: step1.incomeSource || '—' },
+        { label: 'Requested loan',  value: step1.loanAmount ? `$${Number(step1.loanAmount).toLocaleString()}` : '—' },
+        { label: 'Project cost',    value: step1.projectCost ? `$${Number(step1.projectCost).toLocaleString()}` : '—' },
       ],
     },
   ]
@@ -600,15 +614,38 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
   return (
     <div>
       <ReviewHeader
-        totalSteps={5}
+        totalSteps={6}
         heading="Review your information"
         sub="Everything look right? Edit any section below, then continue."
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
         {sections.map(s => (
           <ReviewCheckCard key={s.index} label={s.label} rows={s.rows} onEdit={() => onEdit(s.index)} />
         ))}
+      </div>
+
+      {/* Transition copy — sets expectations before offer screen */}
+      <div style={{
+        marginBottom: 20, padding: '18px 20px',
+        background: 'linear-gradient(135deg, rgba(37,75,206,0.05) 0%, rgba(1,97,99,0.04) 100%)',
+        border: '1.5px solid rgba(37,75,206,0.15)', borderRadius: 14,
+      }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#254BCE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#001660', marginBottom: 4 }}>
+              We'll now generate your personalized offer
+            </div>
+            <div style={{ fontSize: 15, color: '#4B5563', lineHeight: 1.6 }}>
+              Based on the information you've shared, we'll calculate your approved loan amount and payment options. This takes just a moment — no hard credit pull.
+            </div>
+          </div>
+        </div>
       </div>
 
       <button
@@ -622,7 +659,7 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
         onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
         onMouseLeave={e => e.currentTarget.style.background = '#001660'}
       >
-        Save &amp; Continue →
+        Generate my offer →
       </button>
     </div>
   )
@@ -632,11 +669,12 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
 // Screen: Basic Info (Step 1) — 4 focused sub-steps
 // ─────────────────────────────────────────────────────────────────────────────
 const BASIC_SUB_STEPS = [
-  { id: 'identity',  label: 'Identity' },
+  { id: 'identity',  label: 'Your info' },
   { id: 'contact',   label: 'Contact' },
   { id: 'purpose',   label: 'Purpose' },
   { id: 'address',   label: 'Property Address' },
-  { id: 'ownership', label: 'Ownership' },
+  { id: 'ownership', label: 'Property Details' },
+  { id: 'income',    label: 'Income & Loan' },
 ]
 
 const PURPOSE_OPTIONS = [
@@ -699,18 +737,19 @@ function NarrowInput({ value, onChange, placeholder, maxWidth = 96, center = fal
 }
 
 // Derive how far a user has already progressed through Basic Info
-// so that returning to this screen shows completed tiles rather than starting over.
+// so that returning to this screen (e.g. back from offer) lands at the review.
 function computeBasicInfoSub(s) {
   if (!s.firstName || !s.lastName) return 0
   if (!s.phone) return 1
   if (!s.purpose) return 2
   if (!s.address || !s.city) return 3
   if (!s.propType || !s.ownership) return 4
-  return 5
+  if (!s.annualIncome || !s.incomeSource) return 5
+  return 6  // all done → review
 }
 
 function ScreenBasicInfo({ step1, dispatch }) {
-  const [currentSub, setCurrentSub] = useState(0)
+  const [currentSub, setCurrentSub] = useState(() => computeBasicInfoSub(step1))
   const [editingIndex, setEditingIndex] = useState(null)
   const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
   const total = BASIC_SUB_STEPS.length
@@ -718,20 +757,22 @@ function ScreenBasicInfo({ step1, dispatch }) {
   const activeIndex = editingIndex !== null ? editingIndex : allDone ? null : currentSub
 
   const SUB_META = [
-    { heading: "Let's confirm who you are",                sub: 'Pre-filled from your pre-approval — just verify.' },
+    { heading: "Let's confirm who you are",                sub: 'Pre-filled from your pre-approval — just verify your name and date of birth.' },
     { heading: 'How can we reach you?',                    sub: "We'll only contact you about your application." },
     { heading: "What's the primary purpose of this loan?", sub: 'This helps us match you with the right terms.' },
     { heading: 'Where is the property?',                   sub: "The home you're financing against." },
-    { heading: 'Who owns this property?',                  sub: 'Select the type and how ownership is held.' },
+    { heading: 'Tell us about your property',              sub: 'Property type, ownership, estimated value and current mortgage balance.' },
+    { heading: 'Income & loan details',                    sub: 'We need this to size your offer. Your requested amount must be at least $25,000.' },
   ]
 
   function getSummary(i) {
     switch (i) {
-      case 0: return `${step1.firstName} ${step1.lastName} · ${step1.dob} · ${step1.marital}`
+      case 0: return `${step1.firstName} ${step1.lastName}${step1.dob ? ' · DOB ' + step1.dob : ''}`
       case 1: return `${step1.phone} · ${step1.email}`
       case 2: return step1.purpose || '—'
       case 3: return [step1.address, step1.city, step1.state, step1.zip].filter(Boolean).join(', ')
       case 4: return `${step1.propType} · ${step1.ownership}`
+      case 5: return step1.annualIncome ? `$${Number(step1.annualIncome).toLocaleString()}/yr · ${step1.incomeSource} · Loan $${Number(step1.loanAmount || 0).toLocaleString()}` : '—'
       default: return '—'
     }
   }
@@ -819,25 +860,22 @@ function ScreenBasicInfo({ step1, dispatch }) {
                 {/* Form content */}
                 {index === 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {/* Names — first shorter than last */}
+                    {/* Pre-fill badge */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span style={{ fontSize: 13, color: '#065F46', fontWeight: 600 }}>Pre-filled from your pre-approval — edit if anything has changed.</span>
+                    </div>
+                    {/* Names */}
                     <FieldRow gap={12}>
                       <FieldWrap maxWidth={176}><Field label="First name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
                       <FieldWrap maxWidth={220}><Field label="Last name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
                     </FieldRow>
-                    {/* DOB + Marital status — sit side by side, both compact */}
+                    {/* DOB — optional */}
                     <FieldRow gap={12}>
-                      <FieldWrap maxWidth={160}><Field label="Date of birth"><Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" /></Field></FieldWrap>
-                      <FieldWrap maxWidth={180}><Field label="Marital status"><Select value={step1.marital} onChange={v => set('marital', v)} options={['Single','Married','Separated','Divorced','Widowed']} /></Field></FieldWrap>
+                      <FieldWrap maxWidth={180}><Field label="Date of birth" helper="optional"><Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" /></Field></FieldWrap>
                     </FieldRow>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-                      <div>
-                        <label style={{ fontSize: 16, fontWeight: 600, color: '#001660', marginBottom: 4, display: 'block' }}>SSN <span style={{ fontWeight: 400, color: '#9CA3AF' }}>last 4</span></label>
-                        <NarrowInput value={step1.ssn4} onChange={v => set('ssn4', v.replace(/\D/g, '').slice(0, 4))} placeholder="_ _ _ _" maxWidth={88} center />
-                      </div>
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', background: 'rgba(37,75,206,0.04)', borderRadius: 10, border: '1px solid rgba(37,75,206,0.08)' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <p style={{ fontSize: 16, color: '#4B5563', margin: 0, lineHeight: 1.6 }}>Soft pull only — <strong>no score impact.</strong></p>
-                      </div>
+                    <div style={{ padding: '9px 13px', background: 'rgba(37,75,206,0.04)', borderRadius: 10, border: '1px solid rgba(37,75,206,0.08)', fontSize: 13, color: '#4B5563', lineHeight: 1.55 }}>
+                      SSN and marital status are collected after your offer is generated — we don't need them right now.
                     </div>
                   </div>
                 )}
@@ -928,6 +966,54 @@ function ScreenBasicInfo({ step1, dispatch }) {
                           )
                         })}
                       </div>
+                    </div>
+                    <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
+                    <FieldRow gap={12}>
+                      <FieldWrap flex="1 1 0"><Field label="Est. property value"><Input value={step1.propValue} onChange={v => set('propValue', v.replace(/\D/g, ''))} placeholder="485000" /></Field></FieldWrap>
+                      <FieldWrap flex="1 1 0"><Field label="Current mortgage balance"><Input value={step1.mortgageBalance} onChange={v => set('mortgageBalance', v.replace(/\D/g, ''))} placeholder="190000" /></Field></FieldWrap>
+                    </FieldRow>
+                  </div>
+                )}
+
+                {/* Index 5 — Income & Loan */}
+                {index === 5 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <FieldRow gap={12}>
+                      <FieldWrap flex="1 1 0">
+                        <Field label="Annual income">
+                          <div style={{ position: 'relative' }}>
+                            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
+                            <Input value={step1.annualIncome} onChange={v => set('annualIncome', v.replace(/\D/g, ''))} placeholder="124000" />
+                          </div>
+                        </Field>
+                      </FieldWrap>
+                      <FieldWrap flex="1 1 0">
+                        <Field label="Income source">
+                          <Select value={step1.incomeSource || 'Employment'} onChange={v => set('incomeSource', v)}
+                            options={['Employment', 'Self-employment', 'Retirement / pension', 'Social Security', 'Rental income', 'Other']} />
+                        </Field>
+                      </FieldWrap>
+                    </FieldRow>
+                    <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
+                    <Field label="Requested loan amount">
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
+                        <Input value={step1.loanAmount} onChange={v => set('loanAmount', v.replace(/\D/g, ''))} placeholder="120000" />
+                      </div>
+                    </Field>
+                    {step1.loanAmount && Number(step1.loanAmount) < 25000 && (
+                      <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 13, color: '#B91C1C', fontWeight: 500 }}>
+                        Minimum loan amount is $25,000. Please enter a higher amount.
+                      </div>
+                    )}
+                    <Field label="Project cost" helper="optional">
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
+                        <Input value={step1.projectCost || ''} onChange={v => set('projectCost', v.replace(/\D/g, ''))} placeholder="96000" />
+                      </div>
+                    </Field>
+                    <div style={{ padding: '9px 13px', background: 'rgba(37,75,206,0.04)', border: '1px solid rgba(37,75,206,0.08)', borderRadius: 10, fontSize: 13, color: '#4B5563', lineHeight: 1.55 }}>
+                      Your loan offer will be sized to your requested amount. If it exceeds your approved maximum, we'll show you the best available alternative.
                     </div>
                   </div>
                 )}

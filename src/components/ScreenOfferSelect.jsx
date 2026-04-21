@@ -40,6 +40,7 @@ const SEED = {
 // ─── IO period options ────────────────────────────────────────────────────────
 const IO_OPTIONS = [
   { id: 'pi',  label: 'P+I from day one', years: 0, desc: 'Start building equity immediately. No interest-only period — your full payment from month one.' },
+  { id: '1yr', label: '1 year',           years: 1, desc: '12 months of interest-only payments, then full P+I for the remainder of the term.' },
   { id: '2yr', label: '2 years',          years: 2, desc: '24 months of interest-only payments, then full P+I for the remainder of the term.' },
   { id: '3yr', label: '3 years',          years: 3, desc: '36 months of interest-only payments, then full P+I.' },
   { id: '4yr', label: '4 years',          years: 4, desc: '48 months of interest-only payments, then full P+I.' },
@@ -165,7 +166,7 @@ function DecCard({ step, title, answered, summary, onEdit, onClose, editing, chi
 }
 
 // ─── Live loan summary panel ──────────────────────────────────────────────────
-function LoanSummary({ product, draw, creditLim, rate, cltv, calc, ioYrsId, zeroStart, tierId, s0Done }) {
+function LoanSummary({ product, draw, creditLim, rate, cltv, calc, ioYrsId, zeroStart, tierId, redDurYrs, s0Done }) {
   if (!s0Done) {
     return (
       <div style={{ background: '#fff', borderRadius: 18, border: '1px solid rgba(0,22,96,0.08)', padding: '32px 24px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,22,96,0.05)' }}>
@@ -175,7 +176,7 @@ function LoanSummary({ product, draw, creditLim, rate, cltv, calc, ioYrsId, zero
           </svg>
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#374151', marginBottom: 8, fontFamily: "'SharpSans', sans-serif" }}>Your Loan Plan</div>
-        <div style={{ fontSize: 15, color: '#9CA3AF', lineHeight: 1.65 }}>Choose your loan type to see your personalized payment plan — it updates live as you make each selection.</div>
+        <div style={{ fontSize: 15, color: '#6B7280', lineHeight: 1.65 }}>Choose your loan type to see your personalized payment plan — it updates live as you make each selection.</div>
       </div>
     )
   }
@@ -183,35 +184,94 @@ function LoanSummary({ product, draw, creditLim, rate, cltv, calc, ioYrsId, zero
   if (!calc) {
     return (
       <div style={{ background: '#fff', borderRadius: 18, border: '1px solid rgba(0,22,96,0.08)', padding: '28px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: 15, color: '#9CA3AF' }}>Complete your selections to see the loan summary.</div>
+        <div style={{ fontSize: 15, color: '#6B7280' }}>Complete your selections to see the loan summary.</div>
       </div>
     )
   }
 
   const { L, B, Red_IO, Red_PI, IO_custom, PI_custom, totalEscrow, origFee } = calc
-  const ioOpt  = IO_OPTIONS.find(o => o.id === ioYrsId)
-  const tier   = REDUCTION_TIERS.find(t => t.id === tierId)
-  const ioYrs  = ioOpt?.years ?? 0
-  const s      = tier?.s ?? 0
-  const hasIO  = ioYrs > 0
-  const hasRed = s > 0
-  const hasZ   = zeroStart === true
+  const ioOpt    = IO_OPTIONS.find(o => o.id === ioYrsId)
+  const tier     = REDUCTION_TIERS.find(t => t.id === tierId)
+  const ioYrs    = ioOpt?.years ?? 0
+  const s        = tier?.s ?? 0
+  const hasIO    = ioYrs > 0
+  const hasRed   = s > 0
+  const hasZ     = zeroStart === true
+  const n1       = hasZ ? 6 : 0
+  const ioMo     = ioYrs * 12
+  const redYrs   = hasRed ? (redDurYrs ?? ioYrs) : 0
+  const redMo    = redYrs * 12
 
-  // Build payment phases
+  // Build payment phases based on IO vs reduction overlap
+  // Case A: IO = red (or no reduction)  → 2-3 segments
+  // Case B: red > IO                    → 3-4 segments ($0 · red-IO · red-P&I · full-P&I)
+  // Case C: red < IO                    → 3-4 segments ($0 · red-IO · full-IO  · full-P&I)
   const phases = []
   const dot = ['#016163', '#254BCE', '#1e3fa8', '#001660']
   let seq = 0
 
+  // Phase 1: $0 opening (if selected)
   if (hasZ) {
-    phases.push({ dot: dot[seq++], duration: '6 months', payment: 0, label: '$0 per month', sub: 'Escrow covers your payments — nothing due from you' })
+    phases.push({
+      dot: dot[seq++],
+      duration: 'Next 6 months',
+      payment: 0,
+      sub: 'Escrow covers your payments — nothing due from you',
+    })
   }
+
   if (hasIO && hasRed) {
-    const reducedMonths = ioYrs * 12 - (hasZ ? 6 : 0)
-    phases.push({ dot: dot[Math.min(seq++, 3)], duration: `${reducedMonths} months`, payment: Red_IO, label: `${formatCurrencyFull(Red_IO)}/month`, sub: `${Math.round(s*100)}% below standard — interest only` })
+    // Reduced IO phase (always present when IO & reduction both active)
+    const redIoMo = Math.min(redMo, ioMo) - n1
+    if (redIoMo > 0) {
+      phases.push({
+        dot: dot[Math.min(seq++, 3)],
+        duration: `Next ${redIoMo} months`,
+        payment: Red_IO,
+        sub: `${Math.round(s * 100)}% below standard — interest only, no principal yet`,
+      })
+    }
+
+    if (redMo < ioMo) {
+      // Case C: reduction ends before IO — remaining IO at full rate
+      const fullIoMo = ioMo - redMo
+      phases.push({
+        dot: dot[Math.min(seq++, 3)],
+        duration: `Next ${fullIoMo} months`,
+        payment: IO_custom,
+        sub: 'Interest only — payment support period has ended',
+      })
+    } else if (redMo > ioMo) {
+      // Case B: reduction extends into P&I phase
+      const piRedMo = redMo - ioMo
+      phases.push({
+        dot: dot[Math.min(seq++, 3)],
+        duration: `Next ${piRedMo} months`,
+        payment: Red_PI,
+        sub: `${Math.round(s * 100)}% below standard — now paying down principal`,
+      })
+    }
   } else if (hasIO && !hasRed) {
-    phases.push({ dot: dot[Math.min(seq++, 3)], duration: `${ioYrs * 12 - (hasZ ? 6 : 0)} months`, payment: IO_custom, label: `${formatCurrencyFull(IO_custom)}/month`, sub: 'Interest only — no principal reduction yet' })
+    // Full IO, no reduction
+    const fullIoMo = ioMo - n1
+    phases.push({
+      dot: dot[Math.min(seq++, 3)],
+      duration: `Next ${fullIoMo} months`,
+      payment: IO_custom,
+      sub: 'Interest only — no principal reduction yet',
+    })
   }
-  phases.push({ dot: dot[Math.min(seq++, 3)], duration: `${Math.round(AMORT_TERM_MO / 12)} years`, payment: PI_custom, label: `${formatCurrencyFull(PI_custom)}/month`, sub: 'Full principal + interest until paid off', final: true })
+
+  // Final phase: full P&I
+  const piYrs = Math.round(AMORT_TERM_MO / 12)
+  const totalYrs = ioYrs + piYrs
+  phases.push({
+    dot: dot[Math.min(seq++, 3)],
+    duration: `Next ${piYrs} years`,
+    payment: PI_custom,
+    sub: `Full principal + interest until paid off (${totalYrs}-year total loan term)`,
+    final: true,
+  })
 
   // No savings widget — replaced with loan structure disclosure
 
@@ -553,13 +613,14 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   const [zeroStart,   setZeroStart]   = useState(savedConfig?.zeroStart   ?? null)  // null=unanswered, true/false
   const [ioYrsId,     setIoYrsId]     = useState(savedConfig?.ioYrsId     ?? null)  // IO_OPTIONS id
   const [tierId,      setTierId]      = useState(savedConfig?.tierId      ?? null)  // REDUCTION_TIERS id
+  const [redDurYrs,   setRedDurYrs]   = useState(savedConfig?.redDurYrs   ?? null)  // reduction duration in years (independent from IO)
   const [editingCard, setEditingCard] = useState(null)
   const [designTab,   setDesignTab]   = useState('design1')  // 'design1' | 'design2' | 'design3'
 
   // ── Persist to POSDemo state ───────────────────────────────────────────────
   useEffect(() => {
-    dispatch({ type: 'SAVE_STEP2_CONFIG', config: { product: 'heloc', creditLim, drawAmt, amtDone, zeroStart, ioYrsId, tierId } })
-  }, [creditLim, drawAmt, amtDone, zeroStart, ioYrsId, tierId]) // eslint-disable-line
+    dispatch({ type: 'SAVE_STEP2_CONFIG', config: { product: 'heloc', creditLim, drawAmt, amtDone, zeroStart, ioYrsId, tierId, redDurYrs } })
+  }, [creditLim, drawAmt, amtDone, zeroStart, ioYrsId, tierId, redDurYrs]) // eslint-disable-line
 
   // ── Derived: CLTV, rate, and program cap ─────────────────────────────────
   const minDraw  = Math.ceil(creditLim * 0.8)
@@ -606,18 +667,28 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     return calcEscrowLoan({ C: safeDraw, rate, f: ORIGINATION_FEE, n1: 0, n2_IO: 0, n2_PI: 0, s: 0, amortMo: AMORT_TERM_MO })
   }, [amtDone, rate, safeDraw])
 
+  // ── Auto-default reduction duration to IO period when IO is selected ─────────
+  useEffect(() => {
+    if (ioYrsId !== null && redDurYrs === null) {
+      const opt = IO_OPTIONS.find(o => o.id === ioYrsId)
+      setRedDurYrs(opt?.years ?? 0)
+    }
+  }, [ioYrsId]) // eslint-disable-line
+
   // ── Escrow loan calculation ────────────────────────────────────────────────
   const calc = useMemo(() => {
     if (!amtDone || !rate || ioYrsId === null) return null
-    const tier  = REDUCTION_TIERS.find(t => t.id === (tierId ?? 'none'))
-    const s     = tier?.s ?? 0
-    const n1    = zeroStart === true ? 6 : 0
-    const ioMo  = ioYrs * 12  // total IO window in months
+    const tier    = REDUCTION_TIERS.find(t => t.id === (tierId ?? 'none'))
+    const s       = tier?.s ?? 0
+    const n1      = zeroStart === true ? 6 : 0
+    const ioMo    = ioYrs * 12
+    const redYrs  = s > 0 ? (redDurYrs ?? ioYrs) : 0
+    const redMo   = redYrs * 12
 
-    // n2 (partially subsidised months) only applies when a reduction is active (s > 0)
-    // Both windows end together (per Sid's spec: "same time span as IO period")
-    const n2_IO = s > 0 ? Math.max(0, ioMo - n1) : 0
-    const n2_PI = (ioYrs === 0 && s > 0) ? Math.max(0, 24 - n1) : 0  // P&I-mode: 24-month reduction window
+    // n2_IO: reduced months within IO window
+    // n2_PI: reduced months that overflow into the P&I phase (when reduction > IO)
+    const n2_IO = s > 0 ? Math.max(0, Math.min(redMo, ioMo) - n1) : 0
+    const n2_PI = s > 0 && redMo > ioMo ? redMo - ioMo : 0
 
     return calcEscrowLoan({
       C:       safeDraw,
@@ -629,7 +700,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
       s,
       amortMo: AMORT_TERM_MO,
     })
-  }, [s0Done, rate, ioYrsId, tierId, zeroStart, ioYrs, safeDraw])
+  }, [s0Done, rate, ioYrsId, tierId, zeroStart, ioYrs, redDurYrs, safeDraw])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function goEdit(i)   { setEditingCard(i) }
@@ -637,7 +708,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
   function handleReset() {
     setCreditLim(SEED.defaultCredit); setDrawAmt(SEED.defaultWithdraw)
-    setAmtDone(false); setZeroStart(null); setIoYrsId(null); setTierId(null); setEditingCard(null)
+    setAmtDone(false); setZeroStart(null); setIoYrsId(null); setTierId(null); setRedDurYrs(null); setEditingCard(null)
     dispatch({ type: 'SAVE_STEP2_CONFIG', config: null })
   }
 
@@ -818,7 +889,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 {IO_OPTIONS.map(({ id, label, years, desc }) => {
                   const active = ioYrsId === id
                   return (
-                    <button key={id} onClick={() => { setIoYrsId(id); setTierId(null); closeEdit() }}
+                    <button key={id} onClick={() => { setIoYrsId(id); setTierId(null); setRedDurYrs(years > 0 ? years : null); closeEdit() }}
                       style={{ padding: '14px 16px', borderRadius: 12, cursor: 'pointer', textAlign: 'left', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none', transition: 'all 0.15s', outline: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ fontSize: 17, fontWeight: 800, color: active ? '#254BCE' : '#001660' }}>{label}</div>
                       <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.5 }}>{desc.split('.')[0]}.</div>
@@ -839,7 +910,11 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
               summary={
                 !tierId || tierId === 'none'
                   ? 'No reduction — full interest-only payment'
-                  : `${REDUCTION_TIERS.find(t => t.id === tierId)?.label} — ${Math.round((REDUCTION_TIERS.find(t => t.id === tierId)?.s ?? 0) * 100)}% off for ${ioYrs} ${ioYrs === 1 ? 'year' : 'years'}`
+                  : (() => {
+                      const t = REDUCTION_TIERS.find(t => t.id === tierId)
+                      const dur = redDurYrs ?? ioYrs
+                      return `${t?.label} — ${Math.round((t?.s ?? 0) * 100)}% off for ${dur} ${dur === 1 ? 'year' : 'years'}`
+                    })()
               }
               onEdit={() => goEdit(3)}
               onClose={closeEdit}
@@ -871,6 +946,48 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                   <div style={{ fontSize: 11, color: '#92400e' }}>
                     Based on your debt-to-income ratio, some higher-reduction options are not available. Options shown are pre-qualified.
                   </div>
+                </div>
+              )}
+
+              {/* Reduction duration — shown once a reduction tier is chosen */}
+              {tierId && tierId !== 'none' && (
+                <div style={{ marginTop: 18, padding: '16px', background: 'rgba(37,75,206,0.04)', border: '1px solid rgba(37,75,206,0.12)', borderRadius: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#001660', marginBottom: 4 }}>
+                    How long should the reduction last?
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12, lineHeight: 1.55 }}>
+                    Default matches your IO period. Extend into P&I for longer support, or shorten to save on total loan cost. Max 5 years.
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {[1, 2, 3, 4, 5].map(yr => {
+                      const active = (redDurYrs ?? ioYrs) === yr
+                      const isDefault = yr === ioYrs
+                      return (
+                        <button key={yr} onClick={() => setRedDurYrs(yr)}
+                          style={{
+                            padding: '8px 14px', borderRadius: 10, cursor: 'pointer', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
+                            background: active ? 'rgba(37,75,206,0.1)' : '#fff',
+                            color: active ? '#254BCE' : '#374151',
+                            fontSize: 13, fontWeight: active ? 700 : 500,
+                            outline: 'none', transition: 'all 0.12s',
+                            position: 'relative',
+                          }}>
+                          {yr} {yr === 1 ? 'year' : 'years'}
+                          {isDefault && <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#254BCE' : '#9CA3AF', display: 'block', lineHeight: 1 }}>default</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {(redDurYrs ?? ioYrs) > ioYrs && (
+                    <div style={{ marginTop: 10, fontSize: 11, color: '#4B5563', lineHeight: 1.55, padding: '8px 10px', background: 'rgba(37,75,206,0.04)', borderRadius: 8 }}>
+                      Reduction extends <strong>{(redDurYrs ?? ioYrs) - ioYrs} year{(redDurYrs ?? ioYrs) - ioYrs > 1 ? 's' : ''} past your IO period</strong> — you'll pay a reduced P&I payment during that overlap.
+                    </div>
+                  )}
+                  {(redDurYrs ?? ioYrs) < ioYrs && (
+                    <div style={{ marginTop: 10, fontSize: 11, color: '#4B5563', lineHeight: 1.55, padding: '8px 10px', background: 'rgba(0,22,96,0.03)', borderRadius: 8 }}>
+                      Reduction ends <strong>{ioYrs - (redDurYrs ?? ioYrs)} year{ioYrs - (redDurYrs ?? ioYrs) > 1 ? 's' : ''} before your IO period</strong> — remaining IO months are at the full interest-only rate.
+                    </div>
+                  )}
                 </div>
               )}
             </DecCard>
@@ -924,6 +1041,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
               ioYrsId={ioYrsId}
               zeroStart={zeroStart}
               tierId={tierId}
+              redDurYrs={redDurYrs}
               s0Done={amtDone}
             />
           ) : (
