@@ -12,6 +12,7 @@ import {
   formatCurrencyFull,
   IO_TERM_MO, AMORT_TERM_MO, ORIGINATION_FEE,
 } from '../lib/loanCalc'
+import ScreenOfferSelectV1 from './ScreenOfferSelectV1'
 
 // ─── Demo seed values (stand-ins until underwriting data flows through) ────────
 const DEMO_FICO = 740
@@ -553,7 +554,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   const [ioYrsId,     setIoYrsId]     = useState(savedConfig?.ioYrsId     ?? null)  // IO_OPTIONS id
   const [tierId,      setTierId]      = useState(savedConfig?.tierId      ?? null)  // REDUCTION_TIERS id
   const [editingCard, setEditingCard] = useState(null)
-  const [designTab,   setDesignTab]   = useState('design1')
+  const [designTab,   setDesignTab]   = useState('design1')  // 'design1' | 'design2' | 'design3'
 
   // ── Persist to POSDemo state ───────────────────────────────────────────────
   useEffect(() => {
@@ -678,14 +679,14 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             </h1>
             {/* Design toggle */}
             <div style={{ display: 'flex', gap: 2, background: 'rgba(0,22,96,0.06)', borderRadius: 8, padding: 3 }}>
-              {['design1', 'design2'].map((d, i) => (
+              {['design1', 'design2', 'design3'].map((d, i) => (
                 <button key={d} onClick={() => setDesignTab(d)}
                   style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                     background: designTab === d ? '#fff' : 'transparent',
                     color: designTab === d ? '#254BCE' : '#9CA3AF',
                     boxShadow: designTab === d ? '0 1px 4px rgba(0,22,96,0.12)' : 'none',
                   }}>
-                  {i === 0 ? 'Design 1' : 'Design 2'}
+                  {`Design ${i + 1}`}
                 </button>
               ))}
             </div>
@@ -700,12 +701,19 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
           {designTab === 'design1'
             ? 'Answer each question — your plan summary updates live on the right.'
-            : 'Every choice shows how it shifts from your baseline standard loan.'}
+            : designTab === 'design2'
+            ? 'Every choice shows how it shifts from your baseline standard loan.'
+            : 'Original guided configurator — v1 reference.'}
         </p>
       </div>
 
-      {/* Two-column layout */}
-      <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+      {/* Design 3 — original v1 flow (full takeover) */}
+      {designTab === 'design3' && (
+        <ScreenOfferSelectV1 step2={step2} step1={step1} dispatch={dispatch} savedConfig={savedConfig} />
+      )}
+
+      {/* Two-column layout — Design 1 & 2 */}
+      {designTab !== 'design3' && <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
 
         {/* ── Left: decision cards ── */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -932,7 +940,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           )}
         </div>
 
-      </div>{/* end two-column */}
+      </div>}{/* end two-column (design1/2 only) */}
     </div>
   )
 }
