@@ -666,29 +666,6 @@ export default function ScreenOfferSelectV1({ step2, step1, dispatch, savedConfi
   return (
     <div>
 
-      {/* Page header — full width, above the two-column layout */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5, fontFamily: "'SharpSans', sans-serif" }}>
-          Configure Your Offer · Step 2 of 7
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 5 }}>
-          <h1 style={{ fontSize: 25, fontWeight: 700, color: '#001660', margin: 0, letterSpacing: '0em', fontFamily: "'PostGrotesk', sans-serif" }}>
-            Build your loan, one step at a time
-          </h1>
-          <button
-            onClick={handleReset}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11, color: '#C4C9D4', whiteSpace: 'nowrap', flexShrink: 0, transition: 'color 0.15s' }}
-            onMouseOver={e => e.currentTarget.style.color = '#9CA3AF'}
-            onMouseOut={e => e.currentTarget.style.color = '#C4C9D4'}
-          >
-            ↺ Reset this step · demo only
-          </button>
-        </div>
-        <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-          Answer each question — your plan summary updates live on the right.
-        </p>
-      </div>
-
       {/* Two-column: cards left, summary right — both start at the same top line */}
       <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
 
