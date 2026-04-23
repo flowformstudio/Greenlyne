@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import WesthavenHeader from '../components/WesthavenHeader'
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -263,18 +264,7 @@ export default function OfferLanding() {
   return (
     <div style={{ minHeight: '100vh', background: T.off, fontFamily: BODY }}>
 
-      {/* Branding strip */}
-      <div style={{ padding: '14px 48px', borderBottom: `1px solid ${T.ink10}`, background: T.white, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 26, display: 'block' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11.5, color: T.ink60, fontWeight: 600 }}>Project by</span>
-            <img src="/westhaven-logo.png" alt="Westhaven Power" style={{ height: 20 }} />
-          </div>
-          <div style={{ width: 1, height: 24, background: T.ink10 }} />
-          <div style={{ fontSize: 11.5, color: T.ink60 }}>Financing by <strong style={{ color: T.navy }}>Grand Bank</strong> · NMLS #2611</div>
-        </div>
-      </div>
+      <WesthavenHeader lender="grand-bank" />
 
       <main style={{
         maxWidth: 1360, margin: '0 auto', padding: '32px 40px 56px',
@@ -356,7 +346,7 @@ export default function OfferLanding() {
         </section>
 
         {/* ── RIGHT — savings + controls (sticky) ── */}
-        <section style={{ display: 'grid', gap: 16, position: 'sticky', top: 110, maxWidth: 420, marginTop: 40, justifySelf: 'start', width: '100%' }}>
+        <section style={{ display: 'grid', gap: 16, position: 'sticky', top: 120, maxWidth: 420, marginTop: 40, justifySelf: 'start', width: '100%' }}>
 
           {/* Align header row with left section */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, minHeight: 62 }}>
