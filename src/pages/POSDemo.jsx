@@ -55,17 +55,15 @@ const SEED = { projectCost: 45000, maxCredit: 294821, minCredit: 25000, defaultC
 
 const SEED_STEP1 = {
   firstName: 'Alex', middleInitial: '', lastName: 'Rivera',
-  dob: '03/14/1982',
-  // SSN and marital status collected later in the flow (post-offer)
-  phone: '(408) 555-0183', email: 'alex.rivera@email.com',
-  marital: '', purpose: 'Home improvement',
+  dob: '',
+  phone: '', email: '',
+  marital: '', purpose: '',
   address: '4821 Oakbrook Dr', city: 'San Jose', state: 'CA', zip: '95126',
-  propType: 'Primary residence', ownership: 'Joint ownership',
-  propValue: '485000', mortgageBalance: '190000', forSale: false,
-  singleFamily: true, goodRoof: false,
-  // Income + loan ask — collected in Step 1, needed to generate offer
-  annualIncome: '124000', incomeSource: 'Employment',
-  loanAmount: '120000', projectCost: '96000',
+  propType: '', ownership: '',
+  propValue: '', mortgageBalance: '', forSale: false,
+  singleFamily: false, goodRoof: false,
+  annualIncome: '', incomeSource: '',
+  loanAmount: '', projectCost: '',
 }
 
 const SEED_STEP3 = {
@@ -1261,8 +1259,8 @@ function ScreenBasicInfo({ step1, dispatch }) {
             </FieldWrap>
             <FieldWrap maxWidth={280}>
               <Field label="Primary income source">
-                <Select value={step1.incomeSource || 'Employment'} onChange={v => set('incomeSource', v)}
-                  options={['Employment', 'Self-employment', 'Retirement / pension', 'Social Security', 'Rental income', 'Other']} />
+                <Select value={step1.incomeSource || ''} onChange={v => set('incomeSource', v)}
+                  options={[{ value: '', label: 'Select income source…' }, 'Employment', 'Self-employment', 'Retirement / pension', 'Social Security', 'Rental income', 'Other']} />
               </Field>
             </FieldWrap>
           </div>
