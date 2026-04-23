@@ -1320,15 +1320,17 @@ function ScreenBasicInfo({ step1, dispatch }) {
       </div>
 
       {/* ── Navigation ───────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, borderTop: '1px solid rgba(0,22,96,0.06)' }}>
-        <button onClick={goBack} style={{
-          padding: '11px 20px', borderRadius: 10,
-          border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
-          fontSize: 16, fontWeight: 600, color: '#001660',
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-          ← Back
-        </button>
+      <div style={{ display: 'flex', justifyContent: screenIdx === 0 ? 'flex-end' : 'space-between', alignItems: 'center', paddingTop: 20, borderTop: '1px solid rgba(0,22,96,0.06)' }}>
+        {screenIdx > 0 && (
+          <button onClick={goBack} style={{
+            padding: '11px 20px', borderRadius: 10,
+            border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
+            fontSize: 16, fontWeight: 600, color: '#001660',
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            ← Back
+          </button>
+        )}
         <button onClick={goNext} disabled={!canContinue} style={{
           padding: '13px 28px', borderRadius: 10, border: 'none',
           background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.15)',
