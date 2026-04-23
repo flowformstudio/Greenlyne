@@ -2595,12 +2595,12 @@ function ScreenMoreInfo({ step3, dispatch }) {
         onClick={() => dispatch({ type: 'NEXT' })}
         disabled={!canSubmit}
         style={{
-          width: '100%', padding: '16px', borderRadius: 14, border: 'none',
+          display: 'block', marginLeft: 'auto', marginBottom: 12,
+          padding: '11px 22px', borderRadius: 11, border: 'none',
           background: canSubmit ? '#001660' : 'rgba(0,22,96,0.1)',
           color: canSubmit ? '#fff' : 'rgba(0,22,96,0.3)',
-          fontSize: 17, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default',
+          fontSize: 14, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default',
           fontFamily: 'inherit', letterSpacing: '-0.1px', transition: 'all 0.15s',
-          marginBottom: 12,
         }}
         onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = '#00236e' }}
         onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = '#001660' }}
