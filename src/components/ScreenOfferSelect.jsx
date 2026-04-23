@@ -555,26 +555,9 @@ function PaymentTimeline({ calc, calcBase, ioYrsId, zeroStart, tierId, reduction
         </div>
       </div>
 
-      {/* Confirm CTA */}
-      <div style={{ padding: '14px 22px 20px', borderTop: `1px solid ${T.line}`, background: T.panel }}>
-        <button onClick={onConfirm}
-          disabled={!canConfirm}
-          style={{
-            width: '100%', padding: '13px 0', borderRadius: 11,
-            background: canConfirm ? T.blue : 'rgba(15,23,42,0.08)',
-            color: canConfirm ? T.white : T.faint,
-            border: 'none', fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
-            cursor: canConfirm ? 'pointer' : 'not-allowed',
-            fontFamily: 'inherit',
-            boxShadow: canConfirm ? '0 4px 14px rgba(37,75,206,0.3)' : 'none',
-            transition: 'transform 0.15s, background 0.15s',
-          }}
-          onMouseOver={e => { if (canConfirm) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = T.blueHi } }}
-          onMouseOut={e => { e.currentTarget.style.transform = ''; if (canConfirm) e.currentTarget.style.background = T.blue }}
-        >
-          Confirm your plan →
-        </button>
-        <div style={{ fontSize: 10, color: T.faint, textAlign: 'center', marginTop: 9, lineHeight: 1.5 }}>
+      {/* Lender footer */}
+      <div style={{ padding: '12px 22px 14px', borderTop: `1px solid ${T.line}`, background: T.panel }}>
+        <div style={{ fontSize: 10, color: T.faint, textAlign: 'center', lineHeight: 1.5 }}>
           Financed by Grand Bank · NMLS #2611
         </div>
       </div>
@@ -1229,10 +1212,26 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           </div>
 
           {/* Nav */}
-          <div style={{ paddingTop: 14, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ paddingTop: 14, marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <button onClick={() => dispatch({ type: 'BACK' })}
               style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, borderRadius: 10, border: `1px solid ${T.border}`, background: T.white, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}>
               ← Back
+            </button>
+            <button onClick={handleConfirm}
+              disabled={!calc}
+              style={{
+                padding: '12px 26px', borderRadius: 11,
+                background: calc ? T.blue : 'rgba(15,23,42,0.08)',
+                color: calc ? T.white : T.faint,
+                border: 'none', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
+                cursor: calc ? 'pointer' : 'not-allowed',
+                fontFamily: 'inherit',
+                boxShadow: calc ? '0 4px 14px rgba(37,75,206,0.3)' : 'none',
+                transition: 'transform 0.15s, background 0.15s',
+              }}
+              onMouseOver={e => { if (calc) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = T.blueHi } }}
+              onMouseOut={e => { e.currentTarget.style.transform = ''; if (calc) e.currentTarget.style.background = T.blue }}>
+              Confirm your plan →
             </button>
           </div>
         </div>
