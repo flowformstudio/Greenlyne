@@ -1318,29 +1318,88 @@ function ScreenBasicInfo({ step1, dispatch }) {
       </div>
 
       {/* ── Navigation ───────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: screenIdx === 0 ? 'flex-end' : 'space-between', alignItems: 'center', paddingTop: 20, borderTop: '1px solid rgba(0,22,96,0.06)' }}>
-        {screenIdx > 0 && (
-          <button onClick={goBack} style={{
-            padding: '11px 20px', borderRadius: 10,
-            border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
-            fontSize: 16, fontWeight: 600, color: '#001660',
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            ← Back
-          </button>
-        )}
-        <button onClick={goNext} disabled={!canContinue} style={{
-          padding: '13px 28px', borderRadius: 10, border: 'none',
-          background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.15)',
-          color: '#fff', fontSize: 17, fontWeight: 700,
-          cursor: canContinue ? 'pointer' : 'not-allowed',
-          fontFamily: 'inherit', letterSpacing: '-0.1px',
-          boxShadow: canContinue ? '0 4px 16px rgba(37,75,206,0.28)' : 'none',
-          transition: 'all 0.15s',
+      {isLastScreen ? (
+        <div style={{
+          marginTop: 28,
+          background: '#ffffff',
+          borderRadius: 16,
+          border: '1px solid rgba(0,22,96,0.1)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+          padding: '24px 28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 20,
         }}>
-          {isLastScreen ? 'Generate My Offer →' : 'Continue →'}
-        </button>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={goBack} style={{
+              padding: '12px 18px', borderRadius: 10,
+              border: '1.5px solid rgba(0,22,96,0.15)', background: 'transparent',
+              fontSize: 14, fontWeight: 600, color: '#6B7280',
+              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            }}>
+              ← Back
+            </button>
+            <div style={{ width: 1, height: 32, background: 'rgba(0,22,96,0.08)' }} />
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
+                Almost there
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                We'll generate your personalized loan offer
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={goNext}
+            disabled={!canContinue}
+            style={{
+              flexShrink: 0,
+              padding: '16px 32px',
+              borderRadius: 12,
+              background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.08)',
+              color: canContinue ? '#fff' : '#9CA3AF',
+              border: 'none',
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              cursor: canContinue ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              boxShadow: canContinue ? '0 6px 20px rgba(37,75,206,0.35)' : 'none',
+              transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseOver={e => { if (canContinue) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(37,75,206,0.4)' } }}
+            onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = canContinue ? '0 6px 20px rgba(37,75,206,0.35)' : 'none' }}
+          >
+            Generate My Offer →
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: screenIdx === 0 ? 'flex-end' : 'space-between', alignItems: 'center', paddingTop: 20, borderTop: '1px solid rgba(0,22,96,0.06)' }}>
+          {screenIdx > 0 && (
+            <button onClick={goBack} style={{
+              padding: '11px 20px', borderRadius: 10,
+              border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
+              fontSize: 16, fontWeight: 600, color: '#001660',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              ← Back
+            </button>
+          )}
+          <button onClick={goNext} disabled={!canContinue} style={{
+            padding: '13px 28px', borderRadius: 10, border: 'none',
+            background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.15)',
+            color: '#fff', fontSize: 17, fontWeight: 700,
+            cursor: canContinue ? 'pointer' : 'not-allowed',
+            fontFamily: 'inherit', letterSpacing: '-0.1px',
+            boxShadow: canContinue ? '0 4px 16px rgba(37,75,206,0.28)' : 'none',
+            transition: 'all 0.15s',
+          }}>
+            Continue →
+          </button>
+        </div>
+      )}
     </div>
   )
 }
