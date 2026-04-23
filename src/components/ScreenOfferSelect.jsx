@@ -398,7 +398,7 @@ function DecCard({ step, title, summary, onEdit, onClose, editing, locked, modif
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: T.text, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 17, fontWeight: 500, color: T.text, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {summary}
                 </div>
               </div>
