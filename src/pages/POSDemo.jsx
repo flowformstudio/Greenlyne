@@ -711,16 +711,16 @@ const BASIC_SECTIONS = [
 
 const SCREEN_META = [
   // Section 0 — Personal Info
-  { section: 0, heading: "What's your name?",               helper: 'Verify your legal name and date of birth.' },
-  { section: 0, heading: 'How can we reach you?',                helper: "We'll only contact you about your application." },
+  { section: 0, heading: "What's your name?",              helper: 'Legal name and date of birth.' },
+  { section: 0, heading: 'How can we reach you?',          helper: 'Only used for your application.' },
   // Section 1 — Property Info
-  { section: 1, heading: 'Where is the property?',               helper: "The home you're using as collateral." },
-  { section: 1, heading: 'Tell us about the property',           helper: 'Select the options that describe your home.' },
-  { section: 1, heading: 'Property value & mortgage',            helper: 'Estimates are fine — we verify during underwriting.' },
+  { section: 1, heading: 'Where is the property?',         helper: 'The home used as collateral.' },
+  { section: 1, heading: 'Tell us about the property',     helper: 'A few quick details about your home.' },
+  { section: 1, heading: 'Property value & mortgage',      helper: 'Estimates are fine — verified later.' },
   // Section 2 — Income & Loan
-  { section: 2, heading: "What's your annual income?",      helper: 'Include all income sources, pre-tax.' },
-  { section: 2, heading: 'How much would you like to borrow?',   helper: 'Adjust to match your solar project.' },
-  { section: 2, heading: "What's the primary purpose?",     helper: 'This helps us match you with the right terms.' },
+  { section: 2, heading: "What's your annual income?",     helper: 'Include all sources, pre-tax.' },
+  { section: 2, heading: 'How much would you like to borrow?', helper: 'Match it to your solar project.' },
+  { section: 2, heading: "What's the primary purpose?",    helper: 'Helps us match you with the right terms.' },
 ]
 
 const PURPOSE_OPTIONS = [
@@ -944,10 +944,10 @@ function ScreenBasicInfo({ step1, dispatch }) {
       <div key={`${screenIdx}-${animDir}`} className={animDir === 'fwd' ? 'anim-fwd' : 'anim-back'} style={{ marginBottom: 36 }}>
 
         {/* Heading + helper */}
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
           {meta.heading}
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
           {meta.helper}
         </p>
 
@@ -2425,11 +2425,11 @@ function ScreenMoreInfo({ step3, dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 3 of 7 · Provide More Info
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          Almost done — just a few final details.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          Almost done — just a few final details
         </h1>
         <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-          Your offer is locked in. We need this to submit your application.
+          Your offer is locked in — we need this to submit.
         </p>
       </div>
 
@@ -2756,10 +2756,10 @@ function ScreenLinkIncome({ dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 4 of 7 · Link Account to Verify Income Sources
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          Link Account to Verify Income Sources
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          Link your account to verify income
         </h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
           Powered by Plaid · Secure · Read-only access
         </p>
       </div>
@@ -3014,10 +3014,10 @@ function ScreenLinkIncome({ dispatch }) {
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
           Step 4 of 7 · Link Account to Verify Income Sources
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          Link Account to Verify Income Sources
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          Link your account to verify income
         </h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Powered by Plaid · Secure · Read-only access</p>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Powered by Plaid · Secure · Read-only access</p>
       </div>
 
       {/* Success banner */}
@@ -3100,8 +3100,8 @@ function ScreenVerifyIdentity({ dispatch }) {
     <div className="space-y-4">
       <div className="mb-6">
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 5 of 7</div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your identity</h1>
-        <p className="text-sm text-gray-500">Required by federal law. Your information is encrypted and never shared.</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Verify your identity</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Required by federal law. Encrypted and never shared.</p>
       </div>
 
       {/* ID Upload */}
@@ -3213,9 +3213,9 @@ function ScreenOfferLoading({ dispatch, sim }) {
           </svg>
         </div>
 
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#001660', marginBottom: 8 }}>Analyzing your application</h2>
-        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 28, lineHeight: 1.6 }}>
-          This usually takes 30–45 seconds. We're running automated checks in the background.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Analyzing your application</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 28px', lineHeight: 1.55 }}>
+          This usually takes 30–45 seconds.
         </p>
 
         {/* Progress bar */}
@@ -3260,9 +3260,9 @@ function ScreenIdentityChallenge({ dispatch }) {
           </svg>
         </div>
 
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#001660', marginBottom: 8 }}>Identity verification required</h2>
-        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.65 }}>
-          We weren't able to fully verify your identity automatically. This happens occasionally and is nothing to worry about — we just need a bit more from you.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Identity verification required</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+          We need a bit more from you to finish verifying.
         </p>
 
         <div style={{ background: '#FFFBEB', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 16, padding: 20, textAlign: 'left', marginBottom: 24 }}>
@@ -3305,9 +3305,9 @@ function ScreenAddressMismatch({ dispatch }) {
           </svg>
         </div>
 
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#001660', marginBottom: 8 }}>We couldn't match your address</h2>
-        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.65 }}>
-          The property address you entered didn't match our records exactly. Please review and correct it so we can continue processing your application.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>We couldn't match your address</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+          Review and correct the property address to continue.
         </p>
 
         <div style={{ background: '#FEF2F2', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 16, padding: 20, textAlign: 'left', marginBottom: 24 }}>
@@ -3353,8 +3353,8 @@ function ScreenPropertyVerifyWait({ dispatch }) {
           style={{ background: 'rgba(37,75,206,0.08)', border: '2px solid rgba(37,75,206,0.15)' }}>
           <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
         </div>
-        <h2 className="text-xl font-bold mb-2" style={{ color: '#001660' }}>Verifying your property</h2>
-        <p className="text-sm text-gray-500 mb-6">This automated check usually completes in a few seconds.</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Verifying your property</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>Usually takes a few seconds.</p>
         <div className="h-2 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(0,22,96,0.07)' }}>
           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: '#254BCE' }} />
         </div>
@@ -3446,11 +3446,11 @@ function ScreenOpsReviewWait() {
           </svg>
         </div>
 
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', marginBottom: 10, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          We're doing a quick manual review.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          We're doing a quick manual review
         </h1>
-        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.65 }}>
-          Nothing has gone wrong. A member of our operations team needs to confirm one detail before you can sign. This is routine — your rate, terms, and approval are not affected.
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+          Routine — your rate, terms, and approval aren't affected.
         </p>
 
         {/* What they're checking */}
@@ -3516,10 +3516,10 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
           <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46' }}>Conditionally approved</span>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          One last look before you sign.
+          One last look before you sign
         </h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
-          Your offer is locked in. Review the numbers, then we'll walk you through your documents.
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          Review the numbers, then we'll walk you through your documents.
         </p>
       </div>
 
@@ -3653,9 +3653,9 @@ function ScreenDeclined({ dispatch }) {
           style={{ background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.15)' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
-        <h2 className="text-2xl font-bold mb-2" style={{ color: '#001660' }}>We're unable to approve at this time</h2>
-        <p className="text-sm text-gray-500 mb-6">
-          Based on our assessment, we couldn't approve your HELOC application today. This is not a reflection of your overall creditworthiness.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>We're unable to approve at this time</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+          Not a reflection of your overall creditworthiness.
         </p>
         <Card className="text-left">
           <CardHeader title="What you can do next" />
@@ -3835,12 +3835,12 @@ function ScreenDocsPreparing({ dispatch }) {
             Step 6 of 7
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-            Sign your documents.
+            Sign your documents
           </h1>
-          <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
             {allSigned
-              ? "All documents signed. You're ready to schedule your notary."
-              : 'Open each document, read it, and sign. The Deed of Trust is handled separately with your notary in Step 7.'}
+              ? "All signed — ready to schedule your notary."
+              : 'Open each document, read, and sign.'}
           </p>
         </div>
 
@@ -3945,10 +3945,10 @@ function ScreenReadyToSchedule({ dispatch }) {
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Step 7 of 7</div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-            One last step: notarize the Deed of Trust.
+            Notarize the Deed of Trust
           </h1>
-          <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
-            Choose how you'd like to meet with a notary. Both options are free and take 20–45 minutes.
+          <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+            Pick how you want to meet your notary — both options are free.
           </p>
         </div>
 
@@ -4000,8 +4000,8 @@ function ScreenReadyToSchedule({ dispatch }) {
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 7 of 7 · In-person notary</div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em' }}>Schedule your appointment.</h1>
-          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Pick a day, time, and location. Your notary will arrive within 15 minutes of the scheduled time.</p>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Schedule your appointment</h1>
+          <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Pick a day, time, and location.</p>
         </div>
 
         {/* Day picker */}
@@ -4084,8 +4084,8 @@ function ScreenReadyToSchedule({ dispatch }) {
       </div>
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 7 of 7 · eNotary</div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em' }}>Before we connect you with a notary.</h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>Make sure you're ready. The session takes 20–30 minutes and can't be paused once it starts.</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Before we connect you with a notary</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>20–30 minutes and can't be paused once it starts.</p>
       </div>
 
       {/* Checklist */}
@@ -4136,8 +4136,8 @@ function ScreenNotaryScheduled({ dispatch }) {
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46' }}>Appointment confirmed</span>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Your notary is booked.</h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>We'll text and email you a reminder 24 hours before. Have your photo ID ready.</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Your notary is booked</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>We'll remind you 24 hours before. Have your photo ID ready.</p>
       </div>
 
       {/* Appointment card */}
@@ -4188,8 +4188,8 @@ function ScreenSigningInProgress({ dispatch }) {
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 3px rgba(16,185,129,0.25)' }} />
           <div style={{ fontSize: 11, fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Session in progress</div>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em' }}>Almost done.</h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>Your notary is guiding you through the Deed of Trust. Sign each page as instructed.</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Almost done</h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Sign each page as the notary walks you through the Deed of Trust.</p>
       </div>
 
       {/* Signing checklist */}
@@ -4234,10 +4234,10 @@ function ScreenLoanClosed({ dispatch }) {
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Step 7 of 7</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          You've signed everything.
+          You've signed everything
         </h1>
-        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
-          The Deed of Trust is on its way to the county recorder. Here's what happens over the next few days.
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          Here's what happens over the next few days.
         </p>
       </div>
 
@@ -4400,8 +4400,9 @@ export default function POSDemo() {
   const flexScreens = new Set([S.OFFER_LOADING, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT])
   const isFlexScreen = flexScreens.has(app)
 
-  // Show the persistent offer sidebar on all screens except OFFER_SELECT (has its own live panel)
-  const showOfferSidebar = app !== S.OFFER_SELECT && app !== S.BASIC_INFO && app !== S.OFFER_LOADING && app !== S.IDENTITY_CHALLENGE && app !== S.ADDRESS_MISMATCH
+  // Loan-plan sidebar is only relevant on Step 2 (OFFER_SELECT), which renders its own panel.
+  // On every other step the sidebar would just repeat info the user already confirmed — hide it.
+  const showOfferSidebar = false
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F8F9FC' }}>
