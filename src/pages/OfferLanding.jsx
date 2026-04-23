@@ -156,7 +156,7 @@ function RoofScene({ activePanels, sunProgress, onTogglePanel }) {
       </defs>
 
       <g clipPath="url(#solarFrameClip)">
-        <image href="/solar-map.jpg" x="0" y="0" width={W} height={H} preserveAspectRatio="xMidYMid slice" />
+        <image href="/solar-roof-new.png" x="0" y="0" width={W} height={H} preserveAspectRatio="xMidYMid slice" />
 
         <g>
           <g opacity={0.25}>
