@@ -794,16 +794,45 @@ function DollarInput({ value, onChange, placeholder }) {
   )
 }
 
+// Streamline icon: House-Home-Building-1 (streamlinehq.com/icons/house-3--9632)
+function IconHouse({ size = 28, color = 'currentColor', strokeWidth = 1 }) {
+  return (
+    <svg viewBox="-0.5 -0.5 18 18" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M1.59375 6.658333333333334v8.747916666666667h3.1875v-4.25a1.0625 1.0625 0 0 1 1.0625 -1.0625h1.0625a1.0625 1.0625 0 0 1 1.0625 1.0625v4.25h7.4375V6.658333333333334" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M16.46875 7.4375 9.128291666666668 2.0541666666666667a1.0625 1.0625 0 0 0 -1.2565833333333334 0L0.53125 7.4375" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m11.15625 3.541666666666667 0 -1.9479166666666667 3.1875 0 0 4.285416666666666" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M10.09375 10.09375h3.1875v3.1875h-3.1875z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m0.53125 15.40625 15.9375 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Real-Estate-Action-House-Dollar
+function IconInvestment({ size = 28, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M11 26.333333333333332h-4a2 2 0 0 1 -2 -2v-10" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m1 12.333333333333332 11.708 -9.906666666666666a2 2 0 0 1 2.5839999999999996 0l9.705333333333332 8.212" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m21 2.333333333333333 4 0 0 4" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M25 18.333333333333332h-2.7106666666666666a1.7893333333333334 1.7893333333333334 0 0 0 -0.6666666666666666 3.4493333333333336l2.752 1.1013333333333333a1.7893333333333334 1.7893333333333334 0 0 1 -0.6666666666666666 3.4493333333333336H21" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m23 18.333333333333332 0 -1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m23 27.333333333333332 0 -1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M15 22.333333333333332a8 8 0 1 0 16 0 8 8 0 1 0 -16 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
 function PropTypeTiles({ value, onChange }) {
   const opts = [
-    { value: 'Primary residence',   icon: '🏠' },
-    { value: 'Secondary residence', icon: '🏡' },
-    { value: 'Investment property', icon: '📈' },
+    { value: 'Primary residence',   renderIcon: (c) => <IconHouse color={c} />,      fallbackEmoji: null },
+    { value: 'Secondary residence', renderIcon: null,                                 fallbackEmoji: '🏡' },
+    { value: 'Investment property', renderIcon: (c) => <IconInvestment color={c} />, fallbackEmoji: null },
   ]
   return (
     <div style={{ display: 'flex', gap: 8 }}>
       {opts.map(opt => {
         const active = value === opt.value
+        const iconColor = active ? '#254BCE' : '#001660'
         return (
           <button key={opt.value} onClick={() => onChange(opt.value)} style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
@@ -811,7 +840,9 @@ function PropTypeTiles({ value, onChange }) {
             background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
             border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
           }}>
-            <span style={{ fontSize: 26 }}>{opt.icon}</span>
+            <span style={{ fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28 }}>
+              {opt.renderIcon ? opt.renderIcon(iconColor) : opt.fallbackEmoji}
+            </span>
             <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
             <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
