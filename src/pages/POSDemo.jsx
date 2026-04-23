@@ -79,6 +79,7 @@ const SEED_STEP3 = {
 
 const initialState = {
   app: S.BASIC_INFO,
+  step1Screen: 0,
   step1: { ...SEED_STEP1 },
   step2: { creditLimit: SEED.defaultCredit, withdrawNow: SEED.defaultWithdraw, tier: 0, deferredMonths: 0, autopay: true },
   step3: { ...SEED_STEP3 },
@@ -115,6 +116,7 @@ function appReducer(state, action) {
       const updates = {}
       if (action.loan)  updates.loan  = action.loan
       if (action.step2) updates.step2 = action.step2
+      if (state.app === S.BASIC_INFO) updates.step1Screen = 0
       return { ...state, app: next, ...updates }
     }
     case 'JUMP_TO':
@@ -130,7 +132,9 @@ function appReducer(state, action) {
         [S.DOCS_PREPARING]:  S.FINAL_OFFER,
       }
       const prev = backMap[state.app]
-      return prev ? { ...state, app: prev } : state
+      if (!prev) return state
+      const step1Screen = state.app === S.OFFER_SELECT ? 7 : 0
+      return { ...state, app: prev, step1Screen }
     }
     case 'AUTO_ADVANCE': {
       if (state.app === S.OFFER_LOADING) {
@@ -1006,8 +1010,8 @@ function OwnershipTiles({ value, onChange }) {
 
 // ─── Main guided ScreenBasicInfo ──────────────────────────────────────────────
 
-function ScreenBasicInfo({ step1, dispatch }) {
-  const [screenIdx, setScreenIdx] = useState(0)
+function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
+  const [screenIdx, setScreenIdx] = useState(initialScreen)
   const [animDir,   setAnimDir]   = useState('fwd')
   const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
 
@@ -4576,7 +4580,7 @@ export default function POSDemo() {
 
   function renderScreen() {
     switch (app) {
-      case S.BASIC_INFO:           return <ScreenBasicInfo step1={step1} dispatch={dispatch} />
+      case S.BASIC_INFO:           return <ScreenBasicInfo step1={step1} dispatch={dispatch} initialScreen={state.step1Screen ?? 0} />
       case S.OFFER_LOADING:        return <ScreenOfferLoading dispatch={dispatch} sim={sim} />
       case S.OFFER_SELECT:         return <ScreenOfferSelectNew step2={step2} step1={step1} dispatch={dispatch} savedConfig={state.step2Config} />
       case S.IDENTITY_CHALLENGE:   return <ScreenIdentityChallenge dispatch={dispatch} />
