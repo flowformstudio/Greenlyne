@@ -228,8 +228,13 @@ function LoanCard({ variant, calc, rate, creditLim, draw, modsCount = 0, feature
         </div>
 
         {featured && (
-          <div style={{ marginTop: 'auto', paddingTop: 14, fontSize: 12, color: T.muted, lineHeight: 1.5 }}>
-            This is the loan you were pre-qualified for. Customize any option below — a side-by-side comparison will appear once you make changes.
+          <div style={{ marginTop: 'auto', paddingTop: 14 }}>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.5 }}>
+              This is the loan you were pre-qualified for. Customize any option below — a side-by-side comparison will appear once you make changes.
+            </div>
+            <div style={{ fontSize: 10, color: T.faint, marginTop: 8 }}>
+              Financed by Grand Bank · NMLS #2611
+            </div>
           </div>
         )}
       </div>
@@ -327,8 +332,8 @@ function DecCard({ step, title, summary, onEdit, onClose, editing, locked, modif
     return (
       <div style={{ background: T.white, borderRadius: 12, border: `1px solid ${T.border}`, opacity: 0.55 }}>
         <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 22, height: 22, borderRadius: '50%', background: T.line, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: T.faint }}>{step}</span>
+          <div style={{ width: 29, height: 29, borderRadius: '50%', background: T.line, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: T.faint }}>{step}</span>
           </div>
           <span style={{ fontSize: 14, fontWeight: 600, color: T.faint }}>{title}</span>
         </div>
@@ -363,18 +368,18 @@ function DecCard({ step, title, summary, onEdit, onClose, editing, locked, modif
 
       <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12, paddingLeft: showModified ? 22 : 18 }}>
         <div style={{
-          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+          width: 29, height: 29, borderRadius: '50%', flexShrink: 0,
           background: isOpen || showModified ? T.blue : T.line,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'background 0.2s',
           boxShadow: showModified && !isOpen ? '0 0 0 3px rgba(37,75,206,0.14)' : 'none',
         }}>
           {showModified && !isOpen ? (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           ) : (
-            <span style={{ fontSize: 11, fontWeight: 700, color: isOpen ? T.white : T.muted }}>{step}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: isOpen ? T.white : T.muted }}>{step}</span>
           )}
         </div>
 
@@ -555,12 +560,6 @@ function PaymentTimeline({ calc, calcBase, ioYrsId, zeroStart, tierId, reduction
         </div>
       </div>
 
-      {/* Lender footer */}
-      <div style={{ padding: '12px 22px 14px', borderTop: `1px solid ${T.line}`, background: T.panel }}>
-        <div style={{ fontSize: 10, color: T.faint, textAlign: 'center', lineHeight: 1.5 }}>
-          Financed by Grand Bank · NMLS #2611
-        </div>
-      </div>
     </div>
   )
 }
@@ -1078,9 +1077,6 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           Congratulations, {firstName}! You're approved to borrow up to{' '}
           <span style={{ color: T.green, ...NUM }}>{formatCurrencyFull(programCap)}</span>
         </h1>
-        <p style={{ fontSize: 15, color: T.muted, margin: '10px 0 0', lineHeight: 1.55 }}>
-          We've pre-configured a loan for you. Customize any option below
-        </p>
       </div>
 
       <ComparisonPanel
