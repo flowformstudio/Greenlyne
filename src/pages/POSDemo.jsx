@@ -3844,17 +3844,6 @@ function ScreenDocsPreparing({ dispatch }) {
           </p>
         </div>
 
-        {/* Progress bar */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>{signedSet.size} of {SIGN_DOCS.length} signed</span>
-            {allSigned && <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981' }}>All done</span>}
-          </div>
-          <div style={{ height: 4, borderRadius: 99, background: 'rgba(0,22,96,0.08)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 99, background: allSigned ? '#10B981' : '#254BCE', width: `${(signedSet.size / SIGN_DOCS.length) * 100}%`, transition: 'width 0.35s ease, background 0.3s' }} />
-          </div>
-        </div>
-
         {/* Document list */}
         <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden', marginBottom: 20 }}>
           {SIGN_DOCS.map((doc, i) => {
