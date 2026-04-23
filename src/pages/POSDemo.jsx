@@ -723,12 +723,81 @@ const SCREEN_META = [
   { section: 2, heading: "What's the primary purpose?",    helper: 'Helps us match you with the right terms.' },
 ]
 
+// Streamline icon: Real-Estate-Action-House-Wrench
+function IconHomeImprovement({ size = 34, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M27 14.333333333333332v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2v-14" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m1 12.333333333333332 13.817333333333332 -10.133333333333333a2 2 0 0 1 2.365333333333333 0l13.817333333333332 10.133333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m25 2.333333333333333 4 0 0 4" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M18 26.333333333333332v-3.3679999999999994a5.917333333333333 5.917333333333333 0 0 0 3.2586666666666666 -8.466666666666665s-2.7306666666666666 2.7893333333333334 -3.02 3.16a1.8306666666666667 1.8306666666666667 0 0 1 -2.738666666666666 0.17333333333333334h0a1.8306666666666667 1.8306666666666667 0 0 1 0.17333333333333334 -2.737333333333333c0.3706666666666667 -0.29066666666666663 3.16 -3.02 3.16 -3.02a5.8133333333333335 5.8133333333333335 0 0 0 -5.057333333333333 -0.304 5.9719999999999995 5.9719999999999995 0 0 0 0.224 11.2v3.3626666666666662" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Monetization-User-Coins
+function IconDebtConsolidation({ size = 34, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M4.605333333333333 9.466666666666665a2.966666666666667 2.966666666666667 0 0 0 2.4786666666666664 1.1666666666666665c1.5173333333333332 0 2.749333333333333 -0.9239999999999999 2.749333333333333 -2.064s-1.232 -2.0666666666666664 -2.749333333333333 -2.0666666666666664S4.333333333333333 5.578666666666667 4.333333333333333 4.438666666666666s1.232 -2.0626666666666664 2.7506666666666666 -2.0626666666666664a2.961333333333333 2.961333333333333 0 0 1 2.476 1.1666666666666665" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m7.084 10.628 0 1.3733333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m7.084 1.0013333333333332 0 1.3746666666666665" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M22.711999999999996 9.458666666666666a2.961333333333333 2.961333333333333 0 0 0 2.477333333333333 1.1666666666666665c1.5186666666666666 0 2.7506666666666666 -0.9239999999999999 2.7506666666666666 -2.0626666666666664s-1.232 -2.0626666666666664 -2.7506666666666666 -2.0626666666666664 -2.749333333333333 -0.9239999999999999 -2.749333333333333 -2.064 1.232 -2.0626666666666664 2.749333333333333 -2.0626666666666664a2.9653333333333336 2.9653333333333336 0 0 1 2.477333333333333 1.1666666666666665" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m25.18933333333333 10.625333333333334 0 1.3746666666666665" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m25.18933333333333 1 0 1.3733333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m14.072 6 4 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M24.09466666666667 31a8.933333333333334 8.933333333333334 0 0 0 -16.046666666666667 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M11.333333333333332 15.708a9.142666666666667 9.142666666666667 0 0 0 10.189333333333334 2.048" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M10.572 18.5a5.5 5.5 0 1 0 11 0 5.5 5.5 0 1 0 -11 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Project-Home-Shopping
+function IconMajorPurchase({ size = 34, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M6 6.709333333333333V16A2 2 0 0 0 8 18h8a2 2 0 0 0 2 -2V6.709333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M22 10.309333333333333 13.333333333333332 2.513333333333333a2 2 0 0 0 -2.6666666666666665 0L2 10.309333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m20 8.509333333333332 0 -5.509333333333332" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M1 22h21.27733333333333a2 2 0 0 0 1.9786666666666666 -1.7026666666666666l2.488 -16.594666666666665A2 2 0 0 1 28.72266666666667 2h2.277333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M3 27.5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0 -5 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M17 27.5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0 -5 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Wedding-Money-Piggy
+function IconEmergencyFunds({ size = 34, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }} fill="none">
+      <path stroke={color} strokeLinecap="round" strokeLinejoin="round" d="m24.142666666666663 13.000026666666665 -5.843999999999999 -6.096c-0.5121333333333333 -0.5139066666666666 -0.8501333333333332 -1.1755466666666665 -0.9663999999999999 -1.8917199999999998 -0.11626666666666666 -0.7161733333333333 -0.004933333333333333 -1.45076 0.3184 -2.1002799999999997v0c0.24493333333333334 -0.4900533333333333 0.6029333333333333 -0.9148666666666667 1.0442666666666667 -1.2394399999999999 0.44133333333333336 -0.3245733333333333 0.9535999999999999 -0.5396 1.4944 -0.6273653333333333 0.5408 -0.08776666666666666 1.0946666666666665 -0.045756 1.6159999999999999 0.12256666666666667 0.5213333333333333 0.16831866666666664 0.9953333333333334 0.4581453333333333 1.3826666666666665 0.845572l0.9546666666666666 0.9546666666666666 0.9546666666666666 -0.9546666666666666c0.3873333333333333 -0.38742666666666664 0.8613333333333333 -0.6772533333333333 1.3826666666666665 -0.845572 0.5213333333333333 -0.16832266666666665 1.0752 -0.21033333333333332 1.6159999999999999 -0.12256666666666667 0.5408 0.08776533333333332 1.0530666666666666 0.30279199999999995 1.4944 0.6273653333333333 0.44133333333333336 0.3245733333333333 0.7993333333333333 0.7493866666666666 1.0442666666666667 1.2394399999999999v0c0.32453333333333334 0.6492399999999999 0.43653333333333333 1.3841199999999998 0.32026666666666664 2.100573333333333 -0.11626666666666666 0.7164533333333334 -0.4550666666666666 1.3781733333333333 -0.9682666666666666 1.8914266666666668l-5.843999999999999 6.096Z" strokeWidth={strokeWidth}/>
+      <path stroke={color} strokeLinecap="round" strokeLinejoin="round" d="M8.014666666666667 26.938666666666666 7 31" strokeWidth={strokeWidth}/>
+      <path stroke={color} strokeLinecap="round" strokeLinejoin="round" d="m21.986666666666665 26.943999999999996 1.0133333333333332 4.055999999999999" strokeWidth={strokeWidth}/>
+      <path stroke={color} strokeLinecap="round" strokeLinejoin="round" d="M12.025333333333332 7.354666666666667 9.405333333333333 5.172c-0.13774666666666666 -0.11524000000000001 -0.3040133333333333 -0.19119999999999998 -0.48130666666666666 -0.21989333333333333 -0.17728 -0.02868 -0.35902666666666666 -0.009026666666666665 -0.52608 0.05689333333333333s-0.31323999999999996 0.17566666666666667 -0.42316 0.3176933333333333c-0.10993333333333333 0.14201333333333332 -0.17952 0.3110533333333333 -0.20145333333333332 0.4893066666666666l-0.46799999999999997 3.7479999999999998C5.4924 10.93348 4.150773333333333 12.833386666666666 3.466666666666667 15H1v8h3.3200000000000003c1.0893333333333333 1.8562666666666667 2.65216 3.3899999999999997 4.528653333333333 4.444133333333333 1.87648 1.0542666666666665 3.999293333333333 1.5912 6.151346666666666 1.5558666666666667 6.628 0 12 -4.925333333333333 12 -11 0.00039999999999999996 -0.33399999999999996 -0.016133333333333333 -0.6677333333333333 -0.049333333333333326 -1" strokeWidth={strokeWidth}/>
+      <path stroke={color} d="M10 14.5c-0.27614666666666665 0 -0.5 -0.22386666666666666 -0.5 -0.5s0.22385333333333335 -0.5 0.5 -0.5" strokeWidth={strokeWidth}/>
+      <path stroke={color} d="M10 14.5c0.27614666666666665 0 0.5 -0.22386666666666666 0.5 -0.5s-0.22385333333333335 -0.5 -0.5 -0.5" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Earth-1
+function IconOther({ size = 34, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M1 16a15 15 0 1 0 30 0 15 15 0 1 0 -30 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m6.666666666666666 27.733333333333334 1.3333333333333333 -6.7333333333333325h1.44a1.9733333333333332 1.9733333333333332 0 0 0 1.5733333333333333 -0.7733333333333332 1.92 1.92 0 0 0 0.36 -1.7066666666666666l-1 -4a1.9866666666666666 1.9866666666666666 0 0 0 -1.9333333333333331 -1.5199999999999998H1.3333333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M28 7h-5.4399999999999995a1.9866666666666666 1.9866666666666666 0 0 0 -1.9333333333333331 1.5199999999999998l-1 4a1.92 1.92 0 0 0 0.37333333333333335 1.7066666666666666 1.9733333333333332 1.9733333333333332 0 0 0 1.5733333333333333 0.7733333333333332h2.1066666666666665l1.04 6.333333333333333A2 2 0 0 0 26.666666666666664 23h2.6666666666666665" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
 const PURPOSE_OPTIONS = [
-  { value: 'Home improvement',    icon: '🔨', desc: 'Renovations, additions, or upgrades' },
-  { value: 'Debt consolidation',  icon: '🔄', desc: 'Combine debts into one payment' },
-  { value: 'Major purchase',      icon: '🛒', desc: 'Large one-time expense' },
-  { value: 'Emergency funds',     icon: '🛡️', desc: 'Safety net or unexpected costs' },
-  { value: 'Other',               icon: '✦',  desc: 'Something else entirely' },
+  { value: 'Home improvement',    renderIcon: (c) => <IconHomeImprovement color={c} />,   fallbackEmoji: null, desc: 'Renovations, additions, or upgrades' },
+  { value: 'Debt consolidation',  renderIcon: (c) => <IconDebtConsolidation color={c} />, fallbackEmoji: null, desc: 'Combine debts into one payment' },
+  { value: 'Major purchase',      renderIcon: (c) => <IconMajorPurchase color={c} />,     fallbackEmoji: null, desc: 'Large one-time expense' },
+  { value: 'Emergency funds',     renderIcon: (c) => <IconEmergencyFunds color={c} />,    fallbackEmoji: null, desc: 'Safety net or unexpected costs' },
+  { value: 'Other',               renderIcon: (c) => <IconOther color={c} />,             fallbackEmoji: null, desc: 'Something else entirely' },
 ]
 
 // SubStepProgress removed — replaced by inline progress in new ScreenBasicInfo
@@ -794,21 +863,43 @@ function DollarInput({ value, onChange, placeholder }) {
   )
 }
 
-// Streamline icon: House-Home-Building-1 (streamlinehq.com/icons/house-3--9632)
-function IconHouse({ size = 28, color = 'currentColor', strokeWidth = 1 }) {
+// Streamline icon: Outdoors-Shelter-Home
+function IconHouse({ size = 35, color = 'currentColor', strokeWidth = 1.5 }) {
   return (
-    <svg viewBox="-0.5 -0.5 18 18" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
-      <path d="M1.59375 6.658333333333334v8.747916666666667h3.1875v-4.25a1.0625 1.0625 0 0 1 1.0625 -1.0625h1.0625a1.0625 1.0625 0 0 1 1.0625 1.0625v4.25h7.4375V6.658333333333334" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
-      <path d="M16.46875 7.4375 9.128291666666668 2.0541666666666667a1.0625 1.0625 0 0 0 -1.2565833333333334 0L0.53125 7.4375" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
-      <path d="m11.15625 3.541666666666667 0 -1.9479166666666667 3.1875 0 0 4.285416666666666" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
-      <path d="M10.09375 10.09375h3.1875v3.1875h-3.1875z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
-      <path d="m0.53125 15.40625 15.9375 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M5 15.799999999999999v13.2a2 2 0 0 0 2 2h6V24a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v7h6a2 2 0 0 0 2 -2v-13.2" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m1 19 15 -12 15 12" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m23 12.599999999999998 0 -11.599999999999998" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M23 1h8v6h-8z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Building-House
+function IconSecondaryHouse({ size = 35, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="m19 23 0 8 -8 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m15 27 0 4" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m11 23.8 0 7.2 -8 0 0 -6" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m10 25 5 -6 -9 0 -5 6 9 0z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m21 25 -6 -6" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m15.956 9 7.0440000000000005 -8 -9 0 -7.0440000000000005 8 9 0z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m31 9 -8 -8" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m17 7.814666666666666 0 7.185333333333333" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m29 7 0 18 -4 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m9 15 0 -6" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m21 10 0 1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m25 10 0 1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m21 15 0 1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m25 15 0 1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m25 20 0 1" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
     </svg>
   )
 }
 
 // Streamline icon: Real-Estate-Action-House-Dollar
-function IconInvestment({ size = 28, color = 'currentColor', strokeWidth = 1.5 }) {
+function IconInvestment({ size = 35, color = 'currentColor', strokeWidth = 1.5 }) {
   return (
     <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
       <path d="M11 26.333333333333332h-4a2 2 0 0 1 -2 -2v-10" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
@@ -824,9 +915,9 @@ function IconInvestment({ size = 28, color = 'currentColor', strokeWidth = 1.5 }
 
 function PropTypeTiles({ value, onChange }) {
   const opts = [
-    { value: 'Primary residence',   renderIcon: (c) => <IconHouse color={c} />,      fallbackEmoji: null },
-    { value: 'Secondary residence', renderIcon: null,                                 fallbackEmoji: '🏡' },
-    { value: 'Investment property', renderIcon: (c) => <IconInvestment color={c} />, fallbackEmoji: null },
+    { value: 'Primary residence',   renderIcon: (c) => <IconHouse color={c} />,          fallbackEmoji: null },
+    { value: 'Secondary residence', renderIcon: (c) => <IconSecondaryHouse color={c} />, fallbackEmoji: null },
+    { value: 'Investment property', renderIcon: (c) => <IconInvestment color={c} />,     fallbackEmoji: null },
   ]
   return (
     <div style={{ display: 'flex', gap: 8 }}>
@@ -835,18 +926,15 @@ function PropTypeTiles({ value, onChange }) {
         const iconColor = active ? '#254BCE' : '#001660'
         return (
           <button key={opt.value} onClick={() => onChange(opt.value)} style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            padding: '16px 8px', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+            padding: '28px 16px', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
             background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
             border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
           }}>
-            <span style={{ fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 28 }}>
+            <span style={{ fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 35 }}>
               {opt.renderIcon ? opt.renderIcon(iconColor) : opt.fallbackEmoji}
             </span>
             <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
-            <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
-            </div>
           </button>
         )
       })}
@@ -854,28 +942,63 @@ function PropTypeTiles({ value, onChange }) {
   )
 }
 
+// Streamline icon: Single-Neutral
+function IconSingleOwner({ size = 35, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M12 5a4 4 0 1 0 8 0 4 4 0 1 0 -8 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M23 18a7 7 0 0 0 -14 0v3H12l1 10h6l1 -10h3Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Multiple-Neutral-1
+function IconJointOwner({ size = 35, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="M4 5a4 4 0 1 0 8 0 4 4 0 1 0 -8 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M15 18a7 7 0 0 0 -14 0v3H4l1 10h6l1 -10h3Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M20 5a4 4 0 1 0 8 0 4 4 0 1 0 -8 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M18 21H20l1 10h6l1 -10h3V18a7 7 0 0 0 -13 -3.6" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
+// Streamline icon: Saving-Bank
+function IconTrust({ size = 35, color = 'currentColor', strokeWidth = 1.5 }) {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" height={size} width={size} style={{ display: 'block' }}>
+      <path d="m2 31 28 0" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="M30 11h-28l12.918666666666667 -7.682666666666666a2 2 0 0 1 2.1626666666666665 0Z" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m28 15 0 12 -4 0 0 -12" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m18 15 0 12 -4 0 0 -12" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+      <path d="m8 15 0 12 -4 0 0 -12" fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth}/>
+    </svg>
+  )
+}
+
 function OwnershipTiles({ value, onChange }) {
   const opts = [
-    { value: 'Sole owner',    icon: '👤' },
-    { value: 'Joint ownership', icon: '👥' },
-    { value: 'Trust',          icon: '🏛️' },
+    { value: 'Sole owner',      renderIcon: (c) => <IconSingleOwner color={c} />, fallbackEmoji: null },
+    { value: 'Joint ownership', renderIcon: (c) => <IconJointOwner color={c} />,  fallbackEmoji: null },
+    { value: 'Trust',           renderIcon: (c) => <IconTrust color={c} />,       fallbackEmoji: null },
   ]
   return (
     <div style={{ display: 'flex', gap: 8 }}>
       {opts.map(opt => {
         const active = value === opt.value
+        const iconColor = active ? '#254BCE' : '#001660'
         return (
           <button key={opt.value} onClick={() => onChange(opt.value)} style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            padding: '16px 8px', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+            padding: '28px 16px', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
             background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
             border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
           }}>
-            <span style={{ fontSize: 26 }}>{opt.icon}</span>
+            <span style={{ fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 35 }}>
+              {opt.renderIcon ? opt.renderIcon(iconColor) : opt.fallbackEmoji}
+            </span>
             <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
-            <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
-            </div>
           </button>
         )
       })}
@@ -1173,6 +1296,7 @@ function ScreenBasicInfo({ step1, dispatch }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {PURPOSE_OPTIONS.map(opt => {
               const active = step1.purpose === opt.value
+              const iconColor = active ? '#254BCE' : '#001660'
               return (
                 <button key={opt.value} onClick={() => set('purpose', opt.value)} style={{
                   display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px',
@@ -1181,13 +1305,12 @@ function ScreenBasicInfo({ step1, dispatch }) {
                   borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                   boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
                 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: active ? 'rgba(37,75,206,0.1)' : 'rgba(0,22,96,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{opt.icon}</div>
+                  <div style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                    {opt.renderIcon ? opt.renderIcon(iconColor) : opt.fallbackEmoji}
+                  </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 17, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
                     <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{opt.desc}</div>
-                  </div>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                   </div>
                 </button>
               )
