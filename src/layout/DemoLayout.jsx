@@ -2,11 +2,9 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import AIChat from '../components/AIChat'
 
 const STEPS = [
-  { label: 'Email',          path: '/email',          subtitle: 'Westhaven Power • Your Solar Plan' },
-  { label: 'Offer',          path: '/offer',          subtitle: 'Westhaven Power • Your Solar Plan' },
-  { label: 'Pre-qualified',  path: '/pre-qualified',  subtitle: 'Westhaven Power • Your Solar Plan' },
-  { label: 'Create Account', path: '/create-account', subtitle: 'GreenLyne • Secure Application' },
-  { label: 'Application 1',  path: '/pos-demo',       subtitle: 'GreenLyne • Secure Application' },
+  { label: 'Email',       path: '/email',    subtitle: 'Westhaven Power • Your Solar Plan' },
+  { label: 'Solar Calculator', path: '/offer',    subtitle: 'Westhaven Power • Your Solar Plan' },
+  { label: 'Application', path: '/pos-demo', subtitle: 'GreenLyne • Secure Application' },
 ]
 
 export default function DemoLayout() {

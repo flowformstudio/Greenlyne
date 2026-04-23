@@ -11,7 +11,10 @@ import ScreenOfferSelectNew from '../components/ScreenOfferSelect'
 // ─── State constants ───────────────────────────────────────────────────────────
 const S = {
   BASIC_INFO:            'basic_info',
+  OFFER_LOADING:         'offer_loading',
   OFFER_SELECT:          'offer_select',
+  IDENTITY_CHALLENGE:    'identity_challenge',
+  ADDRESS_MISMATCH:      'address_mismatch',
   MORE_INFO:             'more_info',
   LINK_INCOME:           'link_income',
   VERIFY_IDENTITY:       'verify_identity',
@@ -29,46 +32,51 @@ const S = {
 }
 
 const SIDEBAR_STEPS = [
-  { n: 1, label: 'Basic Info',         states: [S.BASIC_INFO] },
-  { n: 2, label: 'Select Your Offer', states: [S.OFFER_SELECT] },
-  { n: 3, label: 'Verify & Confirm',  states: [S.MORE_INFO, S.LINK_INCOME, S.VERIFY_IDENTITY, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT] },
-  { n: 4, label: 'Final Offer',       states: [S.OPS_REVIEW_WAIT, S.FINAL_OFFER, S.DECLINED] },
-  { n: 5, label: 'Review & Sign',     states: [S.DOCS_PREPARING, S.READY_TO_SCHEDULE] },
-  { n: 6, label: 'Closing',           states: [S.NOTARY_SCHEDULED, S.SIGNING_IN_PROGRESS, S.LOAN_CLOSED] },
-  { n: 7, label: 'Funded',            states: [S.FUNDED] },
+  { n: 1, label: 'Basic Info',               states: [S.BASIC_INFO] },
+  { n: 2, label: 'Select Offer',             states: [S.OFFER_LOADING, S.OFFER_SELECT, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH] },
+  { n: 3, label: 'Provide More Info',        states: [S.MORE_INFO] },
+  { n: 4, label: 'Link Account to Verify Income Sources', states: [S.LINK_INCOME] },
+  { n: 5, label: 'Verify Identity',          states: [S.VERIFY_IDENTITY] },
+  { n: 6, label: 'Sign Documents',           states: [S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT, S.FINAL_OFFER, S.DECLINED, S.DOCS_PREPARING, S.READY_TO_SCHEDULE] },
+  { n: 7, label: 'Schedule Notary Session',  states: [S.NOTARY_SCHEDULED, S.SIGNING_IN_PROGRESS, S.LOAN_CLOSED, S.FUNDED] },
 ]
 
 const STEP_JUMP = {
   1: S.BASIC_INFO,
   2: S.OFFER_SELECT,
   3: S.MORE_INFO,
-  4: S.FINAL_OFFER,
-  5: S.DOCS_PREPARING,
-  6: S.NOTARY_SCHEDULED,
-  7: S.FUNDED,
+  4: S.LINK_INCOME,
+  5: S.VERIFY_IDENTITY,
+  6: S.DOCS_PREPARING,
+  7: S.NOTARY_SCHEDULED,
 }
 
 const SEED = { projectCost: 45000, maxCredit: 294821, minCredit: 25000, defaultCredit: 131800, defaultWithdraw: 91800 }
 
 const SEED_STEP1 = {
-  firstName: 'Alex', lastName: 'Rivera',
+  firstName: 'Alex', middleInitial: '', lastName: 'Rivera',
   dob: '03/14/1982',
   // SSN and marital status collected later in the flow (post-offer)
   phone: '(408) 555-0183', email: 'alex.rivera@email.com',
   marital: '', purpose: 'Home improvement',
   address: '4821 Oakbrook Dr', city: 'San Jose', state: 'CA', zip: '95126',
   propType: 'Primary residence', ownership: 'Joint ownership',
-  propValue: '485000', mortgageBalance: '190000',
+  propValue: '485000', mortgageBalance: '190000', forSale: false,
+  singleFamily: true, goodRoof: false,
   // Income + loan ask — collected in Step 1, needed to generate offer
   annualIncome: '124000', incomeSource: 'Employment',
   loanAmount: '120000', projectCost: '96000',
 }
 
 const SEED_STEP3 = {
+  ssn: '',
+  marital: '', purpose: 'Home improvement',
   propOccupancy: 'Primary residence', hoa: 'No', floodZone: 'No',
   employmentStatus: 'Full-time employed',
   employer: 'Horizon Tech Solutions', yearsEmployed: '6',
   annualIncome: '124000', monthlyExpenses: '3200',
+  disclosuresAccepted: false,
+  ethnicity: '', race: '', sex: '',
 }
 
 const initialState = {
@@ -78,7 +86,7 @@ const initialState = {
   step3: { ...SEED_STEP3 },
   step4: { bankLinked: false, idVerified: false },
   loan: null,
-  sim: { propertyCheck: 'ok', appraisalRequired: false, opsReview: false, notaryMethod: 'enotary' },
+  sim: { offerCheck: 'ok', propertyCheck: 'ok', appraisalRequired: false, opsReview: false, notaryMethod: 'enotary' },
   simOpen: false,
   step2Config: null,  // persists configurator choices during session; cleared on restart
 }
@@ -87,12 +95,18 @@ const initialState = {
 function appReducer(state, action) {
   switch (action.type) {
     case 'NEXT': {
+      // Verify Identity routes directly based on sim flags (no loading screen)
+      if (state.app === S.VERIFY_IDENTITY) {
+        const { propertyCheck, opsReview, appraisalRequired } = state.sim
+        if (propertyCheck === 'decline') return { ...state, app: S.DECLINED }
+        if (propertyCheck === 'bpo' && appraisalRequired) return { ...state, app: S.APPRAISAL_WAIT }
+        return { ...state, app: opsReview ? S.OPS_REVIEW_WAIT : S.FINAL_OFFER }
+      }
       const nextMap = {
-        [S.BASIC_INFO]:           S.OFFER_SELECT,
+        [S.BASIC_INFO]:           S.OFFER_LOADING,
         [S.OFFER_SELECT]:         S.MORE_INFO,
         [S.MORE_INFO]:            S.LINK_INCOME,
         [S.LINK_INCOME]:          S.VERIFY_IDENTITY,
-        [S.VERIFY_IDENTITY]:      S.PROPERTY_VERIFY_WAIT,
         [S.DOCS_PREPARING]:       S.READY_TO_SCHEDULE,
         [S.READY_TO_SCHEDULE]:    S.NOTARY_SCHEDULED,
         [S.NOTARY_SCHEDULED]:     S.SIGNING_IN_PROGRESS,
@@ -109,8 +123,10 @@ function appReducer(state, action) {
       return { ...state, app: action.state }
     case 'BACK': {
       const backMap = {
-        [S.OFFER_SELECT]:    S.BASIC_INFO,
-        [S.MORE_INFO]:       S.OFFER_SELECT,
+        [S.OFFER_SELECT]:         S.BASIC_INFO,
+        [S.IDENTITY_CHALLENGE]:   S.BASIC_INFO,
+        [S.ADDRESS_MISMATCH]:     S.BASIC_INFO,
+        [S.MORE_INFO]:            S.OFFER_SELECT,
         [S.LINK_INCOME]:     S.MORE_INFO,
         [S.VERIFY_IDENTITY]: S.LINK_INCOME,
         [S.DOCS_PREPARING]:  S.FINAL_OFFER,
@@ -119,6 +135,12 @@ function appReducer(state, action) {
       return prev ? { ...state, app: prev } : state
     }
     case 'AUTO_ADVANCE': {
+      if (state.app === S.OFFER_LOADING) {
+        const { offerCheck } = state.sim
+        if (offerCheck === 'identity_challenge') return { ...state, app: S.IDENTITY_CHALLENGE }
+        if (offerCheck === 'address_mismatch')   return { ...state, app: S.ADDRESS_MISMATCH }
+        return { ...state, app: S.OFFER_SELECT }
+      }
       if (state.app === S.PROPERTY_VERIFY_WAIT) {
         const { propertyCheck, opsReview, appraisalRequired } = state.sim
         if (propertyCheck === 'decline') return { ...state, app: S.DECLINED }
@@ -352,9 +374,6 @@ function StepSidebar({ appState, dispatch }) {
                     style={{ fontWeight: active ? 700 : 500, color: active ? '#001660' : done ? '#6B7280' : 'rgba(0,22,96,0.3)' }}>
                     {s.label}
                   </div>
-                  {done   && <div className="text-[12px] text-emerald-600 mt-0.5">Completed</div>}
-                  {active && <div className="text-[12px] mt-0.5" style={{ color: '#254BCE' }}>In progress</div>}
-                  {future && <div className="text-[12px] text-gray-300 mt-0.5">Upcoming</div>}
                 </div>
               </div>
               {i < SIDEBAR_STEPS.length - 1 && (
@@ -396,6 +415,22 @@ function SimPanel({ sim, appState, dispatch }) {
       </div>
 
       <div className="px-4 py-3 space-y-3">
+        {/* Pre-offer check outcome */}
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Pre-offer check outcome</div>
+          <div className="grid grid-cols-3 gap-1">
+            {[{v:'ok',l:'Happy path'},{v:'identity_challenge',l:'ID challenge'},{v:'address_mismatch',l:'Addr mismatch'}].map(o => (
+              <button key={o.v} onClick={() => dispatch({ type: 'SET_SIM', key: 'offerCheck', value: o.v })}
+                className="py-1.5 text-[11px] font-semibold rounded-lg border transition-all"
+                style={{ borderColor: sim.offerCheck === o.v ? '#254BCE' : 'rgba(0,22,96,0.12)',
+                  background: sim.offerCheck === o.v ? 'rgba(37,75,206,0.08)' : '#fff',
+                  color: sim.offerCheck === o.v ? '#254BCE' : 'rgba(0,22,96,0.5)' }}>
+                {o.l}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Property check outcome */}
         <div>
           <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Property verification outcome</div>
@@ -666,15 +701,26 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen: Basic Info (Step 1) — 4 focused sub-steps
+// Screen: Basic Info (Step 1) — Guided progressive disclosure
 // ─────────────────────────────────────────────────────────────────────────────
-const BASIC_SUB_STEPS = [
-  { id: 'identity',  label: 'Your info' },
-  { id: 'contact',   label: 'Contact' },
-  { id: 'purpose',   label: 'Purpose' },
-  { id: 'address',   label: 'Property Address' },
-  { id: 'ownership', label: 'Property Details' },
-  { id: 'income',    label: 'Income & Loan' },
+const BASIC_SECTIONS = [
+  { label: 'Personal Info',  screens: [0, 1] },
+  { label: 'Property Info',  screens: [2, 3, 4] },
+  { label: 'Income & Loan',  screens: [5, 6, 7] },
+]
+
+const SCREEN_META = [
+  // Section 0 — Personal Info
+  { section: 0, heading: "What's your name?",               helper: 'Verify your legal name and date of birth.' },
+  { section: 0, heading: 'How can we reach you?',                helper: "We'll only contact you about your application." },
+  // Section 1 — Property Info
+  { section: 1, heading: 'Where is the property?',               helper: "The home you're using as collateral." },
+  { section: 1, heading: 'Tell us about the property',           helper: 'Select the options that describe your home.' },
+  { section: 1, heading: 'Property value & mortgage',            helper: 'Estimates are fine — we verify during underwriting.' },
+  // Section 2 — Income & Loan
+  { section: 2, heading: "What's your annual income?",      helper: 'Include all income sources, pre-tax.' },
+  { section: 2, heading: 'How much would you like to borrow?',   helper: 'Adjust to match your solar project.' },
+  { section: 2, heading: "What's the primary purpose?",     helper: 'This helps us match you with the right terms.' },
 ]
 
 const PURPOSE_OPTIONS = [
@@ -685,22 +731,7 @@ const PURPOSE_OPTIONS = [
   { value: 'Other',               icon: '✦',  desc: 'Something else entirely' },
 ]
 
-function SubStepProgress({ current, editing = false }) {
-  const total = BASIC_SUB_STEPS.length
-  const label = BASIC_SUB_STEPS[current]?.label ?? ''
-
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontSize: 17, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
-        <span style={{ fontSize: 16, color: '#9CA3AF' }}>
-          {editing ? `Step ${current + 1} of ${total}` : `Step ${current + 1} of ${total}`}
-        </span>
-      </div>
-      <div style={{ height: 3, background: '#254BCE', borderRadius: 0 }} />
-    </div>
-  )
-}
+// SubStepProgress removed — replaced by inline progress in new ScreenBasicInfo
 
 // Inline field row helper for proportional layouts
 function FieldRow({ children, gap = 12 }) {
@@ -736,316 +767,425 @@ function NarrowInput({ value, onChange, placeholder, maxWidth = 96, center = fal
   )
 }
 
-// Derive how far a user has already progressed through Basic Info
-// so that returning to this screen (e.g. back from offer) lands at the review.
-function computeBasicInfoSub(s) {
-  if (!s.firstName || !s.lastName) return 0
-  if (!s.phone) return 1
-  if (!s.purpose) return 2
-  if (!s.address || !s.city) return 3
-  if (!s.propType || !s.ownership) return 4
-  if (!s.annualIncome || !s.incomeSource) return 5
-  return 6  // all done → review
+// ─── Step 1 helper components ─────────────────────────────────────────────────
+
+function PrefillBadge({ text = 'Pre-filled' }) {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 6 }}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span style={{ fontSize: 12, fontWeight: 600, color: '#065F46' }}>{text}</span>
+    </div>
+  )
 }
 
-function ScreenBasicInfo({ step1, dispatch }) {
-  const [currentSub, setCurrentSub] = useState(() => computeBasicInfoSub(step1))
-  const [editingIndex, setEditingIndex] = useState(null)
-  const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
-  const total = BASIC_SUB_STEPS.length
-  const allDone = currentSub >= total
-  const activeIndex = editingIndex !== null ? editingIndex : allDone ? null : currentSub
+function DollarInput({ value, onChange, placeholder }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
+      <input
+        value={value}
+        onChange={onChange ? e => onChange(e.target.value.replace(/\D/g, '')) : undefined}
+        placeholder={placeholder}
+        style={{ width: '100%', boxSizing: 'border-box', fontSize: 18, border: '1px solid rgba(0,22,96,0.15)', borderRadius: 12, background: '#fff', color: '#001660', padding: '12px 14px 12px 30px', outline: 'none' }}
+        onFocus={e => (e.target.style.borderColor = '#254BCE')}
+        onBlur={e => (e.target.style.borderColor = 'rgba(0,22,96,0.15)')}
+      />
+    </div>
+  )
+}
 
-  const SUB_META = [
-    { heading: "Let's confirm who you are",                sub: 'Pre-filled from your pre-approval — just verify your name and date of birth.' },
-    { heading: 'How can we reach you?',                    sub: "We'll only contact you about your application." },
-    { heading: "What's the primary purpose of this loan?", sub: 'This helps us match you with the right terms.' },
-    { heading: 'Where is the property?',                   sub: "The home you're financing against." },
-    { heading: 'Tell us about your property',              sub: 'Property type, ownership, estimated value and current mortgage balance.' },
-    { heading: 'Income & loan details',                    sub: 'We need this to size your offer. Your requested amount must be at least $25,000.' },
+function PropTypeTiles({ value, onChange }) {
+  const opts = [
+    { value: 'Primary residence',   icon: '🏠' },
+    { value: 'Secondary residence', icon: '🏡' },
+    { value: 'Investment property', icon: '📈' },
   ]
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      {opts.map(opt => {
+        const active = value === opt.value
+        return (
+          <button key={opt.value} onClick={() => onChange(opt.value)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            padding: '16px 8px', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
+            background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+            border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+          }}>
+            <span style={{ fontSize: 26 }}>{opt.icon}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
-  function getSummary(i) {
-    switch (i) {
-      case 0: return `${step1.firstName} ${step1.lastName}${step1.dob ? ' · DOB ' + step1.dob : ''}`
-      case 1: return `${step1.phone} · ${step1.email}`
-      case 2: return step1.purpose || '—'
-      case 3: return [step1.address, step1.city, step1.state, step1.zip].filter(Boolean).join(', ')
-      case 4: return `${step1.propType} · ${step1.ownership}`
-      case 5: return step1.annualIncome ? `$${Number(step1.annualIncome).toLocaleString()}/yr · ${step1.incomeSource} · Loan $${Number(step1.loanAmount || 0).toLocaleString()}` : '—'
-      default: return '—'
+function OwnershipTiles({ value, onChange }) {
+  const opts = [
+    { value: 'Sole owner',    icon: '👤' },
+    { value: 'Joint ownership', icon: '👥' },
+    { value: 'Trust',          icon: '🏛️' },
+  ]
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      {opts.map(opt => {
+        const active = value === opt.value
+        return (
+          <button key={opt.value} onClick={() => onChange(opt.value)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            padding: '16px 8px', borderRadius: 14, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
+            background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+            border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+          }}>
+            <span style={{ fontSize: 26 }}>{opt.icon}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
+            <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {active && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Main guided ScreenBasicInfo ──────────────────────────────────────────────
+
+function ScreenBasicInfo({ step1, dispatch }) {
+  const [screenIdx, setScreenIdx] = useState(0)
+  const [animDir,   setAnimDir]   = useState('fwd')
+  const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
+
+  const meta        = SCREEN_META[screenIdx]
+  const sectionIdx  = meta.section
+  const section     = BASIC_SECTIONS[sectionIdx]
+  const screenInSec = section.screens.indexOf(screenIdx)
+  const totalInSec  = section.screens.length
+  const isLastScreen = screenIdx === SCREEN_META.length - 1
+
+  // Per-screen "can continue" gate
+  const canContinue = (() => {
+    switch (screenIdx) {
+      case 0: return !!step1.firstName && !!step1.lastName       // DOB optional
+      case 1: return !!step1.phone && !!step1.email
+      case 2: return !!step1.address && !!step1.city
+      case 3: return !!step1.propType && !!step1.ownership
+      case 4: return !!step1.propValue && !!step1.mortgageBalance
+      case 5: return !!step1.annualIncome && !!step1.incomeSource
+      case 6: return !!step1.loanAmount && Number(step1.loanAmount) >= 25000
+      case 7: return !!step1.purpose
+      default: return false
     }
+  })()
+
+  function goNext() {
+    if (isLastScreen) { dispatch({ type: 'NEXT' }); return }
+    setAnimDir('fwd')
+    setScreenIdx(i => i + 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function handleContinue() {
-    if (editingIndex !== null) { setEditingIndex(null) }
-    else { setCurrentSub(c => c + 1) }
+  function goBack() {
+    if (screenIdx === 0) { dispatch({ type: 'BACK' }); return }
+    setAnimDir('back')
+    setScreenIdx(i => i - 1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: 560 }}>
       <style>{`
-        @keyframes tileSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: none; }
-        }
+        @keyframes slideInFwd  { from { opacity:0; transform:translateX(28px);  } to { opacity:1; transform:none; } }
+        @keyframes slideInBack { from { opacity:0; transform:translateX(-28px); } to { opacity:1; transform:none; } }
+        .anim-fwd  { animation: slideInFwd  0.28s cubic-bezier(0.22,1,0.36,1) both; }
+        .anim-back { animation: slideInBack 0.28s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      {/* Eyebrow + heading */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-          Step 1 of 7
+      {/* ── Unified progress header ─────────────────────────────── */}
+      <div style={{ marginBottom: 36 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            {section.label}
+          </span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8', fontVariantNumeric: 'tabular-nums' }}>
+            {screenIdx + 1} <span style={{ color: '#CBD5E1' }}>/ {SCREEN_META.length}</span>
+          </span>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
-          Tell us about yourself
-        </h1>
-        <p style={{ fontSize: 18, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-          Answer each question — your details are saved as you go.
-        </p>
-      </div>
 
-      {/* Vertical step tiles */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-        {BASIC_SUB_STEPS.map((step, index) => {
-          if (index > currentSub && editingIndex !== index) return null
-          const isCompleted = (index < currentSub || allDone) && editingIndex !== index
-          const isActive = index === activeIndex
-
-          // ── Completed collapsed tile ──
-          // Key includes '-done' so React remounts (and re-animates) when state flips
-          if (isCompleted) return (
-            <div key={step.id + '-done'} style={{
-              background: '#fff', border: '1.5px solid rgba(1,97,99,0.25)',
-              borderRadius: 14, padding: '14px 20px',
-              display: 'flex', alignItems: 'center', gap: 12,
-              animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
-            }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-              <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
-                {getSummary(index)}
-              </span>
-              <button onClick={() => setEditingIndex(index)} style={{
-                fontSize: 16, fontWeight: 600, color: '#254BCE',
-                background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
-                borderRadius: 20, padding: '5px 16px',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>Edit</button>
-            </div>
-          )
-
-          // ── Active expanded tile ──
-          // Key includes '-active' so entering edit mode re-animates the tile
-          if (isActive) {
-            const meta = SUB_META[index]
+        {/* Segmented bar — one pip per screen, grouped by section */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {SCREEN_META.map((m, i) => {
+            const done    = i < screenIdx
+            const current = i === screenIdx
+            const sameSec = m.section === sectionIdx
             return (
-              <div key={step.id + '-active'} style={{
-                background: '#fff', border: '2px solid rgba(37,75,206,0.3)',
-                borderRadius: 14, padding: '20px',
-                boxShadow: '0 4px 20px rgba(37,75,206,0.1)',
-                animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
-              }}>
-                {/* Tile header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{meta.heading}</div>
-                    <div style={{ fontSize: 16, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
-                  </div>
-                </div>
-
-                {/* Form content */}
-                {index === 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {/* Pre-fill badge */}
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span style={{ fontSize: 13, color: '#065F46', fontWeight: 600 }}>Pre-filled from your pre-approval — edit if anything has changed.</span>
-                    </div>
-                    {/* Names */}
-                    <FieldRow gap={12}>
-                      <FieldWrap maxWidth={176}><Field label="First name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
-                      <FieldWrap maxWidth={220}><Field label="Last name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
-                    </FieldRow>
-                    {/* DOB — optional */}
-                    <FieldRow gap={12}>
-                      <FieldWrap maxWidth={180}><Field label="Date of birth" helper="optional"><Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" /></Field></FieldWrap>
-                    </FieldRow>
-                    <div style={{ padding: '9px 13px', background: 'rgba(37,75,206,0.04)', borderRadius: 10, border: '1px solid rgba(37,75,206,0.08)', fontSize: 13, color: '#4B5563', lineHeight: 1.55 }}>
-                      SSN and marital status are collected after your offer is generated — we don't need them right now.
-                    </div>
-                  </div>
-                )}
-
-                {index === 1 && (
-                  <FieldRow gap={12}>
-                    {/* Phone — fixed width (US number is always 14 chars) */}
-                    <FieldWrap maxWidth={190}><Field label="Phone number"><Input value={step1.phone} onChange={v => set('phone', v)} placeholder="(___) ___-____" /></Field></FieldWrap>
-                    {/* Email — grows to fill remaining space */}
-                    <FieldWrap flex="1 1 0"><Field label="Email address"><Input value={step1.email} onChange={v => set('email', v)} /></Field></FieldWrap>
-                  </FieldRow>
-                )}
-
-                {index === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {PURPOSE_OPTIONS.map(opt => {
-                      const active = step1.purpose === opt.value
-                      return (
-                        <button key={opt.value} onClick={() => set('purpose', opt.value)} style={{
-                          display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px',
-                          background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
-                          border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
-                          borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                          boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
-                        }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: active ? 'rgba(37,75,206,0.1)' : 'rgba(0,22,96,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{opt.icon}</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 18, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
-                            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{opt.desc}</div>
-                          </div>
-                          <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {index === 3 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <Field label="Street address"><Input value={step1.address} onChange={v => set('address', v)} placeholder="123 Main St" /></Field>
-                    <FieldRow gap={10}>
-                      <FieldWrap maxWidth={220}><Field label="City"><Input value={step1.city} onChange={v => set('city', v)} /></Field></FieldWrap>
-                      <FieldWrap maxWidth={80}><Field label="State"><Input value={step1.state} onChange={v => set('state', v.toUpperCase().slice(0, 2))} placeholder="CA" /></Field></FieldWrap>
-                      <FieldWrap maxWidth={104}><Field label="ZIP code"><Input value={step1.zip} onChange={v => set('zip', v.replace(/\D/g, '').slice(0, 5))} placeholder="00000" /></Field></FieldWrap>
-                    </FieldRow>
-                    <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                      <span style={{ fontSize: 16, color: '#065F46', fontWeight: 500 }}>{step1.address}, {step1.city}, {step1.state} {step1.zip}</span>
-                    </div>
-                  </div>
-                )}
-
-                {index === 4 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Property type</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {[{ value: 'Primary residence', icon: '🏠', desc: 'Primary home' }, { value: 'Secondary residence', icon: '🏡', desc: 'Vacation / part-time' }, { value: 'Investment property', icon: '📈', desc: 'Rental / income' }].map(opt => {
-                          const active = step1.propType === opt.value
-                          return (
-                            <button key={opt.value} onClick={() => set('propType', opt.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, borderRadius: 12, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
-                              <span style={{ fontSize: 22 }}>{opt.icon}</span>
-                              <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
-                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Ownership type</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {[{ value: 'Sole owner', icon: '👤', desc: 'Only owner' }, { value: 'Joint ownership', icon: '👥', desc: 'With co-owner' }, { value: 'Trust', icon: '🏛️', desc: 'Held in trust' }].map(opt => {
-                          const active = step1.ownership === opt.value
-                          return (
-                            <button key={opt.value} onClick={() => set('ownership', opt.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC', border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, borderRadius: 12, cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s' }}>
-                              <span style={{ fontSize: 22 }}>{opt.icon}</span>
-                              <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</div>
-                              <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fff' }} />}
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
-                    <FieldRow gap={12}>
-                      <FieldWrap flex="1 1 0"><Field label="Est. property value"><Input value={step1.propValue} onChange={v => set('propValue', v.replace(/\D/g, ''))} placeholder="485000" /></Field></FieldWrap>
-                      <FieldWrap flex="1 1 0"><Field label="Current mortgage balance"><Input value={step1.mortgageBalance} onChange={v => set('mortgageBalance', v.replace(/\D/g, ''))} placeholder="190000" /></Field></FieldWrap>
-                    </FieldRow>
-                  </div>
-                )}
-
-                {/* Index 5 — Income & Loan */}
-                {index === 5 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <FieldRow gap={12}>
-                      <FieldWrap flex="1 1 0">
-                        <Field label="Annual income">
-                          <div style={{ position: 'relative' }}>
-                            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
-                            <Input value={step1.annualIncome} onChange={v => set('annualIncome', v.replace(/\D/g, ''))} placeholder="124000" />
-                          </div>
-                        </Field>
-                      </FieldWrap>
-                      <FieldWrap flex="1 1 0">
-                        <Field label="Income source">
-                          <Select value={step1.incomeSource || 'Employment'} onChange={v => set('incomeSource', v)}
-                            options={['Employment', 'Self-employment', 'Retirement / pension', 'Social Security', 'Rental income', 'Other']} />
-                        </Field>
-                      </FieldWrap>
-                    </FieldRow>
-                    <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
-                    <Field label="Requested loan amount">
-                      <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
-                        <Input value={step1.loanAmount} onChange={v => set('loanAmount', v.replace(/\D/g, ''))} placeholder="120000" />
-                      </div>
-                    </Field>
-                    {step1.loanAmount && Number(step1.loanAmount) < 25000 && (
-                      <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 13, color: '#B91C1C', fontWeight: 500 }}>
-                        Minimum loan amount is $25,000. Please enter a higher amount.
-                      </div>
-                    )}
-                    <Field label="Project cost" helper="optional">
-                      <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
-                        <Input value={step1.projectCost || ''} onChange={v => set('projectCost', v.replace(/\D/g, ''))} placeholder="96000" />
-                      </div>
-                    </Field>
-                    <div style={{ padding: '9px 13px', background: 'rgba(37,75,206,0.04)', border: '1px solid rgba(37,75,206,0.08)', borderRadius: 10, fontSize: 13, color: '#4B5563', lineHeight: 1.55 }}>
-                      Your loan offer will be sized to your requested amount. If it exceeds your approved maximum, we'll show you the best available alternative.
-                    </div>
-                  </div>
-                )}
-
-                {/* Continue button inside tile */}
-                <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={handleContinue} style={{
-                    padding: '11px 24px', borderRadius: 10, border: 'none',
-                    background: '#254BCE', color: '#fff',
-                    fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    {editingIndex !== null ? 'Save →' : index === total - 1 ? 'Done →' : 'Continue →'}
-                  </button>
-                </div>
+              <div key={i} style={{ flex: 1, position: 'relative' }}>
+                <div style={{
+                  height: current ? 5 : 3,
+                  marginTop: current ? 0 : 1,
+                  borderRadius: 3,
+                  background: done || current
+                    ? '#254BCE'
+                    : sameSec
+                      ? 'rgba(37,75,206,0.18)'
+                      : 'rgba(15,23,42,0.08)',
+                  transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
+                }} />
               </div>
             )
-          }
-
-          return null
-        })}
+          })}
+        </div>
       </div>
 
-      {/* Bottom nav */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 17, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
+      {/* ── Animated question area ───────────────────────────────── */}
+      <div key={`${screenIdx}-${animDir}`} className={animDir === 'fwd' ? 'anim-fwd' : 'anim-back'} style={{ marginBottom: 36 }}>
+
+        {/* Heading + helper */}
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+          {meta.heading}
+        </h1>
+        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.6 }}>
+          {meta.helper}
+        </p>
+
+        {/* ── Screen 0: Name + DOB ────────────────────────────────── */}
+        {screenIdx === 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <FieldRow gap={12}>
+              <FieldWrap flex="2 1 0"><Field label="First name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
+              <FieldWrap maxWidth={96}><Field label="Mid. initial"><Input value={step1.middleInitial || ''} onChange={v => set('middleInitial', v.slice(0, 1).toUpperCase())} placeholder="A" /></Field></FieldWrap>
+              <FieldWrap flex="2 1 0"><Field label="Last name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
+            </FieldRow>
+            <FieldWrap maxWidth={168}>
+              <Field label="Date of birth" helper="optional">
+                <Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" />
+              </Field>
+            </FieldWrap>
+          </div>
+        )}
+
+        {/* ── Screen 1: Contact ───────────────────────────────────── */}
+        {screenIdx === 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ maxWidth: 168 }}>
+              <Field label="Phone number">
+                <Input value={step1.phone} onChange={v => set('phone', v)} placeholder="(___) ___-____" />
+              </Field>
+            </div>
+            <Field label="Email address">
+              <Input value={step1.email} onChange={v => set('email', v)} />
+            </Field>
+          </div>
+        )}
+
+        {/* ── Screen 2: Property Address ──────────────────────────── */}
+        {screenIdx === 2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Street address">
+              <Input value={step1.address} onChange={v => set('address', v)} placeholder="123 Main St" />
+            </Field>
+            <FieldRow gap={10}>
+              <FieldWrap flex="2 1 0"><Field label="City"><Input value={step1.city} onChange={v => set('city', v)} /></Field></FieldWrap>
+              <FieldWrap maxWidth={76}><Field label="State"><Input value={step1.state} onChange={v => set('state', v.toUpperCase().slice(0, 2))} placeholder="CA" /></Field></FieldWrap>
+              <FieldWrap maxWidth={108}><Field label="ZIP"><Input value={step1.zip} onChange={v => set('zip', v.replace(/\D/g, '').slice(0, 5))} /></Field></FieldWrap>
+            </FieldRow>
+          </div>
+        )}
+
+        {/* ── Screen 3: Property Type + Ownership + Home condition ─── */}
+        {screenIdx === 3 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Property type</div>
+              <PropTypeTiles value={step1.propType} onChange={v => set('propType', v)} />
+            </div>
+            <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Ownership</div>
+              <OwnershipTiles value={step1.ownership} onChange={v => set('ownership', v)} />
+            </div>
+            <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { key: 'singleFamily', locked: false, title: 'Single-family home', desc: 'The property is a standalone residential home.' },
+                { key: 'goodRoof',     locked: false, title: 'Good roof condition', desc: 'The roof is in good condition with no known issues.' },
+              ].map(({ key, locked, title, desc }) => {
+                const checked = !!step1[key]
+                return (
+                  <button
+                    key={key}
+                    onClick={() => !locked && set(key, !checked)}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 14,
+                      padding: '14px 16px', borderRadius: 14, width: '100%', textAlign: 'left',
+                      cursor: locked ? 'default' : 'pointer',
+                      background: checked ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+                      border: `1.5px solid ${checked ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {/* Checkbox */}
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                      background: checked ? '#254BCE' : '#fff',
+                      border: `2px solid ${checked ? '#254BCE' : 'rgba(0,22,96,0.18)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s',
+                      boxShadow: checked ? '0 1px 4px rgba(37,75,206,0.25)' : 'none',
+                    }}>
+                      {checked && (
+                        <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                          <path d="M1.5 5L4.5 8L10.5 1.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {/* Text */}
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: checked ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{title}</div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3, lineHeight: 1.4 }}>{desc}</div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Screen 4: Property Value + Mortgage + For Sale ──────── */}
+        {screenIdx === 4 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <FieldRow gap={12}>
+              <FieldWrap flex="1 1 0">
+                <Field label="Estimated property value">
+                  <DollarInput value={step1.propValue} onChange={v => set('propValue', v)} placeholder="485,000" />
+                </Field>
+              </FieldWrap>
+              <FieldWrap flex="1 1 0">
+                <Field label="Current mortgage balance">
+                  <DollarInput value={step1.mortgageBalance} onChange={v => set('mortgageBalance', v)} placeholder="190,000" />
+                </Field>
+              </FieldWrap>
+            </FieldRow>
+            <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#001660', marginBottom: 10 }}>Is this property currently for sale?</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {[{ label: 'Yes', value: true }, { label: 'No', value: false }].map(opt => {
+                  const active = step1.forSale === opt.value
+                  return (
+                    <button key={opt.label} onClick={() => set('forSale', opt.value)} style={{
+                      flex: 1, padding: '13px 0', borderRadius: 12, cursor: 'pointer',
+                      fontSize: 16, fontWeight: 600, transition: 'all 0.15s',
+                      background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+                      border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                      color: active ? '#254BCE' : '#001660',
+                    }}>
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+              {step1.forSale && (
+                <p style={{ fontSize: 12, color: '#9CA3AF', margin: '10px 0 0', lineHeight: 1.5 }}>
+                  Properties listed for sale may affect your eligibility. A loan officer will review your application.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Screen 5: Income ────────────────────────────────────── */}
+        {screenIdx === 5 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <FieldWrap maxWidth={280}>
+              <Field label="Annual income (pre-tax)">
+                <DollarInput value={step1.annualIncome} onChange={v => set('annualIncome', v)} placeholder="124,000" />
+              </Field>
+            </FieldWrap>
+            <FieldWrap maxWidth={280}>
+              <Field label="Primary income source">
+                <Select value={step1.incomeSource || 'Employment'} onChange={v => set('incomeSource', v)}
+                  options={['Employment', 'Self-employment', 'Retirement / pension', 'Social Security', 'Rental income', 'Other']} />
+              </Field>
+            </FieldWrap>
+          </div>
+        )}
+
+        {/* ── Screen 6: Loan Amount ────────────────────────────────── */}
+        {screenIdx === 6 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <FieldRow gap={12}>
+              <FieldWrap flex="1 1 0">
+                <Field label="Requested loan amount">
+                  <DollarInput value={step1.loanAmount} onChange={v => set('loanAmount', v)} placeholder="120,000" />
+                </Field>
+              </FieldWrap>
+              <FieldWrap flex="1 1 0">
+                <Field label="Estimated project cost" helper="optional">
+                  <DollarInput value={step1.projectCost || ''} onChange={v => set('projectCost', v)} placeholder="96,000" />
+                </Field>
+              </FieldWrap>
+            </FieldRow>
+            {step1.loanAmount && Number(step1.loanAmount) < 25000 && (
+              <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 13, color: '#B91C1C', fontWeight: 500 }}>
+                Minimum loan amount is $25,000.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Screen 7: Purpose ────────────────────────────────────── */}
+        {screenIdx === 7 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {PURPOSE_OPTIONS.map(opt => {
+              const active = step1.purpose === opt.value
+              return (
+                <button key={opt.value} onClick={() => set('purpose', opt.value)} style={{
+                  display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px',
+                  background: active ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
+                  border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                  borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                  boxShadow: active ? '0 0 0 3px rgba(37,75,206,0.08)' : 'none',
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: active ? 'rgba(37,75,206,0.1)' : 'rgba(0,22,96,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{opt.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 17, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
+                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{opt.desc}</div>
+                  </div>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: active ? '#254BCE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Navigation ───────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, borderTop: '1px solid rgba(0,22,96,0.06)' }}>
+        <button onClick={goBack} style={{
+          padding: '11px 20px', borderRadius: 10,
+          border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
+          fontSize: 16, fontWeight: 600, color: '#001660',
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>
           ← Back
         </button>
-        {allDone && editingIndex === null && (
-          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 18, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
-            Save &amp; Continue →
-          </button>
-        )}
+        <button onClick={goNext} disabled={!canContinue} style={{
+          padding: '13px 28px', borderRadius: 10, border: 'none',
+          background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.15)',
+          color: '#fff', fontSize: 17, fontWeight: 700,
+          cursor: canContinue ? 'pointer' : 'not-allowed',
+          fontFamily: 'inherit', letterSpacing: '-0.1px',
+          boxShadow: canContinue ? '0 4px 16px rgba(37,75,206,0.28)' : 'none',
+          transition: 'all 0.15s',
+        }}>
+          {isLastScreen ? 'Generate My Offer →' : 'Continue →'}
+        </button>
       </div>
     </div>
   )
@@ -2192,249 +2332,339 @@ function OfferSidebar({ loan, step2 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen: More Info (Step 3a) — two sub-steps + review
+// Screen: More Info (Step 3) — 2-card consolidated layout
 // ─────────────────────────────────────────────────────────────────────────────
-const MORE_INFO_SUB_STEPS = [
-  { id: 'property',   label: 'Property Details' },
-  { id: 'employment', label: 'Employment & Income' },
-]
 
-function MoreInfoProgress({ current }) {
-  const total = MORE_INFO_SUB_STEPS.length
-  const label = MORE_INFO_SUB_STEPS[current]?.label ?? ''
+function HmdaAccordion({ label, value, onChange, options }) {
+  const [open, setOpen] = useState(false)
+  const answered = !!value && value !== ''
   return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <span style={{ fontSize: 17, fontWeight: 700, color: '#001660', letterSpacing: '-0.1px' }}>{label}</span>
-        <span style={{ fontSize: 16, color: '#9CA3AF' }}>Step {current + 1} of {total}</span>
-      </div>
-      <div style={{ height: 3, background: '#254BCE', borderRadius: 0 }} />
-    </div>
-  )
-}
-
-function MoreInfoReview({ step3, onEdit, onContinue }) {
-  const sections = [
-    {
-      index: 0,
-      label: 'Property Details',
-      rows: [
-        { label: 'Occupancy',   value: step3.propOccupancy },
-        { label: 'HOA',        value: step3.hoa },
-        { label: 'Flood zone', value: step3.floodZone },
-      ],
-    },
-    {
-      index: 1,
-      label: 'Employment & Income',
-      rows: [
-        { label: 'Employment status',     value: step3.employmentStatus },
-        { label: 'Employer',              value: step3.employer },
-        { label: 'Years at employer',     value: step3.yearsEmployed },
-        { label: 'Annual gross income',   value: step3.annualIncome ? `$${Number(step3.annualIncome).toLocaleString()}` : '—' },
-        { label: 'Monthly debt payments', value: step3.monthlyExpenses ? `$${Number(step3.monthlyExpenses).toLocaleString()}` : '—' },
-      ],
-    },
-  ]
-
-  return (
-    <div>
-      <ReviewHeader
-        totalSteps={2}
-        heading="Review your details"
-        sub="Everything look right? Edit any section, then continue."
-      />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-        {sections.map(s => (
-          <ReviewCheckCard key={s.index} label={s.label} rows={s.rows} onEdit={() => onEdit(s.index)} />
-        ))}
-      </div>
-
+    <div style={{ borderRadius: 12, border: `1.5px solid ${answered ? 'rgba(1,97,99,0.25)' : 'rgba(0,22,96,0.1)'}`, overflow: 'hidden', transition: 'border-color 0.15s' }}>
+      {/* Header row */}
       <button
-        onClick={onContinue}
+        onClick={() => setOpen(o => !o)}
         style={{
-          width: '100%', padding: '15px', borderRadius: 12, border: 'none',
-          background: '#001660', color: '#fff',
-          fontSize: 18, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          letterSpacing: '-0.1px',
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '13px 16px', background: answered ? 'rgba(1,97,99,0.04)' : '#F8F9FC',
+          border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+          transition: 'background 0.15s',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
-        onMouseLeave={e => e.currentTarget.style.background = '#001660'}
       >
-        Save &amp; Continue →
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>{label}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {answered
+            ? <span style={{ fontSize: 12, fontWeight: 600, color: '#016163', background: 'rgba(1,97,99,0.1)', padding: '2px 10px', borderRadius: 20 }}>{value}</span>
+            : <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,22,96,0.35)', background: 'rgba(0,22,96,0.06)', padding: '2px 10px', borderRadius: 20 }}>Not answered</span>
+          }
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+            <path d="M2 4L6 8L10 4" stroke="rgba(0,22,96,0.4)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
       </button>
+      {/* Options */}
+      {open && (
+        <div style={{ borderTop: '1px solid rgba(0,22,96,0.07)', background: '#fff' }}>
+          {options.map(opt => {
+            const selected = value === opt
+            return (
+              <button
+                key={opt}
+                onClick={() => { onChange(opt); setOpen(false) }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '11px 16px', border: 'none', cursor: 'pointer',
+                  background: selected ? 'rgba(37,75,206,0.05)' : '#fff',
+                  fontFamily: 'inherit', textAlign: 'left',
+                  borderBottom: '1px solid rgba(0,22,96,0.04)',
+                  transition: 'background 0.1s',
+                }}
+                onMouseEnter={e => { if (!selected) e.currentTarget.style.background = '#F8F9FC' }}
+                onMouseLeave={e => { if (!selected) e.currentTarget.style.background = '#fff' }}
+              >
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${selected ? '#254BCE' : 'rgba(0,22,96,0.2)'}`,
+                  background: selected ? '#254BCE' : '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {selected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: selected ? 600 : 400, color: selected ? '#254BCE' : '#374151' }}>{opt}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
-}
-
-function computeMoreInfoSub(s) {
-  if (!s.propOccupancy) return 0
-  if (!s.employmentStatus) return 1
-  return 2
 }
 
 function ScreenMoreInfo({ step3, dispatch }) {
-  const [currentSub, setCurrentSub] = useState(0)
-  const [editingIndex, setEditingIndex] = useState(null)
+  const [disclosureOpen, setDisclosureOpen] = useState(false)
   const set = (field, value) => dispatch({ type: 'SET_STEP3', field, value })
-  const total = MORE_INFO_SUB_STEPS.length
-  const allDone = currentSub >= total
-  const activeIndex = editingIndex !== null ? editingIndex : allDone ? null : currentSub
 
-  const SUB_META = [
-    { heading: 'Tell us about your property', sub: 'We already know your equity — these details confirm your final terms.' },
-    { heading: 'Employment & income',          sub: 'Used to calculate your debt-to-income ratio.' },
-  ]
-
-  function getSummary(i) {
-    switch (i) {
-      case 0: return `${step3.propOccupancy} · HOA: ${step3.hoa} · Flood zone: ${step3.floodZone}`
-      case 1: return `${step3.employmentStatus} · ${step3.employer} · $${Number(step3.annualIncome || 0).toLocaleString()}/yr`
-      default: return '—'
-    }
+  function skipAllHmda() {
+    set('ethnicity', 'I prefer not to answer')
+    set('race',      'I prefer not to answer')
+    set('sex',       'I prefer not to answer')
   }
 
-  function handleContinue() {
-    if (editingIndex !== null) { setEditingIndex(null) }
-    else { setCurrentSub(c => c + 1) }
-  }
+  const canSubmit = (step3.ssn || '').replace(/\D/g, '').length >= 9
+    && !!step3.marital
+    && !!step3.propOccupancy
+    && !!step3.employmentStatus
+    && !!step3.disclosuresAccepted
 
   return (
-    <div>
-      {/* Eyebrow + heading */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+      {/* ── Page header ── */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-          Step 3 of 7
+          Step 3 of 7 · Provide More Info
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
-          Verify your details
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          Almost done — just a few final details.
         </h1>
-        <p style={{ fontSize: 18, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
-          These details help confirm your final loan terms.
+        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          Your offer is locked in. We need this to submit your application.
         </p>
       </div>
 
-      {/* Vertical step tiles — same animation and styling as Basic Info */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
-        {MORE_INFO_SUB_STEPS.map((step, index) => {
-          if (index > currentSub && editingIndex !== index) return null
-          const isCompleted = (index < currentSub || allDone) && editingIndex !== index
-          const isActive = index === activeIndex
+      {/* ── Card 1: A little more about you ── */}
+      <div style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 18, overflow: 'hidden', marginBottom: 16, boxShadow: '0 1px 8px rgba(0,22,96,0.05)' }}>
+        {/* Card header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Tell us more about you and your Property</div>
+        </div>
 
-          if (isCompleted) return (
-            <div key={step.id + '-done'} style={{
-              background: '#fff', border: '1.5px solid rgba(1,97,99,0.25)',
-              borderRadius: 14, padding: '14px 20px',
-              display: 'flex', alignItems: 'center', gap: 12,
-              animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
-            }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-              <span style={{ flex: 1, fontSize: 18, fontWeight: 700, color: '#001660', lineHeight: 1.4 }}>
-                {getSummary(index)}
-              </span>
-              <button onClick={() => setEditingIndex(index)} style={{
-                fontSize: 16, fontWeight: 600, color: '#254BCE',
-                background: 'rgba(37,75,206,0.06)', border: '1px solid rgba(37,75,206,0.15)',
-                borderRadius: 20, padding: '5px 16px', cursor: 'pointer', fontFamily: 'inherit',
-              }}>Edit</button>
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+          {/* SSN trust anchor */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(1,97,99,0.05)', border: '1px solid rgba(1,97,99,0.15)',
+            borderRadius: 10, padding: '10px 14px',
+          }}>
+            <svg width="15" height="18" viewBox="0 0 15 18" fill="none" style={{ flexShrink: 0 }}>
+              <path d="M7.5 1L1.5 3.5V8C1.5 12 3.8 15.7 7.5 17C11.2 15.7 13.5 12 13.5 8V3.5L7.5 1Z"
+                stroke="#016163" strokeWidth="1.5" strokeLinejoin="round" fill="rgba(1,97,99,0.1)"/>
+              <path d="M5 9L7 11L10.5 7" stroke="#016163" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ fontSize: 12, color: '#014f51', fontWeight: 600 }}>
+              Bank-level encryption · No hard credit pull yet · Never shared without your consent
+            </span>
+          </div>
+
+          {/* SSN */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 6 }}>
+              Social Security Number
+            </label>
+            <input
+              type="text"
+              value={step3.ssn || ''}
+              placeholder="XXX-XX-XXXX"
+              maxLength={11}
+              onChange={e => {
+                const d = e.target.value.replace(/\D/g, '').slice(0, 9)
+                const f = d.length <= 3 ? d : d.length <= 5 ? `${d.slice(0,3)}-${d.slice(3)}` : `${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`
+                set('ssn', f)
+              }}
+              style={{
+                width: 168, padding: '12px 14px', borderRadius: 10,
+                border: '1.5px solid rgba(0,22,96,0.15)', fontSize: 17, fontWeight: 600,
+                letterSpacing: '0.12em', fontFamily: 'monospace', color: '#001660',
+                background: '#fff', outline: 'none', boxSizing: 'border-box',
+              }}
+              onFocus={e => e.target.style.borderColor = '#254BCE'}
+              onBlur={e => e.target.style.borderColor = 'rgba(0,22,96,0.15)'}
+            />
+            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6, lineHeight: 1.5 }}>
+              We'll only use this to verify your identity and check eligibility. We won't run a hard credit pull until you've completed identity verification — later in this flow.
             </div>
-          )
+          </div>
 
-          if (isActive) {
-            const meta = SUB_META[index]
-            return (
-              <div key={step.id + '-active'} style={{
-                background: '#fff', border: '2px solid rgba(37,75,206,0.3)',
-                borderRadius: 14, padding: '20px',
-                boxShadow: '0 4px 20px rgba(37,75,206,0.1)',
-                animation: 'tileSlideIn 0.32s cubic-bezier(0.22,1,0.36,1) both',
+          {/* Marital status */}
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 6 }}>Marital status</label>
+            <div style={{ maxWidth: 280 }}>
+              <Select value={step3.marital} onChange={v => set('marital', v)}
+                options={[{ value: '', label: 'Select…' }, 'Single','Married','Separated','Divorced','Widowed']} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 6 }}>Who owns the property?</label>
+            <div style={{ maxWidth: 280 }}>
+              <Select value={step3.propOccupancy} onChange={v => set('propOccupancy', v)}
+                options={['Primary residence','Secondary residence','Investment property']} />
+            </div>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#001660', marginBottom: 6 }}>Primary income type</label>
+            <div style={{ maxWidth: 280 }}>
+              <Select value={step3.employmentStatus} onChange={v => set('employmentStatus', v)}
+                options={['Full-time employed','Part-time employed','Self-employed','Retired','Not employed']} />
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: 'rgba(0,22,96,0.06)', margin: '2px 0' }} />
+
+          {/* Authorization block */}
+          <div>
+            <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 12px', lineHeight: 1.7 }}>
+              By submitting, you authorize GreenLyne to verify your identity, run a soft credit check, and share your application with our lending partners.
+              A hard credit pull only happens later — and only with your explicit approval.
+            </p>
+
+            {/* Disclosure checkbox */}
+            <button
+              onClick={() => set('disclosuresAccepted', !step3.disclosuresAccepted)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 14px', borderRadius: 12, width: '100%', textAlign: 'left', cursor: 'pointer',
+                background: step3.disclosuresAccepted ? 'rgba(37,75,206,0.05)' : '#F8F9FC',
+                border: `1.5px solid ${step3.disclosuresAccepted ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{
+                width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                background: step3.disclosuresAccepted ? '#254BCE' : '#fff',
+                border: `2px solid ${step3.disclosuresAccepted ? '#254BCE' : 'rgba(0,22,96,0.2)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: '#016163', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: '#001660' }}>{meta.heading}</div>
-                    <div style={{ fontSize: 16, color: '#6B7280', marginTop: 2 }}>{meta.sub}</div>
-                  </div>
-                </div>
-
-                {index === 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Occupancy — full width, content is long */}
-                    <Field label="Property occupancy">
-                      <Select value={step3.propOccupancy} onChange={v => set('propOccupancy', v)} options={['Primary residence','Secondary residence','Investment property']} />
-                    </Field>
-                    {/* HOA + Flood zone — short yes/no answers, sit side by side */}
-                    <FieldRow gap={16}>
-                      <FieldWrap maxWidth={160}>
-                        <Field label="HOA community?"><Select value={step3.hoa} onChange={v => set('hoa', v)} options={['No','Yes']} /></Field>
-                      </FieldWrap>
-                      <FieldWrap maxWidth={220}>
-                        <Field label="In a flood zone?"><Select value={step3.floodZone} onChange={v => set('floodZone', v)} options={['No','Yes — Zone A','Yes — Zone V']} /></Field>
-                      </FieldWrap>
-                    </FieldRow>
-                  </div>
+                {step3.disclosuresAccepted && (
+                  <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                    <path d="M1.5 4.5L4 7L9.5 1.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 )}
-
-                {index === 1 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Employment status — full width */}
-                    <Field label="Employment status">
-                      <Select value={step3.employmentStatus} onChange={v => set('employmentStatus', v)} options={['Full-time employed','Part-time employed','Self-employed','Retired','Not employed']} />
-                    </Field>
-                    {/* Employer name + years — employer wider, years narrow */}
-                    <FieldRow gap={16}>
-                      <FieldWrap flex="1 1 0">
-                        <Field label="Employer name"><Input value={step3.employer} onChange={v => set('employer', v)} /></Field>
-                      </FieldWrap>
-                      <FieldWrap maxWidth={120}>
-                        <Field label="Years there"><Input value={step3.yearsEmployed} onChange={v => set('yearsEmployed', v)} placeholder="0" /></Field>
-                      </FieldWrap>
-                    </FieldRow>
-                    {/* Income + monthly debt — both dollar amounts, equal half-width */}
-                    <FieldRow gap={16}>
-                      <FieldWrap flex="1 1 0">
-                        <Field label="Annual gross income"><Input value={step3.annualIncome} onChange={v => set('annualIncome', v)} placeholder="$0" /></Field>
-                      </FieldWrap>
-                      <FieldWrap flex="1 1 0">
-                        <Field label="Monthly debt payments" helper="(min payments)"><Input value={step3.monthlyExpenses} onChange={v => set('monthlyExpenses', v)} placeholder="$0" /></Field>
-                      </FieldWrap>
-                    </FieldRow>
-                  </div>
-                )}
-
-                <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={handleContinue} style={{
-                    padding: '11px 24px', borderRadius: 10, border: 'none',
-                    background: '#254BCE', color: '#fff',
-                    fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    {editingIndex !== null ? 'Save →' : index === total - 1 ? 'Done →' : 'Continue →'}
-                  </button>
-                </div>
               </div>
-            )
-          }
-
-          return null
-        })}
+              <span style={{ fontSize: 13, fontWeight: 500, color: step3.disclosuresAccepted ? '#254BCE' : '#374151' }}>
+                I've read and agree to the{' '}
+                <span
+                  onClick={e => { e.stopPropagation(); setDisclosureOpen(true) }}
+                  style={{ color: '#254BCE', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
+                >application disclosures</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Bottom nav */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid rgba(0,22,96,0.07)' }}>
-        <button onClick={() => dispatch({ type: 'BACK' })} style={{ padding: '11px 20px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', background: 'none', fontSize: 17, fontWeight: 600, color: '#001660', cursor: 'pointer', fontFamily: 'inherit' }}>
-          ← Back
-        </button>
-        {allDone && editingIndex === null && (
-          <button onClick={() => dispatch({ type: 'NEXT' })} style={{ padding: '13px 28px', borderRadius: 10, border: 'none', background: '#001660', color: '#fff', fontSize: 18, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.1px' }}>
-            Save &amp; Continue →
+      {/* ── Card 2: Government monitoring ── */}
+      <div style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 18, overflow: 'hidden', marginBottom: 24, boxShadow: '0 1px 8px rgba(0,22,96,0.05)' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,22,96,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em', lineHeight: 1.2 }}>A couple of questions we're required to ask</div>
+          <button
+            onClick={skipAllHmda}
+            style={{ fontSize: 12, fontWeight: 600, color: '#254BCE', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', padding: '2px 0', fontFamily: 'inherit', flexShrink: 0 }}
+          >
+            Skip all →
           </button>
-        )}
+        </div>
+
+        <div style={{ padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <HmdaAccordion
+            label="Ethnicity"
+            value={step3.ethnicity}
+            onChange={v => set('ethnicity', v)}
+            options={['I prefer not to answer','Hispanic or Latino','Not Hispanic or Latino']}
+          />
+          <HmdaAccordion
+            label="Race"
+            value={step3.race}
+            onChange={v => set('race', v)}
+            options={['I prefer not to answer','American Indian or Alaska Native','Asian','Black or African American','Native Hawaiian or Other Pacific Islander','White','Two or more races']}
+          />
+          <HmdaAccordion
+            label="Sex"
+            value={step3.sex}
+            onChange={v => set('sex', v)}
+            options={['I prefer not to answer','Male','Female']}
+          />
+        </div>
       </div>
+
+      {/* ── Single CTA ── */}
+      <button
+        onClick={() => dispatch({ type: 'NEXT' })}
+        disabled={!canSubmit}
+        style={{
+          width: '100%', padding: '16px', borderRadius: 14, border: 'none',
+          background: canSubmit ? '#001660' : 'rgba(0,22,96,0.1)',
+          color: canSubmit ? '#fff' : 'rgba(0,22,96,0.3)',
+          fontSize: 17, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default',
+          fontFamily: 'inherit', letterSpacing: '-0.1px', transition: 'all 0.15s',
+          marginBottom: 12,
+        }}
+        onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = '#00236e' }}
+        onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = '#001660' }}
+      >
+        Submit my application →
+      </button>
+
+      {/* Reassurance line */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 20 }}>
+        {['🔒 256-bit AES encryption', 'Soft pull only', 'No obligation to proceed'].map(t => (
+          <span key={t} style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>{t}</span>
+        ))}
+      </div>
+
+      {/* Back link */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button
+          onClick={() => dispatch({ type: 'BACK' })}
+          style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,22,96,0.4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          ← Back to offer
+        </button>
+      </div>
+
+      {/* ── Disclosure bottom sheet ── */}
+      {disclosureOpen && (
+        <div
+          onClick={() => setDisclosureOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 2000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: '20px 20px 0 0',
+              maxWidth: 620, width: '100%', maxHeight: '78vh', overflow: 'auto',
+              padding: '28px 28px 40px',
+              animation: 'slideInFwd 0.3s cubic-bezier(0.22,1,0.36,1) both',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#001660' }}>Application Disclosures</div>
+              <button onClick={() => setDisclosureOpen(false)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', cursor: 'pointer', width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', fontSize: 18, fontFamily: 'inherit' }}>×</button>
+            </div>
+            {[
+              { title: 'Privacy Policy', body: 'GreenLyne collects and uses your personal information solely to process your loan application and verify your identity. Your data is protected under our Privacy Policy and applicable state and federal regulations.' },
+              { title: 'Fair Lending Notice', body: 'We are committed to fair lending practices. We do not discriminate based on race, color, religion, national origin, sex, marital status, age, familial status, or any other protected class under applicable law.' },
+              { title: 'Regulation B — Government Monitoring', body: 'Federal law requires us to ask about race, sex, and ethnicity for home loan applications. You are not required to provide this information, but if you do not, we are required to note it based on visual observation or surname.' },
+              { title: 'Soft Credit Pull Authorization', body: 'By submitting, you authorize GreenLyne to verify your identity, run a soft credit check, and share your application with our lending partners. A hard credit pull only happens later — and only with your explicit approval.' },
+              { title: 'Electronic Communication Consent', body: 'You agree to receive loan-related communications from GreenLyne electronically, including emails and SMS messages. Standard message and data rates may apply.' },
+            ].map(({ title, body }) => (
+              <div key={title} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#001660', marginBottom: 5 }}>{title}</div>
+                <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.7 }}>{body}</p>
+              </div>
+            ))}
+            <button
+              onClick={() => { set('disclosuresAccepted', true); setDisclosureOpen(false) }}
+              style={{ width: '100%', marginTop: 6, padding: '14px', borderRadius: 12, border: 'none', background: '#254BCE', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              Accept &amp; Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -2442,112 +2672,419 @@ function ScreenMoreInfo({ step3, dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Link Income (Step 3b) — Plaid-style mock
 // ─────────────────────────────────────────────────────────────────────────────
+function PlaidLogo() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      {/* Plaid grid icon */}
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="2" y="2" width="7" height="7" rx="1.5" fill="#111"/>
+        <rect x="11" y="2" width="7" height="7" rx="1.5" fill="#111"/>
+        <rect x="2" y="11" width="7" height="7" rx="1.5" fill="#111"/>
+        <rect x="11" y="11" width="7" height="7" rx="1.5" fill="#111"/>
+      </svg>
+      <span style={{ fontSize: 13, fontWeight: 800, color: '#111', letterSpacing: '0.04em' }}>PLAID</span>
+    </div>
+  )
+}
+
 function ScreenLinkIncome({ dispatch }) {
-  const [phase, setPhase] = useState('select') // select | connecting | done
+  // phases: intro → select → connecting → income → review
+  const [phase, setPhase]             = useState('intro')
   const [selectedBank, setSelectedBank] = useState(null)
-  const [progress, setProgress] = useState(0)
+  const [bankSearch, setBankSearch]   = useState('')
+  const [progress, setProgress]       = useState(0)
+  const [connectStep, setConnectStep] = useState(0)
+  const [selectedSources, setSelectedSources] = useState(['salary', 'bonus'])
+
+  const CONNECT_STEPS = [
+    'Establishing secure connection...',
+    'Verifying credentials...',
+    'Reading transactions...',
+    'Identifying income sources...',
+  ]
+
+  const INCOME_SOURCES = [
+    { id: 'salary',    name: 'HORIZON_TECH_DIRECT_DEP',  type: 'Recurring',  date: 'May 15, 2025', amount: '$8,666.67', annual: '$104,000' },
+    { id: 'bonus',     name: 'HORIZON_TECH_BONUS_PPD',   type: 'One time',   date: 'Jan 3, 2025',  amount: '$6,250.00', annual: '$6,250' },
+    { id: 'freelance', name: 'STRIPE_TRANSFER_PPD',       type: 'Recurring',  date: 'Apr 28, 2025', amount: '$1,200.00', annual: '$14,400' },
+  ]
+
+  const banks = [
+    { id: 'bofa',   name: 'Bank of America', url: 'www.bankofamerica.com', color: '#E31837' },
+    { id: 'chase',  name: 'Chase',           url: 'www.chase.com',         color: '#117ACA' },
+    { id: 'wells',  name: 'Wells Fargo',     url: 'www.wellsfargo.com',    color: '#CC0000' },
+    { id: 'citi',   name: 'Citibank',        url: 'www.citi.com',          color: '#003F83' },
+    { id: 'usbank', name: 'US Bank',         url: 'www.usbank.com',        color: '#00274D' },
+    { id: 'schwab', name: 'Charles Schwab',  url: 'www.schwab.com',        color: '#00A0DF' },
+    { id: 'td',     name: 'TD Bank',         url: 'www.td.com',            color: '#00B140' },
+    { id: 'other',  name: 'Other bank',      url: 'Search all banks',      color: '#6B7280' },
+  ]
+
+  const filteredBanks = banks.filter(b =>
+    b.name.toLowerCase().includes(bankSearch.toLowerCase())
+  )
 
   function handleConnect(bank) {
     setSelectedBank(bank)
     setPhase('connecting')
     setProgress(0)
-    const steps = [25, 55, 80, 100]
+    setConnectStep(0)
     let i = 0
+    const pcts = [22, 48, 74, 100]
     const interval = setInterval(() => {
-      if (i < steps.length) { setProgress(steps[i]); i++ }
-      else { clearInterval(interval); setTimeout(() => setPhase('done'), 400) }
-    }, 600)
+      if (i < pcts.length) { setProgress(pcts[i]); setConnectStep(i); i++ }
+      else { clearInterval(interval); setTimeout(() => setPhase('income'), 500) }
+    }, 750)
   }
 
-  const banks = [
-    { id: 'bofa', name: 'Bank of America', color: '#E31837' },
-    { id: 'chase', name: 'Chase', color: '#117ACA' },
-    { id: 'wells', name: 'Wells Fargo', color: '#CC0000' },
-    { id: 'citi', name: 'Citibank', color: '#003F83' },
-    { id: 'usbank', name: 'US Bank', color: '#00274D' },
-    { id: 'other', name: 'Other institution', color: '#6B7280' },
-  ]
+  function toggleSource(id) {
+    setSelectedSources(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
 
-  return (
-    <div className="">
-      <div className="mb-6">
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your income</h1>
-        <p className="text-sm text-gray-500">OWNING requires income verification to finalize your loan. Securely link your bank — read-only access, takes about 30 seconds.</p>
+  const selectedSourceData = INCOME_SOURCES.filter(s => selectedSources.includes(s.id))
+  const total12mo = selectedSourceData.reduce((sum, s) => {
+    const n = parseInt(s.annual.replace(/[^0-9]/g, ''))
+    return sum + n
+  }, 0)
+
+  // ── Shared Plaid modal shell ──
+  const PlaidShell = ({ children, step }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+          Step 4 of 7 · Link Account to Verify Income Sources
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          Link Account to Verify Income Sources
+        </h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
+          Powered by Plaid · Secure · Read-only access
+        </p>
       </div>
 
-      {phase === 'select' && (
-        <Card>
-          <CardHeader title="Select your bank" sub="Powered by Plaid · 256-bit encryption" />
-          <CardBody>
-            <div className="grid grid-cols-2 gap-2">
-              {banks.map(b => (
-                <button key={b.id} onClick={() => handleConnect(b)}
-                  className="flex items-center gap-3 p-3 rounded-xl border transition-all text-left"
-                  style={{ borderColor: 'rgba(0,22,96,0.1)', background: '#fff' }}
-                  onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
-                  onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white text-[11px] font-black"
-                    style={{ background: b.color }}>{b.name[0]}</div>
-                  <span className="text-[12px] font-medium" style={{ color: '#001660' }}>{b.name}</span>
-                </button>
-              ))}
+      {/* Plaid card */}
+      <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.08)', marginBottom: 16 }}>
+        {/* Plaid top bar */}
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <PlaidLogo />
+          {/* Step dots */}
+          <div style={{ display: 'flex', gap: 5 }}>
+            {['intro','select','connecting','income','review'].map((s, i) => (
+              <div key={s} style={{ width: 6, height: 6, borderRadius: '50%', background: s === step ? '#111' : 'rgba(0,0,0,0.15)', transition: 'background 0.2s' }} />
+            ))}
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+
+  // ── Phase: intro ──────────────────────────────────────────────────────────
+  if (phase === 'intro') return (
+    <PlaidShell step="intro">
+      <div style={{ padding: '32px 28px 28px', textAlign: 'center' }}>
+        {/* App + Plaid logos */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 28 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: '#001660', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: '#fff' }}>G</div>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10h12M10 4l6 6-6 6" stroke="rgba(0,0,0,0.25)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <rect x="2" y="2" width="8" height="8" rx="1.5" fill="white"/>
+              <rect x="12" y="2" width="8" height="8" rx="1.5" fill="white"/>
+              <rect x="2" y="12" width="8" height="8" rx="1.5" fill="white"/>
+              <rect x="12" y="12" width="8" height="8" rx="1.5" fill="white"/>
+            </svg>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6, lineHeight: 1.3 }}>
+          GreenLyne uses Plaid to connect your accounts
+        </div>
+        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 28, lineHeight: 1.6 }}>
+          To verify your income, we'll securely link your bank using Plaid.
+        </div>
+
+        <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
+          {[
+            { icon: '⚡', title: 'Connect effortlessly', body: "Plaid lets you securely connect your financial accounts in seconds" },
+            { icon: '🔒', title: 'Private',              body: "Plaid doesn't sell personal info, and will only use it with your permission" },
+          ].map(({ icon, title, body }) => (
+            <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 18, marginTop: 1 }}>{icon}</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>{title}</div>
+                <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>{body}</div>
+              </div>
             </div>
-            <button onClick={() => dispatch({ type: 'NEXT' })}
-              className="w-full mt-3 py-2 text-[11px] text-gray-400 hover:text-gray-600 transition-colors">
-              Skip — I'll provide documents manually
+          ))}
+        </div>
+
+        <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 16, lineHeight: 1.6 }}>
+          By selecting "Continue" you agree to the{' '}
+          <span style={{ color: '#111', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Plaid End User Privacy Policy</span>
+        </p>
+
+        <button
+          onClick={() => setPhase('select')}
+          style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#111', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Continue
+        </button>
+      </div>
+    </PlaidShell>
+  )
+
+  // ── Phase: select ─────────────────────────────────────────────────────────
+  if (phase === 'select') return (
+    <PlaidShell step="select">
+      <div style={{ padding: '20px 20px 8px' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 14 }}>Select your bank</div>
+
+        {/* Search */}
+        <div style={{ position: 'relative', marginBottom: 14 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <circle cx="6" cy="6" r="4.5" stroke="#9CA3AF" strokeWidth="1.5"/>
+            <path d="M10 10L12.5 12.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search"
+            value={bankSearch}
+            onChange={e => setBankSearch(e.target.value)}
+            style={{
+              width: '100%', padding: '9px 12px 9px 34px', borderRadius: 8,
+              border: '1px solid rgba(0,0,0,0.15)', fontSize: 14, color: '#111',
+              background: '#F8F9FC', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+            }}
+            onFocus={e => e.target.style.borderColor = '#111'}
+            onBlur={e => e.target.style.borderColor = 'rgba(0,0,0,0.15)'}
+          />
+        </div>
+
+        {/* Bank list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 280, overflowY: 'auto', marginBottom: 10 }}>
+          {filteredBanks.map(b => (
+            <button
+              key={b.id}
+              onClick={() => handleConnect(b)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 12px', borderRadius: 10, border: 'none',
+                background: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8F9FC'}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: b.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff' }}>
+                {b.name[0]}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{b.name}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF' }}>{b.url}</div>
+              </div>
             </button>
-          </CardBody>
-        </Card>
-      )}
+          ))}
+          {filteredBanks.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '20px', fontSize: 13, color: '#9CA3AF' }}>No banks found</div>
+          )}
+        </div>
 
-      {phase === 'connecting' && (
-        <Card>
-          <CardBody>
-            <div className="text-center py-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-black"
-                style={{ background: selectedBank?.color }}>{selectedBank?.name[0]}</div>
-              <div className="text-sm font-semibold mb-1" style={{ color: '#001660' }}>Connecting to {selectedBank?.name}…</div>
-              <div className="text-[11px] text-gray-400 mb-5">Authenticating securely · Do not close this window</div>
-              <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(0,22,96,0.07)' }}>
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: '#254BCE' }} />
-              </div>
-              <div className="text-[10px] text-gray-400">
-                {progress < 40 ? 'Establishing secure connection…' : progress < 75 ? 'Verifying credentials…' : 'Reading account data…'}
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+        <button
+          onClick={() => dispatch({ type: 'NEXT' })}
+          style={{ width: '100%', padding: '10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#9CA3AF', fontFamily: 'inherit', marginBottom: 8 }}
+        >
+          Skip — I'll provide documents manually
+        </button>
+      </div>
+    </PlaidShell>
+  )
 
-      {phase === 'done' && (
-        <>
-          <Card>
-            <CardBody>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ECFDF5' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  // ── Phase: connecting ─────────────────────────────────────────────────────
+  if (phase === 'connecting') return (
+    <PlaidShell step="connecting">
+      <div style={{ padding: '40px 28px', textAlign: 'center' }}>
+        {/* Logos with link animation */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 24 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="1" y="1" width="8" height="8" rx="1.5" fill="white"/>
+              <rect x="11" y="1" width="8" height="8" rx="1.5" fill="white"/>
+              <rect x="1" y="11" width="8" height="8" rx="1.5" fill="white"/>
+              <rect x="11" y="11" width="8" height="8" rx="1.5" fill="white"/>
+            </svg>
+          </div>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: progress > i * 33 ? '#111' : 'rgba(0,0,0,0.15)', transition: 'background 0.3s' }} />
+            ))}
+          </div>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: selectedBank?.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#fff' }}>
+            {selectedBank?.name[0]}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#111', marginBottom: 4 }}>
+          Connecting to {selectedBank?.name}
+        </div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 28 }}>
+          Authenticating securely · Do not close this window
+        </div>
+
+        <div style={{ height: 4, borderRadius: 99, background: 'rgba(0,0,0,0.08)', overflow: 'hidden', marginBottom: 10 }}>
+          <div style={{ height: '100%', borderRadius: 99, background: '#111', width: `${progress}%`, transition: 'width 0.7s ease' }} />
+        </div>
+        <div style={{ fontSize: 12, color: '#9CA3AF' }}>{CONNECT_STEPS[connectStep]}</div>
+      </div>
+    </PlaidShell>
+  )
+
+  // ── Phase: income selection ───────────────────────────────────────────────
+  if (phase === 'income') return (
+    <PlaidShell step="income">
+      <div style={{ padding: '20px 20px 8px' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 6 }}>Select your income</div>
+        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6, lineHeight: 1.5 }}>
+          Below are transactions from your <strong style={{ color: '#111' }}>{selectedBank?.name}</strong> account that may represent your income from the past year.
+        </div>
+
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, marginTop: 14 }}>
+          Potential sources of income
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 14 }}>
+          {INCOME_SOURCES.map(src => {
+            const checked = selectedSources.includes(src.id)
+            return (
+              <button
+                key={src.id}
+                onClick={() => toggleSource(src.id)}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  padding: '12px', borderRadius: 10, border: `1.5px solid ${checked ? '#111' : 'transparent'}`,
+                  background: checked ? 'rgba(0,0,0,0.03)' : '#fff',
+                  cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', width: '100%',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <div style={{
+                  width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                  background: checked ? '#111' : '#fff',
+                  border: `2px solid ${checked ? '#111' : 'rgba(0,0,0,0.25)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#111', fontFamily: 'monospace' }}>{src.name}</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{src.type} · {src.date}</div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111', whiteSpace: 'nowrap' }}>{src.amount}</div>
+              </button>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={() => setPhase('review')}
+          disabled={selectedSources.length === 0}
+          style={{
+            width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+            background: selectedSources.length > 0 ? '#111' : 'rgba(0,0,0,0.12)',
+            color: selectedSources.length > 0 ? '#fff' : 'rgba(0,0,0,0.3)',
+            fontSize: 15, fontWeight: 700, cursor: selectedSources.length > 0 ? 'pointer' : 'default',
+            fontFamily: 'inherit', marginBottom: 10,
+          }}
+        >
+          Continue
+        </button>
+        <button onClick={() => setPhase('select')} style={{ width: '100%', padding: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#9CA3AF', fontFamily: 'inherit', marginBottom: 8 }}>
+          ← Choose a different bank
+        </button>
+      </div>
+    </PlaidShell>
+  )
+
+  // ── Phase: review & share ─────────────────────────────────────────────────
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+          Step 4 of 7 · Link Account to Verify Income Sources
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          Link Account to Verify Income Sources
+        </h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Powered by Plaid · Secure · Read-only access</p>
+      </div>
+
+      {/* Success banner */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(1,97,99,0.05)', border: '1.5px solid rgba(1,97,99,0.22)', borderRadius: 14, padding: '14px 18px', marginBottom: 16 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#016163', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="15" height="13" viewBox="0 0 15 13" fill="none"><path d="M1.5 6.5L5.5 10.5L13.5 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#014f51' }}>Income verified</div>
+          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{selectedBank?.name} · Checking ····8241</div>
+        </div>
+      </div>
+
+      {/* Review card */}
+      <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.09)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 16 }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>Review and share with GreenLyne</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>Based on the last 365 days of selected income from your {selectedBank?.name} accounts.</div>
+          </div>
+          <PlaidLogo />
+        </div>
+
+        <div style={{ padding: '4px 0' }}>
+          {selectedSourceData.map((src, i) => (
+            <div key={src.id} style={{ padding: '14px 20px', borderBottom: i < selectedSourceData.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#111', fontFamily: 'monospace', marginBottom: 8 }}>{src.name}</div>
+              <div style={{ display: 'flex', gap: 24 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>Most recent deposit</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{src.amount}</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold" style={{ color: '#001660' }}>Account connected</div>
-                  <div className="text-[11px] text-gray-400">{selectedBank?.name} · Checking ····8241</div>
+                  <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2 }}>12-month earnings</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>{src.annual}</div>
                 </div>
               </div>
-              <div className="rounded-xl p-4 space-y-2.5" style={{ background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.06)' }}>
-                {[['Avg. monthly income','$10,334'],['Avg. monthly deposits','$11,020'],['Avg. account balance','$28,450'],['Months of data','14 months']].map(([l,v]) => (
-                  <div key={l} className="flex justify-between">
-                    <span className="text-[11px] text-gray-500">{l}</span>
-                    <span className="text-[12px] font-bold" style={{ color: '#001660' }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-          <div className="mt-4">
-            <NavButtons onBack={() => dispatch({ type: 'BACK' })} onNext={() => dispatch({ type: 'NEXT' })} nextLabel="Continue to Identity Verification" />
+            </div>
+          ))}
+
+          {/* Total */}
+          <div style={{ padding: '12px 20px', background: 'rgba(0,0,0,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Total 12-month income</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#001660' }}>${total12mo.toLocaleString()}</span>
           </div>
-        </>
-      )}
+        </div>
+
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+          <button onClick={() => setPhase('income')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#254BCE', fontFamily: 'inherit', padding: 0, textDecoration: 'underline' }}>
+            Review additional income info you'll be sharing
+          </button>
+        </div>
+      </div>
+
+      <button
+        onClick={() => dispatch({ type: 'NEXT' })}
+        style={{ width: '100%', padding: '15px', borderRadius: 12, border: 'none', background: '#001660', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}
+        onMouseEnter={e => e.currentTarget.style.background = '#00236e'}
+        onMouseLeave={e => e.currentTarget.style.background = '#001660'}
+      >
+        Allow &amp; Continue to Identity Verification →
+      </button>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button onClick={() => setPhase('income')} style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,22,96,0.4)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+          ← Back
+        </button>
+      </div>
     </div>
   )
 }
@@ -2562,7 +3099,7 @@ function ScreenVerifyIdentity({ dispatch }) {
   return (
     <div className="space-y-4">
       <div className="mb-6">
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 3 of 7</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 5 of 7</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em' }}>Verify your identity</h1>
         <p className="text-sm text-gray-500">Required by federal law. Your information is encrypted and never shared.</p>
       </div>
@@ -2623,7 +3160,7 @@ function ScreenVerifyIdentity({ dispatch }) {
         onBack={() => dispatch({ type: 'BACK' })}
         onNext={() => dispatch({ type: 'NEXT' })}
         disabled={!idUploaded || !selfieCapture}
-        nextLabel="Submit Application" />
+        nextLabel="Continue" />
     </div>
   )
 }
@@ -2631,6 +3168,167 @@ function ScreenVerifyIdentity({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Property Verify Wait — auto-advances after delay
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Offer Loading (30-45 s pre-offer check)
+// ─────────────────────────────────────────────────────────────────────────────
+function ScreenOfferLoading({ dispatch, sim }) {
+  const [progress, setProgress] = useState(0)
+  const [stepIdx,  setStepIdx]  = useState(0)
+
+  const steps = [
+    'Retrieving Property Value…',
+    'Retrieving Credit Information (soft credit pull)…',
+    'Checking Property Title & Ownership…',
+    'Optimizing Loan Offer…',
+    'Personalizing Max Loan Amount…',
+    'Configuring Loan APR…',
+    'Configuring Loan Insurance…',
+  ]
+
+  useEffect(() => {
+    const stagePcts = [10, 25, 42, 58, 72, 85, 95]
+    const stageMsec = [400, 1100, 2000, 2900, 3700, 4500, 5300]
+
+    const timers = stageMsec.map((ms, i) => setTimeout(() => {
+      setProgress(stagePcts[i])
+      setStepIdx(i)
+    }, ms))
+
+    const done = setTimeout(() => {
+      setProgress(100)
+      setTimeout(() => dispatch({ type: 'AUTO_ADVANCE' }), 400)
+    }, 6300)
+
+    return () => { timers.forEach(clearTimeout); clearTimeout(done) }
+  }, [dispatch])
+
+  return (
+    <div className="flex-1 flex justify-center" style={{ paddingTop: 48, paddingInline: 32, paddingBottom: 32 }}>
+      <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
+
+        {/* Animated icon */}
+        <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(37,75,206,0.07)', border: '2px solid rgba(37,75,206,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+          <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+        </div>
+
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#001660', marginBottom: 8 }}>Analyzing your application</h2>
+        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 28, lineHeight: 1.6 }}>
+          This usually takes 30–45 seconds. We're running automated checks in the background.
+        </p>
+
+        {/* Progress bar */}
+        <div style={{ height: 6, borderRadius: 99, background: 'rgba(0,22,96,0.08)', overflow: 'hidden', marginBottom: 10 }}>
+          <div style={{ height: '100%', borderRadius: 99, background: '#254BCE', width: `${progress}%`, transition: 'width 0.8s ease' }} />
+        </div>
+        <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 28 }}>{steps[stepIdx]}</div>
+
+        {/* Checklist */}
+        <div style={{ background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.06)', borderRadius: 16, padding: 16, textAlign: 'left' }}>
+          {steps.map((s, i) => {
+            const done   = i < stepIdx
+            const active = i === stepIdx
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < steps.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none' }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: done ? '#10B981' : active ? '#254BCE' : 'rgba(0,22,96,0.08)' }}>
+                  {done && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                  {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 13, color: done ? '#6B7280' : active ? '#001660' : 'rgba(0,22,96,0.28)', fontWeight: active ? 600 : 400 }}>{s}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Identity Challenge
+// ─────────────────────────────────────────────────────────────────────────────
+function ScreenIdentityChallenge({ dispatch }) {
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div style={{ maxWidth: 440, width: '100%', textAlign: 'center' }}>
+
+        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#001660', marginBottom: 8 }}>Identity verification required</h2>
+        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.65 }}>
+          We weren't able to fully verify your identity automatically. This happens occasionally and is nothing to worry about — we just need a bit more from you.
+        </p>
+
+        <div style={{ background: '#FFFBEB', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 16, padding: 20, textAlign: 'left', marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#92400E', marginBottom: 12 }}>What happens next</div>
+          {[
+            "Upload a government-issued photo ID (driver's license or passport)",
+            'Take a quick selfie for facial matching',
+            "We'll re-run the check automatically — typically completes in under 2 minutes",
+          ].map((item, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{i + 1}</span>
+              </div>
+              <span style={{ fontSize: 13, color: '#92400E', lineHeight: 1.5 }}>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={() => dispatch({ type: 'BACK' })}
+          style={{ fontSize: 14, color: '#6B7280', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', marginTop: 8 }}>
+          ← Return to application
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Address Mismatch
+// ─────────────────────────────────────────────────────────────────────────────
+function ScreenAddressMismatch({ dispatch }) {
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div style={{ maxWidth: 440, width: '100%', textAlign: 'center' }}>
+
+        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#001660', marginBottom: 8 }}>We couldn't match your address</h2>
+        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.65 }}>
+          The property address you entered didn't match our records exactly. Please review and correct it so we can continue processing your application.
+        </p>
+
+        <div style={{ background: '#FEF2F2', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 16, padding: 20, textAlign: 'left', marginBottom: 24 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#991B1B', marginBottom: 8 }}>Address on file</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#DC2626', marginBottom: 4 }}>4821 Oakbrook Dr</div>
+          <div style={{ fontSize: 13, color: '#991B1B' }}>San Jose, CA 95126</div>
+        </div>
+
+        <button
+          onClick={() => dispatch({ type: 'BACK' })}
+          style={{ width: '100%', padding: '13px 24px', borderRadius: 14, background: '#254BCE', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(37,75,206,0.28)', marginBottom: 12 }}>
+          ← Review &amp; correct my address
+        </button>
+        <div style={{ fontSize: 12, color: '#9CA3AF' }}>
+          Or contact support if you believe the address is correct.
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ScreenPropertyVerifyWait({ dispatch }) {
   const [progress, setProgress] = useState(0)
   const [label, setLabel] = useState('Submitting application…')
@@ -2735,41 +3433,63 @@ function ScreenAppraisalWait() {
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenOpsReviewWait() {
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div className="max-w-md w-full">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(37,75,206,0.08)', border: '1px solid rgba(37,75,206,0.15)' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <div style={{ maxWidth: 480, width: '100%' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>
+          Step 6 of 7 · Review in progress
+        </div>
+
+        {/* Clock icon */}
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(245,158,11,0.09)', border: '2px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', marginBottom: 10, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          We're doing a quick manual review.
+        </h1>
+        <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, lineHeight: 1.65 }}>
+          Nothing has gone wrong. A member of our operations team needs to confirm one detail before you can sign. This is routine — your rate, terms, and approval are not affected.
+        </p>
+
+        {/* What they're checking */}
+        <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', marginBottom: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 18px', background: '#F8F9FC', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,22,96,0.4)' }}>What our team is reviewing</div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold" style={{ color: '#001660' }}>Under operations review</h2>
-            <div className="text-sm" style={{ color: '#254BCE' }}>Estimated: 1–2 business days</div>
+          <div style={{ padding: '16px 18px', background: '#fff' }}>
+            <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.65, margin: 0 }}>
+              Our operations team is verifying the ownership and title details on your property. This step fires automatically when our system detects a discrepancy that needs a human to confirm — things like vesting name differences or address formatting.
+            </p>
           </div>
         </div>
-        <Card>
-          <CardBody>
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Your application has been flagged for a brief manual review by our operations team. This is a standard step for certain loan profiles.
-              </p>
-              <div className="rounded-xl p-4 space-y-2" style={{ background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.06)' }}>
-                {[
-                  ['Application ID','GL-2026-019234'],
-                  ['Submitted','Today at 2:14 PM'],
-                  ['Reviewer assigned','Pending'],
-                  ['Expected completion','1–2 business days'],
-                ].map(([l,v]) => (
-                  <div key={l} className="flex justify-between">
-                    <span className="text-[11px] text-gray-500">{l}</span>
-                    <span className="text-[11px] font-semibold" style={{ color: '#001660' }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[10px] text-gray-400">We'll notify you by email and SMS when the review is complete. Your GreenLyne specialist is available at (877) 265-0703 to check status.</div>
-              <div className="text-[10px] text-gray-400">Use the Sim Controls panel to advance this state.</div>
+
+        {/* Status card */}
+        <div style={{ borderRadius: 16, border: '1px solid rgba(0,22,96,0.08)', padding: '4px 18px', marginBottom: 20, background: '#F8F9FC' }}>
+          {[
+            ['Application ID', 'GL-2026-019234'],
+            ['Submitted', 'Today at 2:14 PM'],
+            ['Reviewer assigned', 'Pending'],
+            ['Estimated resolution', '1–2 business days'],
+          ].map(([l, v], i, arr) => (
+            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none' }}>
+              <span style={{ fontSize: 12, color: '#6B7280' }}>{l}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>{v}</span>
             </div>
-          </CardBody>
-        </Card>
+          ))}
+        </div>
+
+        {/* CTAs */}
+        <button style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: '#254BCE', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(37,75,206,0.25)', marginBottom: 10 }}>
+          Go to my dashboard
+        </button>
+        <button style={{ width: '100%', padding: '13px 24px', borderRadius: 14, background: '#fff', color: '#001660', fontSize: 14, fontWeight: 600, border: '1.5px solid rgba(0,22,96,0.15)', cursor: 'pointer', fontFamily: 'inherit' }}>
+          Call OPS to expedite — (844) 855-0160
+        </button>
+        <p style={{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
+          You'll receive an email and SMS as soon as you're cleared to continue.<br/>Use Sim Controls to advance this state in the demo.
+        </p>
       </div>
     </div>
   )
@@ -2782,105 +3502,140 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
   const tierData = FEE_TIERS[step2.tier ?? 0]
   const displayLoan = loan ?? calcLoan({ creditLimit: SEED.defaultCredit, withdrawNow: SEED.defaultWithdraw, tier: 0, deferredMonths: 0 })
   const [agreed, setAgreed] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
 
   return (
-    <div className="space-y-4">
-      <div className="mb-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3" style={{ background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)' }}>
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[11px] font-bold text-emerald-700">Conditionally approved</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
+          Step 6 of 7
         </div>
-        <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Your pre-configured offer is confirmed</h1>
-        <p className="text-sm text-gray-500">GreenLyne built this loan specifically for your solar project at 1482 Sunridge Drive. Review and accept to proceed to closing.</p>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46' }}>Conditionally approved</span>
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          One last look before you sign.
+        </h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
+          Your offer is locked in. Review the numbers, then we'll walk you through your documents.
+        </p>
       </div>
 
-      {/* Hero offer card */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(37,75,206,0.2)', boxShadow: '0 4px 24px rgba(37,75,206,0.1)' }}>
-        <div className="px-6 py-5" style={{ background: '#001660' }}>
-          <div className="flex items-end justify-between">
+      {/* Condensed offer tile */}
+      <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(37,75,206,0.18)', boxShadow: '0 4px 24px rgba(37,75,206,0.08)' }}>
+        <div style={{ padding: '20px 24px', background: '#001660' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-white/50 mb-1">Credit limit approved</div>
-              <div className="text-4xl font-bold text-white">{formatCurrencyFull(displayLoan.creditLimit)}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>Your approved offer</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>{formatCurrencyFull(displayLoan.creditLimit)}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 }}>Credit limit</div>
             </div>
-            <div className="text-right">
-              <div className="text-[11px] text-white/50 mb-1">Initial draw</div>
-              <div className="text-2xl font-bold" style={{ color: '#60A5FA' }}>{formatCurrencyFull(displayLoan.withdrawNow)}</div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 4 }}>Initial draw</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#60A5FA' }}>{formatCurrencyFull(displayLoan.withdrawNow)}</div>
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-3 divide-x" style={{ background: '#fff', borderTop: '1px solid rgba(37,75,206,0.1)', divideColor: 'rgba(37,75,206,0.1)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: '#fff', borderTop: '1px solid rgba(37,75,206,0.1)' }}>
           {[
-            { l: 'Draw Payment', v: `${formatCurrencyFull(displayLoan.drawPayment)}/mo`, s: 'Interest only · 10 yr' },
-            { l: 'Repay Payment', v: `${formatCurrencyFull(displayLoan.repayPayment)}/mo`, s: 'P+I · 20 yr' },
+            { l: 'Draw payment', v: `${formatCurrencyFull(displayLoan.drawPayment)}/mo`, s: 'Interest only · 10 yr' },
+            { l: 'Repay payment', v: `${formatCurrencyFull(displayLoan.repayPayment)}/mo`, s: 'P+I · 20 yr' },
             { l: 'APR', v: `${displayLoan.apr}%`, s: `Rate ${tierData.rate}% · Fee ${tierData.fee}%` },
-          ].map(item => (
-            <div key={item.l} className="px-5 py-4">
-              <div className="text-[10px] text-gray-400 mb-0.5">{item.l}</div>
-              <div className="text-base font-bold" style={{ color: '#001660' }}>{item.v}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{item.s}</div>
+          ].map((item, i) => (
+            <div key={item.l} style={{ padding: '14px 20px', borderLeft: i > 0 ? '1px solid rgba(37,75,206,0.08)' : 'none' }}>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 3 }}>{item.l}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#001660' }}>{item.v}</div>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 2 }}>{item.s}</div>
             </div>
           ))}
         </div>
+        {/* Expandable full terms */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(37,75,206,0.06)', background: '#FAFBFF' }}>
+          <button
+            onClick={() => setShowTerms(!showTerms)}
+            style={{ fontSize: 12, color: '#254BCE', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+            {showTerms ? 'Hide full loan terms ↑' : 'View full loan terms ↓'}
+          </button>
+          {showTerms && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px', marginTop: 14 }}>
+              {[
+                ['Product type', 'HELOC (Variable rate)'],
+                ['Draw period', '10 years'],
+                ['Repayment period', '20 years'],
+                ['Total term', '30 years'],
+                ['Origination fee', `${formatCurrencyFull(displayLoan.originationFee)} (rolled in)`],
+                ['Cash at closing', '$0'],
+                ['Available after draw', formatCurrencyFull(displayLoan.availableAfter)],
+                ['Prepayment penalty', 'None'],
+              ].map(([l, v]) => (
+                <div key={l}>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{l}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Additional terms */}
-      <Card>
-        <CardHeader title="Full loan terms" />
-        <CardBody>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              ['Product type', 'HELOC (Variable rate)'],
-              ['Draw period', '10 years'],
-              ['Repayment period', '20 years'],
-              ['Total term', '30 years'],
-              ['Origination fee', `${formatCurrencyFull(displayLoan.originationFee)} (rolled in)`],
-              ['Cash at closing', '$0'],
-              ['Available after draw', formatCurrencyFull(displayLoan.availableAfter)],
-              ['Prepayment penalty', 'None'],
-            ].map(([l,v]) => (
-              <div key={l}>
-                <div className="text-[12px] text-gray-400 mb-1">{l}</div>
-                <div className="text-[17px] font-semibold" style={{ color: '#001660' }}>{v}</div>
-              </div>
-            ))}
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Acknowledgment */}
-      <div className="rounded-2xl p-4" style={{ background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)' }}>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <div className="relative shrink-0 mt-0.5">
-            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="sr-only" />
-            <div className="w-4 h-4 rounded flex items-center justify-center border transition-all"
-              style={{ borderColor: agreed ? '#254BCE' : 'rgba(0,22,96,0.2)', background: agreed ? '#254BCE' : '#fff' }}>
-              {agreed && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+      {/* What you'll do next — roadmap */}
+      <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', background: '#F8F9FC', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#001660' }}>What you'll do next</div>
+        </div>
+        {[
+          {
+            n: 1, title: 'Sign your loan documents',
+            desc: '8 documents, done right here. Takes about 8–12 minutes. The Deed of Trust is signed separately with your notary.',
+          },
+          {
+            n: 2, title: 'Schedule a notary appointment',
+            desc: "We'll connect you with a local or eNotary to complete the Deed of Trust. Most appointments are available within 48 hours.",
+          },
+          {
+            n: 3, title: 'Property check',
+            desc: "In rare cases — typically FEMA-declared disaster areas — we may request a Property Condition Report before releasing funds. We'll let you know if this applies to you.",
+          },
+        ].map((item, i, arr) => (
+          <div key={item.n} style={{ display: 'flex', gap: 14, padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none', background: '#fff' }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#254BCE', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, fontWeight: 800, marginTop: 1 }}>{item.n}</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 3 }}>{item.title}</div>
+              <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>{item.desc}</div>
             </div>
           </div>
-          <div className="text-[11px] text-gray-600 leading-relaxed">
-            I have reviewed and understand the loan terms. I authorize Figure Lending to proceed with the closing process. This is not a final binding agreement until documents are signed.
+        ))}
+      </div>
+
+      {/* Acknowledgment checkbox */}
+      <div style={{ borderRadius: 14, padding: '14px 16px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)' }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+          <div style={{ position: 'relative', flexShrink: 0, marginTop: 2 }}>
+            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
+            <div style={{ width: 18, height: 18, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${agreed ? '#254BCE' : 'rgba(0,22,96,0.2)'}`, background: agreed ? '#254BCE' : '#fff', transition: 'all 0.15s' }}>
+              {agreed && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>
+            I have reviewed the terms above and authorize GreenLyne / Owning (NMLS #2611) to proceed to closing. This is not a final binding agreement until all documents are signed.
           </div>
         </label>
       </div>
 
-      <div className="flex items-center justify-between pb-8">
-        <div className="flex gap-3">
-          <button onClick={() => dispatch({ type: 'BACK' })}
-            className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
-            style={{ borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}>
-            ← Back
-          </button>
-          <button onClick={() => dispatch({ type: 'DECLINE_OFFER' })}
-            className="px-5 py-2.5 text-sm font-semibold rounded-xl border transition-colors"
-            style={{ borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.5)', background: '#fff' }}>
-            Decline offer
-          </button>
-        </div>
-        <button onClick={() => dispatch({ type: 'ACCEPT' })} disabled={!agreed}
-          className="py-2.5 px-6 text-sm font-bold rounded-xl transition-all"
-          style={{ background: agreed ? '#254BCE' : 'rgba(0,22,96,0.2)', color: '#fff',
-            boxShadow: agreed ? '0 4px 16px rgba(37,75,206,0.3)' : 'none', cursor: agreed ? 'pointer' : 'not-allowed' }}>
-          Accept Offer & Proceed to Closing →
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 32 }}>
+        <button
+          onClick={() => dispatch({ type: 'DECLINE_OFFER' })}
+          style={{ fontSize: 13, color: 'rgba(0,22,96,0.4)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+          Decline this offer
+        </button>
+        <button
+          onClick={() => dispatch({ type: 'ACCEPT' })}
+          disabled={!agreed}
+          style={{ padding: '14px 26px', borderRadius: 14, background: agreed ? '#254BCE' : 'rgba(0,22,96,0.15)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: agreed ? 'pointer' : 'not-allowed', boxShadow: agreed ? '0 4px 20px rgba(37,75,206,0.32)' : 'none', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+          Accept offer and begin signing →
         </button>
       </div>
     </div>
@@ -2933,137 +3688,594 @@ function ScreenDeclined({ dispatch }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen: C·1 — Docs Preparing
+// Screen: Sign Documents (Step 6) — 8-doc e-signing flow
 // ─────────────────────────────────────────────────────────────────────────────
+
+const SIGN_DOCS = [
+  {
+    name: 'HELOC Agreement',
+    desc: 'The main contract — your credit limit, draw period, and repayment terms.',
+    typedSig: true,
+    body: `This Home Equity Line of Credit Agreement ("Agreement") is entered into between Alex Rivera ("Borrower") and Owning, LLC (NMLS #2611) ("Lender").\n\nCredit Limit: $131,800.00\nDraw Period: 10 years from date of closing\nRepayment Period: 20 years\nVariable Rate: Indexed to Prime Rate + margin\n\nBorrower agrees to repay all advances made under this line of credit, together with interest accrued thereon, in accordance with the terms set forth herein. During the draw period, minimum monthly payments shall be interest only on the outstanding balance. During the repayment period, payments shall include principal and interest.\n\nThis Agreement shall be governed by the laws of the State of California.`,
+  },
+  {
+    name: 'Promissory Note',
+    desc: 'Your personal promise to repay the line of credit.',
+    typedSig: true,
+    body: `FOR VALUE RECEIVED, Alex Rivera ("Maker") promises to pay to the order of Owning, LLC (NMLS #2611) the principal sum of ONE HUNDRED THIRTY-ONE THOUSAND EIGHT HUNDRED DOLLARS ($131,800.00), or so much thereof as may be advanced under the Home Equity Line of Credit Agreement dated herewith, together with interest on the outstanding principal balance.\n\nPayments shall be due on the first day of each calendar month. This Note is secured by a Deed of Trust on the property located at 1482 Sunridge Drive, Sacramento, CA.\n\nMaker waives presentment, demand, protest, and notice of dishonor.`,
+  },
+  {
+    name: 'Truth in Lending (TILA) Disclosure',
+    desc: 'Your total cost of borrowing in plain numbers. Required by federal law.',
+    typedSig: false,
+    body: `ANNUAL PERCENTAGE RATE: 8.25%\nFINANCE CHARGE: Varies based on draw amount and repayment schedule\nAMOUNT FINANCED: Up to $131,800.00\nTOTAL OF PAYMENTS: Dependent on utilization\n\nThis disclosure is provided pursuant to the Truth in Lending Act (15 U.S.C. §1601 et seq.) and Regulation Z. The figures shown above are estimates based on your current draw amount.\n\nVariable Rate: Your APR may change. Ask us for information about our index and margin.`,
+  },
+  {
+    name: 'Fee Disclosure',
+    desc: 'Itemizes origination and closing fees.',
+    typedSig: false,
+    body: `ITEMIZATION OF AMOUNT FINANCED\n\nOrigination Fee: $1,318.00 (1.0% — rolled into loan)\nAppraisal Fee: Waived\nTitle Search Fee: $0\nRecording Fee: $0\nFlood Determination Fee: $0\n\nTotal Closing Costs: $1,318.00\nCash Required at Closing: $0.00\n\nAll fees listed above are included in your APR calculation. No additional fees are required at closing.`,
+  },
+  {
+    name: 'Compliance Agreement',
+    desc: "Confirms you'll cooperate if corrections to the documents are needed after closing.",
+    typedSig: false,
+    body: `In consideration of Lender making the loan described herein, Borrower agrees to cooperate fully with Lender and to execute, acknowledge, and deliver any additional documents, instruments, or agreements that Lender may reasonably require to correct clerical errors or omissions in the loan documents.\n\nBorrower understands this obligation is standard practice in real estate lending and does not alter the material terms of the loan.`,
+  },
+  {
+    name: 'Right of Rescission Notice',
+    desc: 'Your right to cancel within 3 business days of closing. Required by federal law.',
+    typedSig: false,
+    body: `NOTICE OF RIGHT TO CANCEL\n\nYour Right to Cancel: You are entering into a transaction that will result in a security interest on your home. You have a legal right under federal law to cancel this transaction, without cost, within THREE BUSINESS DAYS from whichever of the following events occurs last:\n\n(1) The date of the transaction, which is the date documents are signed;\n(2) The date you received your Truth in Lending disclosures;\n(3) The date you received this notice of your right to cancel.\n\nTo cancel this transaction, mail or deliver a written notice to Owning, LLC (NMLS #2611) by midnight of the third business day.`,
+  },
+  {
+    name: 'Flood Zone Disclosure',
+    desc: 'Confirms whether your property is in a FEMA-designated flood zone.',
+    typedSig: false,
+    body: `FLOOD ZONE DETERMINATION\n\nProperty Address: 1482 Sunridge Drive, Sacramento, CA 95826\nFEMA Map Number: 06067C0305H\nMap Date: May 18, 2009\n\nFlood Zone Designation: Zone X (Minimal flood hazard)\n\nBased on information obtained from the National Flood Insurance Program, the property securing your loan is NOT located in a Special Flood Hazard Area. Federal law does not require you to purchase flood insurance at this time; however, you may elect to do so.`,
+  },
+  {
+    name: 'Arbitration Agreement',
+    desc: 'Agreement to resolve disputes outside of court.',
+    typedSig: false,
+    body: `AGREEMENT TO ARBITRATE\n\nYou and Lender agree that any dispute, claim, or controversy arising out of or relating to this loan or these documents shall be resolved by binding arbitration administered by JAMS.\n\nYou understand that:\n• You are waiving your right to a jury trial\n• Arbitration decisions are final and binding\n• Class action lawsuits are not permitted under this agreement\n\nYou have the right to opt out of this arbitration agreement within 30 days of signing by sending written notice to Owning, LLC (NMLS #2611). Opting out will not affect your loan terms.`,
+  },
+]
+
 function ScreenDocsPreparing({ dispatch }) {
+  const [signedSet, setSignedSet] = useState(new Set())
+  const [modalIdx, setModalIdx]   = useState(null)
+  const [viewOnly, setViewOnly]   = useState(false)
+  const [typedName, setTypedName] = useState('')
+
+  const allSigned  = signedSet.size === SIGN_DOCS.length
+  const modalDoc   = modalIdx !== null ? SIGN_DOCS[modalIdx] : null
+  const canSign    = modalDoc?.typedSig ? typedName.trim().length > 3 : true
+
+  function openSign(i) { setModalIdx(i); setViewOnly(false); setTypedName('') }
+  function openView(i) { setModalIdx(i); setViewOnly(true) }
+  function closeModal() { setModalIdx(null); setTypedName('') }
+  function confirmSign() {
+    setSignedSet(prev => new Set([...prev, modalIdx]))
+    closeModal()
+  }
+
+  const signedDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
   return (
-    <div className="">
-      <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·1 — Documents Preparing</div>
-      <h1 className="text-2xl font-bold mb-3" style={{ color: '#001660' }}>Closing documents are being prepared</h1>
-      <div className="rounded-2xl border p-6 mb-4 text-center" style={{ borderColor: 'rgba(0,22,96,0.1)', background: '#f8f9fa' }}>
-        <div className="text-4xl mb-3">📄</div>
-        <div className="text-sm font-semibold mb-1" style={{ color: '#001660' }}>Document generation in progress</div>
-        <div className="text-xs text-gray-400 leading-relaxed">Our team is preparing your closing documents. This typically takes 1–2 business days. We'll notify you when they're ready to review.</div>
+    <>
+      {/* ── Document modal overlay ─────────────────────────────────────────── */}
+      {modalIdx !== null && (
+        <div
+          onClick={closeModal}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,10,40,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, backdropFilter: 'blur(3px)' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 20, maxWidth: 620, width: '100%', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,0.28)' }}
+          >
+            {/* Modal header */}
+            <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(0,22,96,0.08)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#001660', marginBottom: 3 }}>{modalDoc.name}</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF' }}>{modalDoc.desc}</div>
+              </div>
+              <button onClick={closeModal} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,22,96,0.06)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 16 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            {/* Signed banner (view-only mode) */}
+            {viewOnly && (
+              <div style={{ padding: '9px 24px', background: '#ECFDF5', borderBottom: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#065F46' }}>Signed — {signedDate}</span>
+              </div>
+            )}
+
+            {/* Document body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', fontFamily: 'Georgia, serif', fontSize: 13, lineHeight: 1.9, color: '#1F2937', whiteSpace: 'pre-wrap' }}>
+              {modalDoc.body}
+            </div>
+
+            {/* Footer — signing controls */}
+            {!viewOnly && (
+              <div style={{ padding: '18px 24px', borderTop: '1px solid rgba(0,22,96,0.08)', flexShrink: 0, background: '#FAFBFF' }}>
+                {modalDoc.typedSig && (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#001660', display: 'block', marginBottom: 8 }}>Type your full legal name to sign</label>
+                    <input
+                      value={typedName}
+                      onChange={e => setTypedName(e.target.value)}
+                      placeholder="Alex Rivera"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.15)', fontSize: 17, fontFamily: 'Georgia, serif', fontStyle: 'italic', color: '#001660', outline: 'none', boxSizing: 'border-box', background: '#fff' }}
+                    />
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 14, lineHeight: 1.6 }}>
+                  By clicking "Sign document," I agree to be legally bound by the {modalDoc.name}, dated {signedDate}. This constitutes my electronic signature under the ESIGN Act (15 U.S.C. §7001).
+                </div>
+                <button
+                  onClick={confirmSign}
+                  disabled={!canSign}
+                  style={{ width: '100%', padding: '13px 24px', borderRadius: 12, background: canSign ? '#254BCE' : 'rgba(0,22,96,0.12)', color: canSign ? '#fff' : 'rgba(0,22,96,0.3)', fontSize: 15, fontWeight: 700, border: 'none', cursor: canSign ? 'pointer' : 'not-allowed', fontFamily: 'inherit', boxShadow: canSign ? '0 4px 16px rgba(37,75,206,0.28)' : 'none', transition: 'all 0.15s' }}
+                >
+                  Sign document →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Main page ──────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
+            Step 6 of 7
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+            Sign your documents.
+          </h1>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
+            {allSigned
+              ? "All documents signed. You're ready to schedule your notary."
+              : 'Open each document, read it, and sign. The Deed of Trust is handled separately with your notary in Step 7.'}
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>{signedSet.size} of {SIGN_DOCS.length} signed</span>
+            {allSigned && <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981' }}>All done</span>}
+          </div>
+          <div style={{ height: 4, borderRadius: 99, background: 'rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 99, background: allSigned ? '#10B981' : '#254BCE', width: `${(signedSet.size / SIGN_DOCS.length) * 100}%`, transition: 'width 0.35s ease, background 0.3s' }} />
+          </div>
+        </div>
+
+        {/* Document list */}
+        <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden', marginBottom: 20 }}>
+          {SIGN_DOCS.map((doc, i) => {
+            const signed = signedSet.has(i)
+            return (
+              <div key={doc.name} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '15px 18px', borderBottom: i < SIGN_DOCS.length - 1 ? '1px solid rgba(0,22,96,0.06)' : 'none', background: signed ? 'rgba(16,185,129,0.025)' : '#fff', transition: 'background 0.2s' }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: signed ? '#ECFDF5' : 'rgba(37,75,206,0.07)', border: `1.5px solid ${signed ? 'rgba(16,185,129,0.3)' : 'rgba(37,75,206,0.12)'}`, transition: 'all 0.2s' }}>
+                  {signed
+                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <span style={{ fontSize: 11, fontWeight: 700, color: '#254BCE' }}>{i + 1}</span>
+                  }
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: signed ? '#6B7280' : '#001660', marginBottom: 2 }}>{doc.name}</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.4 }}>{doc.desc}</div>
+                </div>
+
+                {signed ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                    <button onClick={() => openView(i)} style={{ fontSize: 12, fontWeight: 600, color: '#254BCE', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+                      View
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 99, background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.25)' }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#065F46' }}>Signed</span>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openSign(i)}
+                    style={{ padding: '7px 18px', borderRadius: 10, background: '#254BCE', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, boxShadow: '0 2px 8px rgba(37,75,206,0.22)', transition: 'background 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#1e3fa8' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#254BCE' }}
+                  >
+                    Sign
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, color: '#9CA3AF', marginBottom: 20 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          256-bit encryption · ESIGN Act compliant · Signed copies emailed automatically
+        </div>
+
+        <button
+          onClick={() => dispatch({ type: 'NEXT' })}
+          disabled={!allSigned}
+          style={{ width: '100%', padding: '15px 24px', borderRadius: 14, background: allSigned ? '#254BCE' : 'rgba(0,22,96,0.1)', color: allSigned ? '#fff' : 'rgba(0,22,96,0.28)', fontSize: 16, fontWeight: 700, border: 'none', cursor: allSigned ? 'pointer' : 'not-allowed', fontFamily: 'inherit', boxShadow: allSigned ? '0 4px 20px rgba(37,75,206,0.3)' : 'none', transition: 'all 0.25s', marginBottom: 10 }}
+        >
+          {allSigned ? 'Continue to schedule my notary →' : `Sign all ${SIGN_DOCS.length} documents to continue`}
+        </button>
+        {!allSigned && (
+          <button
+            onClick={() => setSignedSet(new Set(SIGN_DOCS.map((_, i) => i)))}
+            style={{ fontSize: 12, color: '#9CA3AF', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'center', marginBottom: 32 }}
+          >
+            [Demo] Mark all documents signed
+          </button>
+        )}
       </div>
-      <div className="rounded-xl p-4 text-sm text-blue-600" style={{ background: 'rgba(37,75,206,0.05)', border: '1px solid rgba(37,75,206,0.1)' }}>
-        No action needed right now — we'll reach out when your notary appointment can be scheduled.
-      </div>
-      <button onClick={() => dispatch({ type: 'NEXT' })}
-        className="text-xs text-gray-400 underline block text-center w-full mt-4"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-        [Demo] Documents ready →
-      </button>
-    </div>
+    </>
   )
 }
 
-// Screen: C·2 — Ready to Schedule
 // ─────────────────────────────────────────────────────────────────────────────
+// Screen: Schedule Notary Session (Step 7)
+// ─────────────────────────────────────────────────────────────────────────────
+const NOTARY_DAYS = ['Mon Apr 28', 'Tue Apr 29', 'Wed Apr 30', 'Thu May 1', 'Fri May 2', 'Mon May 5', 'Tue May 6', 'Wed May 7', 'Thu May 8', 'Fri May 9']
+const NOTARY_TIMES = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM']
+const UNAVAILABLE = new Set(['Mon Apr 28-9:00 AM', 'Mon Apr 28-10:00 AM', 'Tue Apr 29-11:00 AM', 'Tue Apr 29-2:00 PM', 'Wed Apr 30-9:30 AM', 'Fri May 2-1:00 PM'])
+
 function ScreenReadyToSchedule({ dispatch }) {
-  return (
-    <div className="space-y-4">
-      <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·2 — Ready to Schedule</div>
-      <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Your documents are ready</h1>
-      <p className="text-sm text-gray-500">Schedule your notary appointment to complete the signing process.</p>
-      <div className="rounded-2xl border p-6" style={{ borderColor: 'rgba(22,163,74,0.25)', background: 'rgba(22,163,74,0.03)' }}>
-        <div className="text-sm font-semibold mb-3" style={{ color: '#001660' }}>Available notary appointments</div>
+  const [phase,       setPhase]       = useState('choose') // 'choose' | 'schedule-a' | 'preflight-b'
+  const [selectedDay, setSelectedDay] = useState(null)
+  const [selectedTime,setSelectedTime]= useState(null)
+  const [address,     setAddress]     = useState('1482 Sunridge Drive, Sacramento, CA 95826')
+  const [checks,      setChecks]      = useState({ id: false, camera: false, quiet: false })
+  const allChecked = Object.values(checks).every(Boolean)
+
+  // ── Path selection ────────────────────────────────────────────────────────
+  if (phase === 'choose') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Step 7 of 7</div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+            One last step: notarize the Deed of Trust.
+          </h1>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
+            Choose how you'd like to meet with a notary. Both options are free and take 20–45 minutes.
+          </p>
+        </div>
+
         {[
-          { label: 'Tomorrow at 10:00 AM', sub: 'Sarah Chen · eNotary' },
-          { label: 'Tomorrow at 2:00 PM',  sub: 'James Park · eNotary' },
-          { label: 'Wed at 11:00 AM',      sub: 'Maria Santos · In-person' },
-        ].map((slot, i) => (
-          <button key={i} onClick={() => dispatch({ type: 'ADVANCE_NOTARY' })}
-            className="w-full text-left rounded-xl border p-4 mb-2 transition-all hover:border-blue-400"
-            style={{ borderColor: 'rgba(0,22,96,0.1)', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}>
-            <div className="text-sm font-semibold" style={{ color: '#001660' }}>{slot.label}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{slot.sub}</div>
+          {
+            path: 'schedule-a',
+            icon: (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ),
+            title: 'Schedule an in-person notary',
+            desc: 'A notary comes to you — at home, your office, or any location you choose. Available in 1–3 business days.',
+            detail: '30–45 min · Requires all signers present',
+          },
+          {
+            path: 'preflight-b',
+            icon: (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            ),
+            title: 'Start an eNotary session now',
+            desc: 'Complete over a secure video call from anywhere. Available today during business hours (Mon–Fri, 8 AM–8 PM PT).',
+            detail: '20–30 min · Just you and a camera',
+          },
+        ].map(opt => (
+          <button key={opt.path} onClick={() => setPhase(opt.path)} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px 20px', borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.1)', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#254BCE'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,75,206,0.1)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,22,96,0.1)'; e.currentTarget.style.boxShadow = 'none' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(37,75,206,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {opt.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#001660', marginBottom: 4 }}>{opt.title}</div>
+              <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5, marginBottom: 8 }}>{opt.desc}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{opt.detail}</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }}><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         ))}
       </div>
+    )
+  }
+
+  // ── Path A: In-person scheduling ──────────────────────────────────────────
+  if (phase === 'schedule-a') {
+    const canConfirm = selectedDay && selectedTime && address.trim().length > 5
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <button onClick={() => setPhase('choose')} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← Back</button>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 7 of 7 · In-person notary</div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em' }}>Schedule your appointment.</h1>
+          <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>Pick a day, time, and location. Your notary will arrive within 15 minutes of the scheduled time.</p>
+        </div>
+
+        {/* Day picker */}
+        <div style={{ borderRadius: 14, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', background: '#F8F9FC', borderBottom: '1px solid rgba(0,22,96,0.06)', fontSize: 12, fontWeight: 700, color: 'rgba(0,22,96,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Select a date</div>
+          <div style={{ padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, background: '#fff' }}>
+            {NOTARY_DAYS.map(day => {
+              const active = selectedDay === day
+              return (
+                <button key={day} onClick={() => { setSelectedDay(day); setSelectedTime(null) }}
+                  style={{ padding: '7px 14px', borderRadius: 10, border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.1)'}`, background: active ? '#254BCE' : '#fff', color: active ? '#fff' : '#001660', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                  {day}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Time picker */}
+        {selectedDay && (
+          <div style={{ borderRadius: 14, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', background: '#F8F9FC', borderBottom: '1px solid rgba(0,22,96,0.06)', fontSize: 12, fontWeight: 700, color: 'rgba(0,22,96,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Select a time</div>
+            <div style={{ padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, background: '#fff' }}>
+              {NOTARY_TIMES.map(time => {
+                const key = `${selectedDay}-${time}`
+                const unavail = UNAVAILABLE.has(key)
+                const active  = selectedTime === time
+                return (
+                  <button key={time} disabled={unavail} onClick={() => setSelectedTime(time)}
+                    style={{ padding: '7px 14px', borderRadius: 10, border: `1.5px solid ${active ? '#254BCE' : unavail ? 'rgba(0,22,96,0.05)' : 'rgba(0,22,96,0.1)'}`, background: active ? '#254BCE' : unavail ? 'rgba(0,22,96,0.03)' : '#fff', color: active ? '#fff' : unavail ? 'rgba(0,22,96,0.2)' : '#001660', fontSize: 12, fontWeight: active ? 700 : 500, cursor: unavail ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                    {time}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Location */}
+        <div style={{ borderRadius: 14, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', background: '#F8F9FC', borderBottom: '1px solid rgba(0,22,96,0.06)', fontSize: 12, fontWeight: 700, color: 'rgba(0,22,96,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Meeting location</div>
+          <div style={{ padding: '14px 16px', background: '#fff' }}>
+            <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Street address, city, state, ZIP"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid rgba(0,22,96,0.12)', fontSize: 14, color: '#001660', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 8 }}>Home, office, or anywhere with a flat surface to sign. All signers must be present.</div>
+          </div>
+        </div>
+
+        {/* Confirmation summary */}
+        {canConfirm && (
+          <div style={{ borderRadius: 14, padding: '14px 18px', background: 'rgba(37,75,206,0.04)', border: '1.5px solid rgba(37,75,206,0.15)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#254BCE', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Your appointment</div>
+            {[
+              ['Date & time', `${selectedDay} at ${selectedTime}`],
+              ['Location', address],
+              ['Duration', '30–45 minutes'],
+              ['Who needs to be there', 'All borrowers on the application'],
+            ].map(([l, v]) => (
+              <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, gap: 16 }}>
+                <span style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>{l}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#001660', textAlign: 'right' }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={() => dispatch({ type: 'ADVANCE_NOTARY' })} disabled={!canConfirm}
+          style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: canConfirm ? '#254BCE' : 'rgba(0,22,96,0.1)', color: canConfirm ? '#fff' : 'rgba(0,22,96,0.28)', fontSize: 15, fontWeight: 700, border: 'none', cursor: canConfirm ? 'pointer' : 'not-allowed', fontFamily: 'inherit', boxShadow: canConfirm ? '0 4px 20px rgba(37,75,206,0.3)' : 'none', transition: 'all 0.2s', marginBottom: 32 }}>
+          Confirm appointment →
+        </button>
+      </div>
+    )
+  }
+
+  // ── Path B: eNotary pre-flight ────────────────────────────────────────────
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <button onClick={() => setPhase('choose')} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← Back</button>
+      </div>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 7 of 7 · eNotary</div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '-0.01em' }}>Before we connect you with a notary.</h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>Make sure you're ready. The session takes 20–30 minutes and can't be paused once it starts.</p>
+      </div>
+
+      {/* Checklist */}
+      <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+        {[
+          { key: 'id',     label: 'Valid government-issued ID', sub: "Driver's license, passport, or state ID — not expired" },
+          { key: 'camera', label: 'Working camera and microphone', sub: 'Test yours now at camera.google.com if unsure' },
+          { key: 'quiet',  label: 'Quiet space, good lighting', sub: 'The notary needs to see your face and ID clearly' },
+        ].map((item, i, arr) => {
+          const checked = checks[item.key]
+          return (
+            <button key={item.key} onClick={() => setChecks(p => ({ ...p, [item.key]: !checked }))}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px', width: '100%', textAlign: 'left', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.06)' : 'none', background: checked ? 'rgba(16,185,129,0.03)' : '#fff', border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}>
+              <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: checked ? '#254BCE' : '#fff', border: `2px solid ${checked ? '#254BCE' : 'rgba(0,22,96,0.18)'}`, transition: 'all 0.15s' }}>
+                {checked && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.4 }}>{item.sub}</div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Hours + accessibility */}
+      <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)', fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+        <strong style={{ color: '#001660' }}>Available Mon–Fri, 8 AM–8 PM PT.</strong> Sessions are recorded for compliance. If you need accessibility accommodations, call us before starting: (844) 855-0160.
+      </div>
+
+      <button onClick={() => dispatch({ type: 'NOTARY_ARRIVED' })} disabled={!allChecked}
+        style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: allChecked ? '#254BCE' : 'rgba(0,22,96,0.1)', color: allChecked ? '#fff' : 'rgba(0,22,96,0.28)', fontSize: 15, fontWeight: 700, border: 'none', cursor: allChecked ? 'pointer' : 'not-allowed', fontFamily: 'inherit', boxShadow: allChecked ? '0 4px 20px rgba(37,75,206,0.3)' : 'none', transition: 'all 0.2s', marginBottom: 32 }}>
+        {allChecked ? "I'm ready — start my session →" : 'Confirm all three items above to continue'}
+      </button>
     </div>
   )
 }
 
-// Screen: C·3 — Notary Scheduled
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Notary Scheduled — appointment confirmed, waiting
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenNotaryScheduled({ dispatch }) {
   return (
-    <div className="space-y-4" style={{ padding: '32px 32px 64px', maxWidth: 680 }}>
-      <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">C·3 — Notary Scheduled</div>
-      <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Appointment confirmed</h1>
-      <div className="rounded-2xl border p-6" style={{ borderColor: 'rgba(37,75,206,0.15)', background: '#fff' }}>
-        <div className="text-xs text-gray-400 mb-1">Scheduled notary appointment</div>
-        <div className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>Tomorrow at 10:00 AM</div>
-        <div className="text-sm font-medium mb-3" style={{ color: '#254BCE' }}>Sarah Chen · eNotary · 45 min</div>
-        <button className="text-sm font-medium px-4 py-2 rounded-lg" style={{ background: 'rgba(37,75,206,0.08)', color: '#254BCE', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-          + Add to calendar
-        </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Step 7 of 7</div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46' }}>Appointment confirmed</span>
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Your notary is booked.</h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>We'll text and email you a reminder 24 hours before. Have your photo ID ready.</p>
       </div>
-      <div className="rounded-xl p-4 text-sm text-gray-500" style={{ background: '#f8f9fa', border: '1px solid rgba(0,22,96,0.06)' }}>
-        You'll receive a link to join the eNotary session 10 minutes before your appointment. No printer needed.
+
+      {/* Appointment card */}
+      <div style={{ borderRadius: 16, border: '1.5px solid rgba(37,75,206,0.15)', overflow: 'hidden' }}>
+        <div style={{ padding: '20px 22px', background: '#001660' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>Your appointment</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Tuesday, Apr 29 at 10:00 AM</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Sarah Chen · In-person notary · 30–45 min</div>
+        </div>
+        <div style={{ padding: '16px 22px', background: '#fff' }}>
+          {[
+            ['Location', '1482 Sunridge Drive, Sacramento, CA 95826'],
+            ['Who needs to be there', 'All borrowers on the application'],
+            ['What to bring', 'Government-issued photo ID'],
+          ].map(([l, v]) => (
+            <div key={l} style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+              <span style={{ fontSize: 12, color: '#9CA3AF', flexShrink: 0, width: 140 }}>{l}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>{v}</span>
+            </div>
+          ))}
+          <button style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: '#254BCE', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+            + Add to calendar
+          </button>
+        </div>
       </div>
+
+      {/* What to expect */}
+      <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)', fontSize: 13, color: '#374151', lineHeight: 1.65 }}>
+        Your notary will verify your ID and witness you sign the Deed of Trust. The session takes 30–45 minutes. Once complete, your documents go to the county recorder — typically within 1–2 business days.
+      </div>
+
       <button onClick={() => dispatch({ type: 'NOTARY_ARRIVED' })}
-        className="text-xs text-gray-400 underline block text-center w-full"
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-        [Demo] Notary session starting →
+        style={{ fontSize: 12, color: '#9CA3AF', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', marginBottom: 32 }}>
+        [Demo] Notary has arrived →
       </button>
     </div>
   )
 }
 
-// Screen: C·4 — Signing in Progress
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Signing in Progress — notary session active
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenSigningInProgress({ dispatch }) {
   return (
-    <div className="space-y-4">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80' }} />
-        <div className="text-[11px] font-bold uppercase tracking-widest text-green-600">C·4 — Signing in Progress</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 3px rgba(16,185,129,0.25)' }} />
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Session in progress</div>
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em' }}>Almost done.</h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>Your notary is guiding you through the Deed of Trust. Sign each page as instructed.</p>
       </div>
-      <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>You're almost done.</h1>
-      <p className="text-sm text-gray-500">Your notary session is in progress. Sign each document as presented.</p>
-      <div className="rounded-2xl border p-6 space-y-3" style={{ borderColor: 'rgba(0,22,96,0.1)', background: '#fff' }}>
+
+      {/* Signing checklist */}
+      <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden' }}>
         {[
-          { label: 'Loan agreement', done: true },
-          { label: 'Deed of trust', done: true },
-          { label: 'Right of rescission notice', done: false },
-          { label: 'Closing disclosure', done: false },
-        ].map((doc, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: doc.done ? '#ECFDF5' : 'rgba(0,22,96,0.05)', border: doc.done ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(0,22,96,0.1)' }}>
-              {doc.done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+          { label: 'Identity verified',       done: true,  active: false },
+          { label: 'Deed of Trust — Page 1',  done: true,  active: false },
+          { label: 'Deed of Trust — Page 2',  done: true,  active: false },
+          { label: 'Deed of Trust — Page 3',  done: false, active: true  },
+          { label: 'Notary acknowledgment',   done: false, active: false },
+        ].map((item, i, arr) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.06)' : 'none', background: item.active ? 'rgba(37,75,206,0.04)' : '#fff' }}>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: item.done ? '#ECFDF5' : item.active ? '#254BCE' : 'rgba(0,22,96,0.06)', border: item.done ? '1px solid rgba(16,185,129,0.3)' : 'none' }}>
+              {item.done
+                ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                : item.active ? <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} /> : null}
             </div>
-            <span className="text-sm" style={{ color: doc.done ? '#6b7280' : '#001660', fontWeight: doc.done ? 400 : 600 }}>{doc.label}</span>
+            <span style={{ fontSize: 14, fontWeight: item.active ? 700 : 500, color: item.done ? '#9CA3AF' : item.active ? '#001660' : 'rgba(0,22,96,0.3)' }}>{item.label}</span>
+            {item.active && <span style={{ fontSize: 11, fontWeight: 700, color: '#254BCE', marginLeft: 'auto' }}>In progress</span>}
           </div>
         ))}
       </div>
+
       <button onClick={() => dispatch({ type: 'SIGN' })}
-        className="w-full rounded-xl p-4 text-sm font-bold text-white"
-        style={{ background: '#001660', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-        Complete Signing →
+        style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: '#001660', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 32 }}>
+        Complete signing →
       </button>
     </div>
   )
 }
 
-// Screen: C·5 — Loan Closed
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Loan Closed — rescission window
 // ─────────────────────────────────────────────────────────────────────────────
 function ScreenLoanClosed({ dispatch }) {
+  const rescissionDate = new Date()
+  rescissionDate.setDate(rescissionDate.getDate() + 3)
+  const rescissionStr = rescissionDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
   return (
-    <div className="space-y-4">
-      <div className="text-[11px] font-bold uppercase tracking-widest text-green-600 mb-1">C·5 — Loan Closed ✓</div>
-      <h1 className="text-2xl font-bold mb-1" style={{ color: '#001660' }}>All documents signed.</h1>
-      <div className="rounded-2xl p-6 text-center" style={{ background: '#ECFDF5', border: '1px solid rgba(22,163,74,0.2)' }}>
-        <div className="text-4xl mb-3">🎉</div>
-        <div className="text-lg font-bold mb-2" style={{ color: '#001660' }}>Your loan is officially closed!</div>
-        <div className="text-sm text-gray-500 leading-relaxed">Your solar installation is being scheduled with Westhaven. You'll receive a confirmation call within 1 business day.</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Step 7 of 7</div>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          You've signed everything.
+        </h1>
+        <p style={{ fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6 }}>
+          The Deed of Trust is on its way to the county recorder. Here's what happens over the next few days.
+        </p>
       </div>
+
+      {/* Rescission window */}
+      <div style={{ borderRadius: 16, border: '1.5px solid rgba(245,158,11,0.25)', background: 'rgba(255,251,235,0.8)', padding: '18px 20px' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#92400E', marginBottom: 10 }}>Your right to cancel</div>
+        <p style={{ fontSize: 14, color: '#78350F', lineHeight: 1.65, margin: '0 0 10px' }}>
+          Under federal law (TRID), you have <strong>3 business days</strong> to cancel this loan at no cost. Your cancellation window closes on <strong>{rescissionStr}</strong>.
+        </p>
+        <p style={{ fontSize: 12, color: '#92400E', margin: 0, lineHeight: 1.5 }}>
+          After that date, your line of credit opens and funds are released. To cancel before then, call us at (844) 855-0160. This window is your protection — not something to worry about unless you want to change your mind.
+        </p>
+      </div>
+
+      {/* Timeline */}
+      <div style={{ borderRadius: 16, border: '1.5px solid rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+        <div style={{ padding: '12px 18px', background: '#F8F9FC', borderBottom: '1px solid rgba(0,22,96,0.06)', fontSize: 12, fontWeight: 700, color: 'rgba(0,22,96,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>What happens next</div>
+        {[
+          { day: 'Today',          label: 'Documents sent to county recorder',      done: true  },
+          { day: 'Day 1–3',        label: 'Rescission window — you can still cancel', done: false },
+          { day: 'Day 4',          label: 'Rescission closes · Funds released',      done: false },
+          { day: 'Day 5–7',        label: 'County records the Deed of Trust',        done: false },
+          { day: 'Within 3–5 days',label: 'Westhaven contacts you to schedule install',done: false},
+        ].map((item, i, arr) => (
+          <div key={i} style={{ display: 'flex', gap: 14, padding: '13px 18px', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none', background: '#fff' }}>
+            <div style={{ width: 60, flexShrink: 0, fontSize: 11, fontWeight: 700, color: item.done ? '#10B981' : 'rgba(0,22,96,0.35)', paddingTop: 1 }}>{item.day}</div>
+            <div style={{ fontSize: 13, color: item.done ? '#374151' : 'rgba(0,22,96,0.55)', fontWeight: item.done ? 600 : 400 }}>{item.label}</div>
+          </div>
+        ))}
+      </div>
+
       <button onClick={() => dispatch({ type: 'CLOSE_LOAN' })}
-        className="w-full rounded-xl p-4 text-sm font-bold text-white"
-        style={{ background: '#016163', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-        View funded details →
+        style={{ width: '100%', padding: '14px 24px', borderRadius: 14, background: '#254BCE', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 20px rgba(37,75,206,0.3)', marginBottom: 4 }}>
+        View my funded details →
       </button>
+      <div style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginBottom: 24 }}>
+        We'll email you at alex.rivera@email.com when your line is open and funds are available.
+      </div>
     </div>
   )
 }
@@ -3163,7 +4375,10 @@ export default function POSDemo() {
   function renderScreen() {
     switch (app) {
       case S.BASIC_INFO:           return <ScreenBasicInfo step1={step1} dispatch={dispatch} />
+      case S.OFFER_LOADING:        return <ScreenOfferLoading dispatch={dispatch} sim={sim} />
       case S.OFFER_SELECT:         return <ScreenOfferSelectNew step2={step2} step1={step1} dispatch={dispatch} savedConfig={state.step2Config} />
+      case S.IDENTITY_CHALLENGE:   return <ScreenIdentityChallenge dispatch={dispatch} />
+      case S.ADDRESS_MISMATCH:     return <ScreenAddressMismatch dispatch={dispatch} />
       case S.MORE_INFO:            return <ScreenMoreInfo step3={step3} dispatch={dispatch} />
       case S.LINK_INCOME:          return <ScreenLinkIncome dispatch={dispatch} />
       case S.VERIFY_IDENTITY:      return <ScreenVerifyIdentity dispatch={dispatch} />
@@ -3182,11 +4397,11 @@ export default function POSDemo() {
   }
 
   // Screens with full-height flex layout (no inner scroll)
-  const flexScreens = new Set([S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT, S.NOTARY_SCHEDULED])
+  const flexScreens = new Set([S.OFFER_LOADING, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT])
   const isFlexScreen = flexScreens.has(app)
 
   // Show the persistent offer sidebar on all screens except OFFER_SELECT (has its own live panel)
-  const showOfferSidebar = app !== S.OFFER_SELECT && app !== S.BASIC_INFO
+  const showOfferSidebar = app !== S.OFFER_SELECT && app !== S.BASIC_INFO && app !== S.OFFER_LOADING && app !== S.IDENTITY_CHALLENGE && app !== S.ADDRESS_MISMATCH
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F8F9FC' }}>
