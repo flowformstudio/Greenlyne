@@ -540,21 +540,10 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
         </div>
 
         {/* Description — fixed minHeight so monthly payment aligns across tiles */}
-        <div style={{ marginBottom: 22, minHeight: 48 }}>
-          {isRecommended ? (
-            <>
-              <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5 }}>
-                <strong style={{ color: T.text, fontWeight: 700 }}>$0/mo for 6 months</strong>, then low payments through year 5.
-              </div>
-              <div style={{ fontSize: 12, color: T.faint, lineHeight: 1.45, marginTop: 4 }}>
-                Payments rise above the Standard plan after year 5.
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5 }}>
-              Simple, straightforward. Start building equity from day one.
-            </div>
-          )}
+        <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5, marginBottom: 22, minHeight: 48 }}>
+          {isRecommended
+            ? "$0/mo for 6 months, low payments through year 5, then above Standard rate."
+            : 'Simple, straightforward. Start building equity from day one.'}
         </div>
 
         {/* Monthly payment */}
