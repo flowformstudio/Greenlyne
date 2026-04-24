@@ -540,10 +540,21 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
         </div>
 
         {/* Description — fixed minHeight so monthly payment aligns across tiles */}
-        <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5, marginBottom: 22, minHeight: 48 }}>
-          {isRecommended
-            ? 'Lower payments during ramp-up.'
-            : 'Simple, straightforward. Start building equity from day one.'}
+        <div style={{ marginBottom: 22, minHeight: 48 }}>
+          {isRecommended ? (
+            <>
+              <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5 }}>
+                <strong style={{ color: T.text, fontWeight: 700 }}>$0/mo for 6 months</strong>, then low payments through year 5.
+              </div>
+              <div style={{ fontSize: 12, color: T.faint, lineHeight: 1.45, marginTop: 4 }}>
+                Payments rise above the Standard plan after year 5.
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5 }}>
+              Simple, straightforward. Start building equity from day one.
+            </div>
+          )}
         </div>
 
         {/* Monthly payment */}
@@ -751,9 +762,6 @@ function TermsOfOffer({ offer, safeDraw }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <TermRow label="Initial draw amount"                     value={formatCurrencyFull(Math.round(loanAmount))} />
         <TermRow label="Cash required at closing"                value={formatCurrencyFull(cashAtClosing)} />
-        {escrow > 0.5 && (
-          <TermRow label="Payment reserve (held in escrow)"       value={formatCurrencyFull(Math.round(escrow))} sub />
-        )}
         <TermRow label="Origination fee (deducted from total)"   value={formatCurrencyFull(Math.round(origFee))} />
         <TermRow label="Recording tax fee (deducted from total)" value={formatCurrencyFull(Math.round(recordingTax))} />
       </div>

@@ -60,7 +60,7 @@ const SEED_STEP1 = {
   marital: '', purpose: '',
   address: '4821 Oakbrook Dr', city: 'San Jose', state: 'CA', zip: '95126',
   propType: '', ownership: '',
-  propValue: '', mortgageBalance: '', forSale: false,
+  propValue: '485000', mortgageBalance: '', forSale: false,
   singleFamily: false, goodRoof: false,
   annualIncome: '', incomeSource: '',
   loanAmount: '', projectCost: '',
@@ -1215,7 +1215,7 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <FieldRow gap={12}>
               <FieldWrap flex="1 1 0">
-                <Field label="Estimated property value">
+                <Field label="Estimated property value" helper="· pre-filled by GreenLyne">
                   <DollarInput value={step1.propValue} onChange={v => set('propValue', v)} placeholder="485,000" />
                 </Field>
               </FieldWrap>
