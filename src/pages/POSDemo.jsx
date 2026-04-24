@@ -1215,7 +1215,7 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <FieldRow gap={12}>
               <FieldWrap flex="1 1 0">
-                <Field label="Estimated property value" helper="· pre-filled by GreenLyne">
+                <Field label="Estimated property value">
                   <DollarInput value={step1.propValue} onChange={v => set('propValue', v)} placeholder="485,000" />
                 </Field>
               </FieldWrap>
