@@ -514,19 +514,21 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
       display: 'flex', flexDirection: 'column',
       position: 'relative',
     }}>
-      {/* Recommended blue header bar / empty spacer on Basic for alignment */}
+      {/* Top strip — eyebrow + Plan Selected badge */}
       <div style={{
         height: 40,
-        padding: '0 14px 0 18px',
+        padding: '0 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
         background: isRecommended ? T.blue : 'transparent',
         flexShrink: 0,
       }}>
-        {isRecommended ? (
-          <span style={{ fontSize: 11, fontWeight: 800, color: T.white, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Recommended
-          </span>
-        ) : <span />}
+        <span style={{
+          fontSize: 11, fontWeight: 800,
+          color: isRecommended ? T.white : T.muted,
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+        }}>
+          {isRecommended ? 'Recommended' : 'Basic'}
+        </span>
         {isSelected && <PlanSelectedBadge />}
       </div>
       {/* Body */}
@@ -534,7 +536,7 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
 
         {/* Title */}
         <div style={{ fontSize: 22, fontWeight: 700, color: T.text, letterSpacing: '-0.02em', marginBottom: 2 }}>
-          {isRecommended ? 'Low monthly cost' : 'Basic'}
+          {isRecommended ? 'Low monthly cost' : 'Standard'}
         </div>
 
         {/* Description — fixed minHeight so monthly payment aligns across tiles */}
@@ -615,40 +617,27 @@ function CustomTile({ offer, isSelected, onSelect, onRemove }) {
       color: T.white,
       position: 'relative',
     }}>
-      {/* Top spacer (matches OfferTile's 32px top strip) + Plan Selected badge right-aligned */}
+      {/* Top strip — "Advanced" eyebrow + Plan Selected badge */}
       <div style={{
         height: 40,
-        padding: '0 14px 0 18px',
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        padding: '0 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
         flexShrink: 0,
       }}>
+        <span style={{
+          fontSize: 11, fontWeight: 800,
+          color: 'rgba(255,255,255,0.6)',
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+        }}>
+          Advanced
+        </span>
         {isSelected && <PlanSelectedBadge />}
       </div>
       <div style={{ padding: '22px 24px 22px', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
-        {/* Title row — title + Remove plan link inline */}
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 2 }}>
-          <span style={{ fontSize: 22, fontWeight: 700, color: T.white, letterSpacing: '-0.02em' }}>
-            Custom plan
-          </span>
-          {onRemove && (
-            <button onClick={onRemove}
-              style={{
-                background: 'transparent', border: 'none',
-                fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.55)',
-                cursor: 'pointer', fontFamily: 'inherit',
-                padding: 0,
-                letterSpacing: '-0.01em',
-                textDecoration: 'underline', textUnderlineOffset: 3,
-                transition: 'color 0.15s',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseOver={e => (e.currentTarget.style.color = T.white)}
-              onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
-            >
-              Remove plan
-            </button>
-          )}
+        {/* Title */}
+        <div style={{ fontSize: 22, fontWeight: 700, color: T.white, letterSpacing: '-0.02em', marginBottom: 2 }}>
+          Custom
         </div>
 
         {/* Description — same minHeight as OfferTile */}
@@ -682,31 +671,58 @@ function CustomTile({ offer, isSelected, onSelect, onRemove }) {
           </div>
         </div>
 
-        {/* Select button — outline when unselected, full blue when selected */}
-        <button onClick={onSelect}
-          style={{
-            marginTop: 'auto',
-            width: '100%',
-            padding: '14px 16px',
-            borderRadius: 12,
-            fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
-            cursor: 'pointer', fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s',
-            ...(isSelected ? {
-              background: T.blue,
-              color: T.white,
-              border: '1.5px solid transparent',
-              boxShadow: '0 4px 14px rgba(37,75,206,0.3)',
-            } : {
-              background: 'transparent',
-              color: T.white,
-              border: '1.5px solid rgba(255,255,255,0.35)',
-              boxShadow: 'none',
-            }),
-          }}>
-          {isSelected ? '✓ Selected' : 'Select'}
-        </button>
+        {/* Action row — Select button + trash icon button */}
+        <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
+          <button onClick={onSelect}
+            style={{
+              flex: 1,
+              padding: '14px 16px',
+              borderRadius: 12,
+              fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
+              cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s',
+              ...(isSelected ? {
+                background: T.blue,
+                color: T.white,
+                border: '1.5px solid transparent',
+                boxShadow: '0 4px 14px rgba(37,75,206,0.3)',
+              } : {
+                background: 'transparent',
+                color: T.white,
+                border: '1.5px solid rgba(255,255,255,0.35)',
+                boxShadow: 'none',
+              }),
+            }}>
+            {isSelected ? '✓ Selected' : 'Select'}
+          </button>
+
+          {onRemove && (
+            <button onClick={onRemove}
+              aria-label="Remove custom plan"
+              title="Remove custom plan"
+              style={{
+                width: 48,
+                flexShrink: 0,
+                padding: 0,
+                borderRadius: 12,
+                border: '1.5px solid rgba(255,255,255,0.35)',
+                background: 'transparent',
+                color: 'rgba(255,255,255,0.7)',
+                cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.85)'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.85)'; e.currentTarget.style.color = T.white }}
+              onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m6 26 20 -20"/>
+                <path d="m6 6 20 20"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -926,39 +942,38 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         </h2>
       </div>
 
-      {/* Offer tiles */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: showAdvanced ? 'repeat(3, 1fr)' : '1fr 1fr',
-        gap: 16,
-        marginBottom: 18,
-        alignItems: 'stretch',
-        transition: 'grid-template-columns 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <OfferTile kind="baseline"    offer={baselineOffer}    isSelected={selected === 'baseline'}    onSelect={() => setSelected('baseline')} />
-        <OfferTile kind="recommended" offer={recommendedOffer} isSelected={selected === 'recommended'} onSelect={() => setSelected('recommended')} />
-        {showAdvanced && (
-          <div style={{ animation: 'solar-tile-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both', display: 'flex', flexDirection: 'column' }}>
-            <CustomTile
-              offer={customOffer}
-              isSelected={selected === 'custom'}
-              onSelect={() => setSelected('custom')}
-              onRemove={() => {
-                // Reset all custom dials to base values
-                setCreditLim(SEED.defaultCredit)
-                setDrawAmt(SEED.defaultWithdraw)
-                setZeroStart(false)
-                setIoYrsId('pi')
-                setTierId('none')
-                setReductionYrs(null)
-                setEditingCard(null)
-                // Close the advanced panel and revert selection to recommended
-                setShowAdvanced(false)
-                if (selected === 'custom') setSelected('recommended')
-              }}
-            />
-          </div>
-        )}
+      {/* Offer tiles wrapper — constant marginBottom so button padding stays consistent */}
+      <div style={{ position: 'relative', marginBottom: 48 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: showAdvanced ? 'repeat(3, 1fr)' : '1fr 1fr',
+          gap: 16,
+          alignItems: 'stretch',
+          transition: 'grid-template-columns 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
+          <OfferTile kind="baseline"    offer={baselineOffer}    isSelected={selected === 'baseline'}    onSelect={() => setSelected('baseline')} />
+          <OfferTile kind="recommended" offer={recommendedOffer} isSelected={selected === 'recommended'} onSelect={() => setSelected('recommended')} />
+          {showAdvanced && (
+            <div style={{ animation: 'solar-tile-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both', display: 'flex', flexDirection: 'column' }}>
+              <CustomTile
+                offer={customOffer}
+                isSelected={selected === 'custom'}
+                onSelect={() => setSelected('custom')}
+                onRemove={() => {
+                  setCreditLim(SEED.defaultCredit)
+                  setDrawAmt(SEED.defaultWithdraw)
+                  setZeroStart(false)
+                  setIoYrsId('pi')
+                  setTierId('none')
+                  setReductionYrs(null)
+                  setEditingCard(null)
+                  setShowAdvanced(false)
+                  if (selected === 'custom') setSelected('recommended')
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Create custom plan — selectable toggle (no dropdown icon) */}
