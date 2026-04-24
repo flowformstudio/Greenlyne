@@ -625,6 +625,7 @@ function CustomTile({ offer, isSelected, onSelect, onRemove }) {
       boxShadow: isSelected ? '0 10px 30px -14px rgba(37,75,206,0.55)' : '0 6px 20px -10px rgba(0,22,96,0.3)',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       display: 'flex', flexDirection: 'column',
+      flex: 1,
       color: T.white,
       position: 'relative',
     }}>
