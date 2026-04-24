@@ -540,7 +540,7 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
         </div>
 
         {/* Description — fixed minHeight so monthly payment aligns across tiles */}
-        <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5, marginBottom: 22, minHeight: 48 }}>
+        <div style={{ fontSize: 15, color: T.muted, lineHeight: 1.5, marginBottom: 22, minHeight: 72 }}>
           {isRecommended
             ? "$0/mo for 6 months, low payments through year 5, then above Standard rate."
             : 'Simple, straightforward. Start building equity from day one.'}
@@ -642,7 +642,7 @@ function CustomTile({ offer, isSelected, onSelect, onRemove }) {
         </div>
 
         {/* Description — same minHeight as OfferTile */}
-        <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 22, minHeight: 48 }}>
+        <div style={{ fontSize: 15, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, marginBottom: 22, minHeight: 72 }}>
           A custom plan is great if you know what you're doing.
         </div>
 
