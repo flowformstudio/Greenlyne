@@ -9,6 +9,16 @@
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes solar-panel-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes solar-tile-toss {
+  0%   { opacity: 1; transform: scale(1) translate(0, 0) rotate(0deg); }
+  18%  { opacity: 1; transform: scale(1.04) translate(-2px, -6px) rotate(-2deg); }
+  35%  { opacity: 1; transform: scale(1) translate(2px, -2px) rotate(1deg); }
+  100% { opacity: 0; transform: scale(0.35) translate(60px, 120px) rotate(22deg); }
+}
 
 /* ── Post Grotesk — Accent / display font ────────────────────────────────── */
 @font-face {

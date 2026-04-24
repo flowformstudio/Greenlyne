@@ -777,6 +777,25 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   // Selection state
   const [selected,    setSelected]    = useState(savedConfig?.selected ?? null)  // 'baseline' | 'recommended' | 'custom' | null
   const [showAdvanced, setShowAdvanced] = useState(savedConfig?.showAdvanced ?? false)
+  const [isRemovingCustom, setIsRemovingCustom] = useState(false)
+
+  // Trigger exit animation, then reset + collapse after it finishes
+  function handleRemoveCustom() {
+    if (isRemovingCustom) return
+    setIsRemovingCustom(true)
+    if (selected === 'custom') setSelected('recommended')
+    setTimeout(() => {
+      setCreditLim(SEED.defaultCredit)
+      setDrawAmt(SEED.defaultWithdraw)
+      setZeroStart(false)
+      setIoYrsId('pi')
+      setTierId('none')
+      setReductionYrs(null)
+      setEditingCard(null)
+      setShowAdvanced(false)
+      setIsRemovingCustom(false)
+    }, 450)
+  }
 
   // Custom config state (dials)
   const [creditLim,    setCreditLim]    = useState(savedConfig?.creditLim    ?? SEED.defaultCredit)
@@ -954,35 +973,30 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           <OfferTile kind="baseline"    offer={baselineOffer}    isSelected={selected === 'baseline'}    onSelect={() => setSelected('baseline')} />
           <OfferTile kind="recommended" offer={recommendedOffer} isSelected={selected === 'recommended'} onSelect={() => setSelected('recommended')} />
           {showAdvanced && (
-            <div style={{ animation: 'solar-tile-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              animation: isRemovingCustom
+                ? 'solar-tile-toss 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards'
+                : 'solar-tile-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both',
+              display: 'flex', flexDirection: 'column',
+              transformOrigin: 'center center',
+            }}>
               <CustomTile
                 offer={customOffer}
                 isSelected={selected === 'custom'}
                 onSelect={() => setSelected('custom')}
-                onRemove={() => {
-                  setCreditLim(SEED.defaultCredit)
-                  setDrawAmt(SEED.defaultWithdraw)
-                  setZeroStart(false)
-                  setIoYrsId('pi')
-                  setTierId('none')
-                  setReductionYrs(null)
-                  setEditingCard(null)
-                  setShowAdvanced(false)
-                  if (selected === 'custom') setSelected('recommended')
-                }}
+                onRemove={handleRemoveCustom}
               />
             </div>
           )}
         </div>
       </div>
 
-      {/* Create custom plan — selectable toggle (no dropdown icon) */}
-      <div style={{ marginBottom: showAdvanced ? 20 : 22 }}>
+      {/* Create custom plan — selectable toggle (left-aligned) */}
+      <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'flex-start' }}>
         <button
           onClick={() => {
             if (showAdvanced) {
-              setShowAdvanced(false)
-              if (selected === 'custom') setSelected('recommended')
+              handleRemoveCustom()
             } else {
               setShowAdvanced(true)
               setSelected('custom')
@@ -1013,7 +1027,12 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
       {/* Advanced panel */}
       {showAdvanced && (
-        <div style={{ marginBottom: 24, animation: 'solar-panel-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both' }}>
+        <div style={{
+          marginBottom: 24,
+          animation: isRemovingCustom
+            ? 'solar-panel-out 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+            : 'solar-panel-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both',
+        }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>
               Shape your loan
