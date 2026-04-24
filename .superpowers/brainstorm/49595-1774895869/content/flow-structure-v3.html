@@ -1,0 +1,197 @@
+<h2>Full Demo Flow — v3</h2>
+<p class="subtitle">Complete end-to-end journey from demo start to funded loan. Email and QR are both explicit starting points.</p>
+
+<div class="mockup">
+  <div class="mockup-header">End-to-End GreenLyne Demo</div>
+  <div class="mockup-body" style="padding:24px 20px;font-family:-apple-system,sans-serif">
+
+    <!-- STEP 0: Demo starts here label -->
+    <div style="text-align:center;margin-bottom:8px">
+      <span style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.12em;text-transform:uppercase;background:#1e293b;border-radius:100px;padding:4px 14px">DEMO STARTS HERE</span>
+    </div>
+
+    <!-- Two entry lanes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
+
+      <!-- Email lane -->
+      <div style="background:#1a0f0f;border:1px solid #7f1d1d;border-radius:10px;padding:16px">
+        <div style="font-size:10px;font-weight:700;color:#fca5a5;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">📧 Email Entry · /email</div>
+        <div style="background:#2d1515;border-radius:6px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:#fef2f2;margin-bottom:3px">Westhaven Power email</div>
+          <div style="font-size:10px;color:#f87171;line-height:1.6">Contractor-branded · pre-approval context<br/>Alex Rivera · 1482 Sunridge Dr · Sacramento</div>
+        </div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:6px">User reads email, clicks CTA</div>
+        <div style="background:#7f1d1d;border-radius:4px;padding:6px 10px;text-align:center;font-size:11px;font-weight:700;color:#fff">"Claim My Pre-Approval →"</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:6px;text-align:center">Links to /offer?source=email</div>
+      </div>
+
+      <!-- QR lane -->
+      <div style="background:#0f1a0f;border:1px solid #14532d;border-radius:10px;padding:16px">
+        <div style="font-size:10px;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">📱 QR Entry · on-site</div>
+        <div style="background:#0f2417;border-radius:6px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:#f0fdf4;margin-bottom:3px">Contractor scans / shows QR</div>
+          <div style="font-size:10px;color:#4ade80;line-height:1.6">Rep present · high trust context<br/>Property already identified on-site</div>
+        </div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:6px">Homeowner opens camera, scans</div>
+        <div style="background:#14532d;border-radius:4px;padding:6px 10px;text-align:center;font-size:11px;font-weight:700;color:#fff">QR → /offer?source=qr</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:6px;text-align:center">Skips email · lands directly in SmartPOS</div>
+      </div>
+
+    </div>
+
+    <!-- Merge arrow -->
+    <div style="text-align:center;margin:6px 0">
+      <span style="font-size:11px;color:#475569">↘ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ↙</span>
+    </div>
+    <div style="text-align:center;margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;color:#4ade80;background:#14532d;border-radius:100px;padding:4px 14px;letter-spacing:.06em">Both enter /offer · source param carries context</span>
+    </div>
+    <div style="text-align:center;color:#475569;font-size:16px;margin-bottom:8px">↓</div>
+
+    <!-- SmartPOS block -->
+    <div style="background:#0a1f12;border:1px solid #166534;border-radius:10px;padding:16px;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:#4ade80;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">SmartPOS · /offer · 8-state machine · URL never changes</div>
+
+      <!-- States row 1: value -->
+      <div style="margin-bottom:6px">
+        <div style="font-size:9px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Value Stage</div>
+        <div style="display:flex;gap:4px;align-items:stretch">
+          <div style="flex:1;background:#14532d;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-size:9px;color:#6ee7b7;margin-bottom:3px">1</div>
+            <div style="font-size:11px;font-weight:700;color:#f0fdf4">ESTIMATE</div>
+            <div style="font-size:9px;color:#4ade80;margin-top:3px">Address · metrics · See Plan</div>
+          </div>
+          <div style="display:flex;align-items:center;color:#166534;font-size:12px;padding:0 2px">→</div>
+          <div style="flex:1;background:#14532d;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-size:9px;color:#6ee7b7;margin-bottom:3px">2</div>
+            <div style="font-size:11px;font-weight:700;color:#f0fdf4">MICRO_CONFIRM</div>
+            <div style="font-size:9px;color:#4ade80;margin-top:3px">Bill slider · roof check</div>
+          </div>
+          <div style="display:flex;align-items:center;color:#166534;font-size:12px;padding:0 2px">→</div>
+          <div style="flex:1;background:#14532d;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-size:9px;color:#6ee7b7;margin-bottom:3px">3</div>
+            <div style="font-size:11px;font-weight:700;color:#f0fdf4">REFINED</div>
+            <div style="font-size:9px;color:#4ade80;margin-top:3px">Updated numbers · savings hero</div>
+          </div>
+          <div style="display:flex;align-items:center;color:#166534;font-size:12px;padding:0 2px">→</div>
+          <div style="flex:1;background:#166534;border-radius:6px;padding:10px;text-align:center;border:1px solid #22c55e">
+            <div style="font-size:9px;color:#bbf7d0;margin-bottom:3px">4 ← gate</div>
+            <div style="font-size:11px;font-weight:700;color:#f0fdf4">INTENT</div>
+            <div style="font-size:9px;color:#86efac;margin-top:3px;font-weight:600">"Confirm & Get Plan"</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR/Email split note -->
+      <div style="background:#1e293b;border-radius:6px;padding:8px 12px;margin:6px 0;font-size:10px;color:#94a3b8">
+        <span style="color:#f59e0b;font-weight:700">QR:</span> INTENT click → auto-triggers rep (2–5 min) &nbsp;|&nbsp;
+        <span style="color:#60a5fa;font-weight:700">Email:</span> INTENT click → shows "Talk now" / "Reach out shortly" choice
+      </div>
+
+      <!-- States row 2: handoff -->
+      <div>
+        <div style="font-size:9px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Handoff Stage</div>
+        <div style="display:flex;gap:4px;align-items:stretch">
+          <div style="flex:1;background:#172554;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-size:9px;color:#93c5fd;margin-bottom:3px">H·1</div>
+            <div style="font-size:11px;font-weight:700;color:#eff6ff">PENDING</div>
+            <div style="font-size:9px;color:#60a5fa;margin-top:3px">"Reviewing estimate…"</div>
+          </div>
+          <div style="display:flex;align-items:center;color:#1e40af;font-size:12px;padding:0 2px">→</div>
+          <div style="flex:1;background:#172554;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-size:9px;color:#93c5fd;margin-bottom:3px">H·2</div>
+            <div style="font-size:11px;font-weight:700;color:#eff6ff">SCHEDULED</div>
+            <div style="font-size:9px;color:#60a5fa;margin-top:3px">"Call at 2:30 PM"</div>
+          </div>
+          <div style="display:flex;align-items:center;color:#1e40af;font-size:12px;padding:0 2px">→</div>
+          <div style="flex:1;background:#172554;border-radius:6px;padding:10px;text-align:center">
+            <div style="font-size:9px;color:#93c5fd;margin-bottom:3px">H·3</div>
+            <div style="font-size:11px;font-weight:700;color:#eff6ff">ACTIVE</div>
+            <div style="font-size:9px;color:#60a5fa;margin-top:3px">"Call in progress"</div>
+          </div>
+          <div style="display:flex;align-items:center;color:#1e40af;font-size:12px;padding:0 2px">→</div>
+          <div style="flex:1;background:#172554;border-radius:6px;padding:10px;text-align:center;border:1px solid #3b82f6">
+            <div style="font-size:9px;color:#93c5fd;margin-bottom:3px">H·4</div>
+            <div style="font-size:11px;font-weight:700;color:#eff6ff">COMPLETED</div>
+            <div style="font-size:9px;color:#60a5fa;margin-top:3px;font-weight:600">"Continue to financing →"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;color:#475569;font-size:16px;margin:4px 0">↓</div>
+
+    <!-- Financing -->
+    <div style="background:#1c1608;border:1px solid #854d0e;border-radius:8px;padding:14px 16px;margin-bottom:6px">
+      <div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Financing Intake · /financing · (existing OfferLanding, repositioned)</div>
+      <div style="display:flex;gap:6px">
+        <span style="font-size:10px;background:#292210;color:#d97706;padding:4px 10px;border-radius:4px">Step 1 — Property</span>
+        <span style="font-size:10px;color:#475569">→</span>
+        <span style="font-size:10px;background:#292210;color:#d97706;padding:4px 10px;border-radius:4px">Step 2 — About You</span>
+        <span style="font-size:10px;color:#475569">→</span>
+        <span style="font-size:10px;background:#292210;color:#d97706;padding:4px 10px;border-radius:4px">Step 3 — Financials</span>
+        <span style="font-size:10px;color:#475569">→</span>
+        <span style="font-size:10px;background:#292210;color:#d97706;padding:4px 10px;border-radius:4px">Step 4 — Review</span>
+      </div>
+      <div style="font-size:10px;color:#78350f;margin-top:8px">Copy reframed: "Let's finalize your plan" · pre-filled from SmartPOS state · GreenLyne visible · OWNING co-brand</div>
+    </div>
+
+    <div style="text-align:center;color:#475569;font-size:16px;margin:4px 0">↓</div>
+
+    <!-- Pre-qual -->
+    <div style="background:#0c1a2e;border:1px solid #1d4ed8;border-radius:8px;padding:12px 16px;margin-bottom:6px">
+      <div style="font-size:10px;font-weight:700;color:#60a5fa;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Pre-qual Confirmed · /pre-qualified</div>
+      <div style="font-size:10px;color:#94a3b8">Offer snapshot · payment card · "Continue Application →"</div>
+    </div>
+
+    <div style="text-align:center;color:#475569;font-size:16px;margin:4px 0">↓</div>
+
+    <!-- POS Demo -->
+    <div style="background:#130c1e;border:1px solid #5b21b6;border-radius:8px;padding:12px 16px">
+      <div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Full HELOC Application · /pos-demo</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10px;background:#1e1035;color:#7c3aed;padding:3px 8px;border-radius:4px">Confirm Details</span>
+        <span style="font-size:10px;color:#374151">→</span>
+        <span style="font-size:10px;background:#1e1035;color:#7c3aed;padding:3px 8px;border-radius:4px">Loan Options</span>
+        <span style="font-size:10px;color:#374151">→</span>
+        <span style="font-size:10px;background:#1e1035;color:#7c3aed;padding:3px 8px;border-radius:4px">Verify & Confirm</span>
+        <span style="font-size:10px;color:#374151">→</span>
+        <span style="font-size:10px;background:#1e1035;color:#7c3aed;padding:3px 8px;border-radius:4px">Final Offer</span>
+        <span style="font-size:10px;color:#374151">→</span>
+        <span style="font-size:10px;background:#1e1035;color:#7c3aed;padding:3px 8px;border-radius:4px">Review & Sign</span>
+        <span style="font-size:10px;color:#374151">→</span>
+        <span style="font-size:10px;background:#2e1065;color:#a78bfa;padding:3px 8px;border-radius:4px">Closing ✦</span>
+        <span style="font-size:10px;color:#374151">→</span>
+        <span style="font-size:10px;background:#2e1065;color:#a78bfa;padding:3px 8px;border-radius:4px">Funded 🎉</span>
+      </div>
+      <div style="font-size:10px;color:#4c1d95;margin-top:6px">✦ Closing = 5 explicit notary sub-states (see separate closing flow design)</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <p class="label">Files touched</p>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:6px 8px;color:#f1f5f9;font-weight:600">/email → EmailPreview.jsx</td>
+      <td style="padding:6px 8px;color:#4ade80">No change · CTA already hits /offer</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:6px 8px;color:#f1f5f9;font-weight:600">/offer → SmartPOS.jsx</td>
+      <td style="padding:6px 8px;color:#fbbf24">New file · replaces OfferLanding at this route</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:6px 8px;color:#f1f5f9;font-weight:600">/financing → OfferLanding.jsx</td>
+      <td style="padding:6px 8px;color:#fbbf24">Moved route · copy + framing updated</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1e293b">
+      <td style="padding:6px 8px;color:#f1f5f9;font-weight:600">/pre-qualified → PreQualified.jsx</td>
+      <td style="padding:6px 8px;color:#94a3b8">Minor copy tweaks only</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;color:#f1f5f9;font-weight:600">/pos-demo → POSDemo.jsx</td>
+      <td style="padding:6px 8px;color:#94a3b8">Closing states clarified · otherwise untouched</td>
+    </tr>
+  </table>
+</div>

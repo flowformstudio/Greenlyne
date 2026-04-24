@@ -1,0 +1,124 @@
+<h2>Updated Flow Structure — v2</h2>
+<p class="subtitle">Two adjustments applied: INTENT state added, HANDOFF expanded into 4 sub-states.</p>
+
+<div class="mockup">
+  <div class="mockup-header">SmartPOS State Machine at /offer</div>
+  <div class="mockup-body" style="padding:20px 16px;font-family:-apple-system,sans-serif">
+
+    <!-- State row -->
+    <div style="display:flex;align-items:stretch;gap:0;margin-bottom:20px">
+
+      <!-- ESTIMATE -->
+      <div style="flex:1;background:#14532d;border-radius:8px 0 0 8px;padding:12px 14px;border-right:1px solid #0f172a">
+        <div style="font-size:9px;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">State 1</div>
+        <div style="font-size:13px;font-weight:700;color:#f0fdf4;margin-bottom:6px">ESTIMATE</div>
+        <div style="font-size:10px;color:#4ade80;line-height:1.7">Address · roof visual<br/>3 key metrics<br/><br/><em style="color:#6ee7b7">CTA: See Your Plan</em></div>
+      </div>
+
+      <div style="display:flex;align-items:center;padding:0 4px;background:#0f2417;color:#4ade80;font-size:14px">→</div>
+
+      <!-- MICRO_CONFIRM -->
+      <div style="flex:1;background:#14532d;padding:12px 14px;border-right:1px solid #0f172a">
+        <div style="font-size:9px;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">State 2</div>
+        <div style="font-size:13px;font-weight:700;color:#f0fdf4;margin-bottom:6px">MICRO_CONFIRM</div>
+        <div style="font-size:10px;color:#4ade80;line-height:1.7">Bill slider<br/>Roof confirm<br/>2 inputs max<br/><em style="color:#6ee7b7">Refines numbers</em></div>
+      </div>
+
+      <div style="display:flex;align-items:center;padding:0 4px;background:#0f2417;color:#4ade80;font-size:14px">→</div>
+
+      <!-- REFINED -->
+      <div style="flex:1;background:#14532d;padding:12px 14px;border-right:1px solid #0f172a">
+        <div style="font-size:9px;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">State 3</div>
+        <div style="font-size:13px;font-weight:700;color:#f0fdf4;margin-bottom:6px">REFINED</div>
+        <div style="font-size:10px;color:#4ade80;line-height:1.7">Updated numbers<br/>Savings as hero<br/><br/><em style="color:#6ee7b7">Preview of plan</em></div>
+      </div>
+
+      <div style="display:flex;align-items:center;padding:0 4px;background:#0f2417;color:#4ade80;font-size:14px">→</div>
+
+      <!-- INTENT ← NEW -->
+      <div style="flex:1;background:#134e2a;padding:12px 14px;border-right:1px solid #0f172a;border:2px solid #22c55e;position:relative">
+        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;letter-spacing:.06em;white-space:nowrap">NEW</div>
+        <div style="font-size:9px;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">State 4</div>
+        <div style="font-size:13px;font-weight:700;color:#f0fdf4;margin-bottom:6px">INTENT</div>
+        <div style="font-size:10px;color:#4ade80;line-height:1.7">Explicit commit<br/>Curiosity → intent<br/>Unlocks financing<br/><em style="color:#bbf7d0;font-weight:700">CTA: Confirm Plan</em></div>
+      </div>
+
+      <div style="display:flex;align-items:center;padding:0 4px;background:#0f2417;color:#4ade80;font-size:14px">→</div>
+
+      <!-- HANDOFF (collapsed label) -->
+      <div style="flex:1;background:#1e3a5f;border-radius:0 8px 8px 0;padding:12px 14px">
+        <div style="font-size:9px;font-weight:700;color:#93c5fd;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">State 5</div>
+        <div style="font-size:13px;font-weight:700;color:#eff6ff;margin-bottom:6px">HANDOFF →</div>
+        <div style="font-size:10px;color:#60a5fa;line-height:1.7">4 sub-states<br/>(see below)</div>
+      </div>
+
+    </div>
+
+    <!-- QR/Email divergence note -->
+    <div style="background:#1e293b;border-radius:8px;padding:12px 16px;margin-bottom:20px;display:flex;gap:16px">
+      <div style="flex:1;border-left:3px solid #f59e0b;padding-left:12px">
+        <div style="font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:4px">QR ENTRY</div>
+        <div style="font-size:11px;color:#94a3b8">INTENT click → auto-enters HANDOFF_PENDING<br/>Rep auto-notified · 2–5 min window</div>
+      </div>
+      <div style="flex:1;border-left:3px solid #60a5fa;padding-left:12px">
+        <div style="font-size:10px;font-weight:700;color:#60a5fa;margin-bottom:4px">EMAIL ENTRY</div>
+        <div style="font-size:11px;color:#94a3b8">INTENT click → shows choice<br/>"Talk now" or "Reach out shortly"<br/>Then enters HANDOFF_PENDING</div>
+      </div>
+    </div>
+
+    <!-- HANDOFF sub-states -->
+    <div style="background:#0c1829;border:1px solid #1e40af;border-radius:10px;padding:16px">
+      <div style="font-size:10px;font-weight:700;color:#60a5fa;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">HANDOFF sub-states (expanded)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+
+        <div style="background:#172554;border-radius:6px;padding:12px">
+          <div style="font-size:9px;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">H·1</div>
+          <div style="font-size:12px;font-weight:700;color:#eff6ff;margin-bottom:5px">PENDING</div>
+          <div style="font-size:10px;color:#60a5fa;line-height:1.6">"Your estimate is being reviewed"<br/>Waiting indicator<br/>No lender yet</div>
+        </div>
+
+        <div style="background:#172554;border-radius:6px;padding:12px">
+          <div style="font-size:9px;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">H·2</div>
+          <div style="font-size:12px;font-weight:700;color:#eff6ff;margin-bottom:5px">SCHEDULED</div>
+          <div style="font-size:10px;color:#60a5fa;line-height:1.6">Time confirmed<br/>Rep assigned<br/>"Call at 2:30 PM"</div>
+        </div>
+
+        <div style="background:#172554;border-radius:6px;padding:12px">
+          <div style="font-size:9px;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">H·3</div>
+          <div style="font-size:12px;font-weight:700;color:#eff6ff;margin-bottom:5px">ACTIVE</div>
+          <div style="font-size:10px;color:#60a5fa;line-height:1.6">Call in progress<br/>Continuity cues<br/>No redirect yet</div>
+        </div>
+
+        <div style="background:#172554;border-radius:6px;padding:12px;border:1px solid #3b82f6">
+          <div style="font-size:9px;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">H·4</div>
+          <div style="font-size:12px;font-weight:700;color:#eff6ff;margin-bottom:5px">COMPLETED</div>
+          <div style="font-size:10px;color:#60a5fa;line-height:1.6">Call done<br/>CTA unlocked:<br/>"Continue to financing →"</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:20px;background:#1e293b;border-radius:8px;padding:16px">
+  <div style="font-size:11px;font-weight:700;color:#f1f5f9;margin-bottom:10px">Full state list at /offer</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span style="font-size:11px;background:#14532d;color:#86efac;padding:4px 10px;border-radius:4px">ESTIMATE</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#14532d;color:#86efac;padding:4px 10px;border-radius:4px">MICRO_CONFIRM</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#14532d;color:#86efac;padding:4px 10px;border-radius:4px">REFINED</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#166534;color:#bbf7d0;padding:4px 10px;border-radius:4px;font-weight:700">INTENT</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#172554;color:#93c5fd;padding:4px 10px;border-radius:4px">H·PENDING</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#172554;color:#93c5fd;padding:4px 10px;border-radius:4px">H·SCHEDULED</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#172554;color:#93c5fd;padding:4px 10px;border-radius:4px">H·ACTIVE</span>
+    <span style="font-size:11px;color:#475569">→</span>
+    <span style="font-size:11px;background:#172554;color:#93c5fd;padding:4px 10px;border-radius:4px">H·COMPLETED</span>
+  </div>
+  <div style="font-size:10px;color:#475569;margin-top:8px">8 total states · all at /offer · single React component · URL never changes</div>
+</div>

@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* ── Offer Select tile transitions ───────────────────────────────────────── */
+@keyframes solar-tile-in {
+  from { opacity: 0; transform: translateX(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes solar-panel-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Post Grotesk — Accent / display font ────────────────────────────────── */
 @font-face {
   font-family: 'PostGrotesk';

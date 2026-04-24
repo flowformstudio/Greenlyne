@@ -1,0 +1,158 @@
+<h2>SmartPOS — MICRO_CONFIRM State</h2>
+<p class="subtitle">Two inputs only. Refines the estimate, creates commitment. Should feel like a quick check — not a form.</p>
+
+<div class="split">
+
+  <!-- Option A: Slider + toggle cards -->
+  <div class="mockup" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="mockup-header">A — Slider + tap cards</div>
+    <div class="mockup-body" style="background:#F5F1EE;padding:0;font-family:-apple-system,sans-serif;max-width:390px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="background:#fff;border-bottom:1px solid rgba(0,22,96,0.07);padding:12px 20px;display:flex;align-items:center;justify-content:space-between">
+        <img src="/westhaven-logo.png" style="height:26px;width:auto" onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+        <div style="display:none;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#e0271a;border-radius:1px"></div><span style="font-size:13px;font-weight:800;color:#0d0d0d">Westhaven</span></div>
+        <div style="font-size:9px;color:#94a3b8;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Powered by GreenLyne</div>
+      </div>
+
+      <!-- Progress dots -->
+      <div style="padding:14px 20px 0;display:flex;align-items:center;gap:6px">
+        <div style="width:20px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:rgba(0,22,96,0.12)"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:rgba(0,22,96,0.12)"></div>
+        <span style="font-size:10px;color:#94a3b8;margin-left:4px">Step 2 of 4</span>
+      </div>
+
+      <div style="padding:14px 20px 0">
+        <div style="font-size:20px;font-weight:700;color:#001660;line-height:1.2;margin-bottom:4px">Confirm two details to sharpen your estimate.</div>
+        <div style="font-size:12px;color:#94a3b8">Takes 10 seconds.</div>
+      </div>
+
+      <!-- Input 1: Bill slider -->
+      <div style="margin:16px 20px 0;background:#fff;border-radius:16px;padding:18px;border:1px solid rgba(0,22,96,0.07)">
+        <div style="font-size:11px;font-weight:700;color:#001660;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">What's your average monthly electric bill?</div>
+        <!-- Slider track -->
+        <div style="position:relative;height:6px;background:rgba(0,22,96,0.1);border-radius:3px;margin:0 0 10px">
+          <div style="position:absolute;left:0;top:0;width:65%;height:100%;background:#001660;border-radius:3px"></div>
+          <div style="position:absolute;left:calc(65% - 10px);top:-7px;width:20px;height:20px;border-radius:50%;background:#fff;border:2.5px solid #001660;box-shadow:0 2px 6px rgba(0,22,96,0.25)"></div>
+        </div>
+        <!-- Range labels -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:10px;color:#94a3b8">$50</span>
+          <span style="font-size:10px;color:#94a3b8">$300+</span>
+        </div>
+        <!-- Selected value -->
+        <div style="text-align:center;background:rgba(0,22,96,0.05);border-radius:8px;padding:8px">
+          <span style="font-size:22px;font-weight:700;color:#001660">$140</span>
+          <span style="font-size:13px;color:#94a3b8">/mo</span>
+        </div>
+      </div>
+
+      <!-- Input 2: Roof tap -->
+      <div style="margin:12px 20px 0;background:#fff;border-radius:16px;padding:18px;border:1px solid rgba(0,22,96,0.07)">
+        <div style="font-size:11px;font-weight:700;color:#001660;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px">Do you own your home?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:#001660;border-radius:10px;padding:12px;text-align:center;border:2px solid #001660">
+            <div style="font-size:18px;margin-bottom:4px">🏠</div>
+            <div style="font-size:12px;font-weight:700;color:#fff">Yes, I own it</div>
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:2px solid rgba(0,22,96,0.12)">
+            <div style="font-size:18px;margin-bottom:4px">🏢</div>
+            <div style="font-size:12px;font-weight:700;color:#94a3b8">I rent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div style="padding:16px 20px 20px">
+        <div style="background:#254BCE;border-radius:14px;padding:15px;text-align:center;font-size:15px;font-weight:700;color:#fff">Update My Estimate →</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Option B: Segment chips + range pills -->
+  <div class="mockup" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="mockup-header">B — Range chips (no slider)</div>
+    <div class="mockup-body" style="background:#F5F1EE;padding:0;font-family:-apple-system,sans-serif;max-width:390px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="background:#fff;border-bottom:1px solid rgba(0,22,96,0.07);padding:12px 20px;display:flex;align-items:center;justify-content:space-between">
+        <img src="/westhaven-logo.png" style="height:26px;width:auto" onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+        <div style="display:none;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#e0271a;border-radius:1px"></div><span style="font-size:13px;font-weight:800;color:#0d0d0d">Westhaven</span></div>
+        <div style="font-size:9px;color:#94a3b8;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Powered by GreenLyne</div>
+      </div>
+
+      <!-- Progress dots -->
+      <div style="padding:14px 20px 0;display:flex;align-items:center;gap:6px">
+        <div style="width:20px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:rgba(0,22,96,0.12)"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:rgba(0,22,96,0.12)"></div>
+        <span style="font-size:10px;color:#94a3b8;margin-left:4px">Step 2 of 4</span>
+      </div>
+
+      <div style="padding:14px 20px 0">
+        <div style="font-size:20px;font-weight:700;color:#001660;line-height:1.2;margin-bottom:4px">Quick check — two taps.</div>
+        <div style="font-size:12px;color:#94a3b8">Helps us tighten your estimate.</div>
+      </div>
+
+      <!-- Q1: Bill range chips -->
+      <div style="margin:16px 20px 0;background:#fff;border-radius:16px;padding:18px;border:1px solid rgba(0,22,96,0.07)">
+        <div style="font-size:12px;font-weight:700;color:#001660;margin-bottom:12px">Monthly electric bill?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="border-radius:10px;padding:10px 6px;text-align:center;border:1.5px solid rgba(0,22,96,0.12);background:#fff">
+            <div style="font-size:13px;font-weight:700;color:#001660">Under $100</div>
+          </div>
+          <div style="border-radius:10px;padding:10px 6px;text-align:center;border:1.5px solid rgba(0,22,96,0.12);background:#fff">
+            <div style="font-size:13px;font-weight:700;color:#001660">$100–200</div>
+          </div>
+          <div style="border-radius:10px;padding:10px 6px;text-align:center;border:2px solid #001660;background:rgba(0,22,96,0.05)">
+            <div style="font-size:13px;font-weight:700;color:#001660">$200–300</div>
+            <div style="font-size:9px;color:#254BCE;font-weight:600;margin-top:2px">selected</div>
+          </div>
+          <div style="border-radius:10px;padding:10px 6px;text-align:center;border:1.5px solid rgba(0,22,96,0.12);background:#fff">
+            <div style="font-size:13px;font-weight:700;color:#001660">$300–400</div>
+          </div>
+          <div style="border-radius:10px;padding:10px 6px;text-align:center;border:1.5px solid rgba(0,22,96,0.12);background:#fff;grid-column:span 2">
+            <div style="font-size:13px;font-weight:700;color:#001660">$400+</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2: Ownership chips -->
+      <div style="margin:10px 20px 0;background:#fff;border-radius:16px;padding:18px;border:1px solid rgba(0,22,96,0.07)">
+        <div style="font-size:12px;font-weight:700;color:#001660;margin-bottom:12px">Do you own 1482 Sunridge Drive?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="border-radius:10px;padding:14px 10px;text-align:center;border:2px solid #001660;background:rgba(0,22,96,0.04)">
+            <div style="font-size:18px;margin-bottom:4px">✓</div>
+            <div style="font-size:13px;font-weight:700;color:#001660">Yes, I own it</div>
+          </div>
+          <div style="border-radius:10px;padding:14px 10px;text-align:center;border:1.5px solid rgba(0,22,96,0.12)">
+            <div style="font-size:18px;margin-bottom:4px;color:#94a3b8">✗</div>
+            <div style="font-size:13px;font-weight:700;color:#94a3b8">I rent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div style="padding:16px 20px 20px">
+        <div style="background:#254BCE;border-radius:14px;padding:15px;text-align:center;font-size:15px;font-weight:700;color:#fff">Show My Updated Numbers →</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <p class="label">Design notes</p>
+  <ul style="font-size:12px;color:#94a3b8;line-height:2;padding-left:18px">
+    <li><strong style="color:#f1f5f9">A — Slider:</strong> More tactile, feels interactive, good for on-site QR demos. Harder to use precisely on mobile.</li>
+    <li><strong style="color:#f1f5f9">B — Chips:</strong> Faster tap, works better on mobile, cleaner. Less "interactive toy" feeling. Recommended for real use.</li>
+    <li>Both show progress dots (step 2 of 4) — sets expectation that this is quick</li>
+    <li>Both ask exactly 2 questions — bill range + ownership</li>
+    <li>Ownership question uses the actual address for personalization</li>
+  </ul>
+</div>

@@ -1,0 +1,135 @@
+<h2>SmartPOS — REFINED + INTENT States</h2>
+<p class="subtitle">REFINED shows updated numbers. INTENT is the commitment gate — explicit confirm before handoff. Shown together since they're one tap apart.</p>
+
+<div class="cards">
+
+  <!-- REFINED screen -->
+  <div class="card" data-choice="refined" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F5F1EE;padding:0;font-family:-apple-system,sans-serif;max-width:340px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="background:#fff;border-bottom:1px solid rgba(0,22,96,0.07);padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <img src="/westhaven-logo.png" style="height:22px;width:auto" onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+        <div style="display:none;align-items:center;gap:5px"><div style="width:7px;height:7px;background:#e0271a;border-radius:1px"></div><span style="font-size:12px;font-weight:800;color:#0d0d0d">Westhaven</span></div>
+        <div style="font-size:8px;color:#94a3b8;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Powered by GreenLyne</div>
+      </div>
+
+      <!-- Progress -->
+      <div style="padding:12px 16px 0;display:flex;align-items:center;gap:5px">
+        <div style="width:18px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:18px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:18px;height:4px;border-radius:2px;background:#001660"></div>
+        <div style="width:18px;height:4px;border-radius:2px;background:rgba(0,22,96,0.12)"></div>
+        <span style="font-size:9px;color:#94a3b8;margin-left:3px">Step 3 of 4</span>
+      </div>
+
+      <!-- Headline -->
+      <div style="padding:12px 16px 0">
+        <div style="display:inline-flex;align-items:center;gap:5px;background:rgba(1,97,99,0.08);border:1px solid rgba(1,97,99,0.2);border-radius:100px;padding:4px 10px;margin-bottom:10px">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#016163" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          <span style="font-size:10px;font-weight:700;color:#016163">Updated for your bill range</span>
+        </div>
+        <div style="font-size:18px;font-weight:700;color:#001660;line-height:1.2;margin-bottom:3px">Here's your refined plan.</div>
+        <div style="font-size:11px;color:#94a3b8">Based on a $200–300/mo bill at 1482 Sunridge Drive</div>
+      </div>
+
+      <!-- Hero savings number -->
+      <div style="margin:12px 16px 0;background:#001660;border-radius:14px;padding:16px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Est. monthly savings</div>
+        <div style="font-size:40px;font-weight:700;color:#93DDBA;letter-spacing:-.03em;line-height:1">$140</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px">per month · after switching to solar</div>
+      </div>
+
+      <!-- Secondary: Before/After -->
+      <div style="margin:10px 16px 0;display:grid;grid-template-columns:1fr auto 1fr;background:#fff;border-radius:12px;overflow:hidden;border:1px solid rgba(0,22,96,0.07)">
+        <div style="padding:12px">
+          <div style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Now</div>
+          <div style="font-size:20px;font-weight:700;color:#94a3b8;letter-spacing:-.02em;text-decoration:line-through;text-decoration-color:rgba(224,39,26,0.5)">$1,400</div>
+          <div style="font-size:9px;color:#d1d5db;margin-top:2px">electric bill</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#d1d5db;font-size:14px;padding:0 2px">→</div>
+        <div style="padding:12px;background:rgba(0,22,96,0.03)">
+          <div style="font-size:9px;font-weight:700;color:#254BCE;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">With solar</div>
+          <div style="font-size:20px;font-weight:700;color:#001660;letter-spacing:-.02em">$1,260</div>
+          <div style="font-size:9px;color:#94a3b8;margin-top:2px">fixed payment</div>
+        </div>
+      </div>
+
+      <!-- Expectation setter -->
+      <div style="margin:10px 16px 0;padding:10px 12px;background:rgba(37,75,206,0.05);border-radius:10px;border:1px solid rgba(37,75,206,0.1)">
+        <div style="font-size:10px;color:#254BCE;line-height:1.6">After you confirm, a solar specialist will walk you through your exact plan.</div>
+      </div>
+
+      <!-- CTA -->
+      <div style="padding:12px 16px 14px">
+        <div style="background:#001660;border-radius:12px;padding:13px;text-align:center;font-size:14px;font-weight:700;color:#fff">Confirm & Get Exact Plan →</div>
+      </div>
+
+    </div>
+    <div class="card-body">
+      <h3>REFINED state</h3>
+      <p>Savings is the hero number. Before/after is secondary. Expectation-setter prepares user for the specialist call. CTA is "Confirm & Get Exact Plan."</p>
+    </div>
+  </div>
+
+  <!-- INTENT screen -->
+  <div class="card" data-choice="intent" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#F5F1EE;padding:0;font-family:-apple-system,sans-serif;max-width:340px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="background:#fff;border-bottom:1px solid rgba(0,22,96,0.07);padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <img src="/westhaven-logo.png" style="height:22px;width:auto" onerror="this.style.display='none';this.nextSibling.style.display='flex'">
+        <div style="display:none;align-items:center;gap:5px"><div style="width:7px;height:7px;background:#e0271a;border-radius:1px"></div><span style="font-size:12px;font-weight:800;color:#0d0d0d">Westhaven</span></div>
+        <div style="font-size:8px;color:#94a3b8;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Powered by GreenLyne</div>
+      </div>
+
+      <!-- Body: minimal, focused -->
+      <div style="padding:28px 16px 0;text-align:center">
+        <!-- Plan summary card -->
+        <div style="background:#001660;border-radius:16px;padding:20px;margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">Your plan · 1482 Sunridge Drive</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:10px">
+              <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Solar payment</div>
+              <div style="font-size:20px;font-weight:700;color:#fff">$1,260<span style="font-size:11px;color:rgba(255,255,255,.4)">/mo</span></div>
+            </div>
+            <div style="background:rgba(147,221,186,0.12);border-radius:10px;padding:10px;border:1px solid rgba(147,221,186,0.2)">
+              <div style="font-size:9px;color:rgba(147,221,186,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">You save</div>
+              <div style="font-size:20px;font-weight:700;color:#93DDBA">$140<span style="font-size:11px;color:rgba(147,221,186,.5)">/mo</span></div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25)">Est. system: 8.4 kW · $131,800 HELOC · $0 down</div>
+        </div>
+
+        <div style="font-size:17px;font-weight:700;color:#001660;margin-bottom:6px;line-height:1.25">Ready to get your exact plan?</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:20px;line-height:1.6">A solar specialist will walk you through the confirmed numbers and answer your questions.</div>
+
+        <!-- Primary CTA: full width -->
+        <div style="background:#016163;border-radius:14px;padding:15px;text-align:center;font-size:15px;font-weight:700;color:#fff;margin-bottom:10px">Confirm & Get My Exact Plan</div>
+
+        <!-- Secondary -->
+        <div style="font-size:11px;color:#94a3b8;padding-bottom:20px">No commitment · No credit check · Takes 2 minutes</div>
+
+        <!-- QR vs Email diverges here note -->
+        <div style="background:#fff;border-radius:10px;padding:10px 12px;border:1px solid rgba(0,22,96,0.07)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:9px">
+            <div style="text-align:left">
+              <div style="font-weight:700;color:#f59e0b;margin-bottom:3px">📱 QR path</div>
+              <div style="color:#6b7280;line-height:1.5">Rep auto-notified<br/>Call in 2–5 min</div>
+            </div>
+            <div style="text-align:left;border-left:1px solid rgba(0,22,96,0.08);padding-left:8px">
+              <div style="font-weight:700;color:#254BCE;margin-bottom:3px">📧 Email path</div>
+              <div style="color:#6b7280;line-height:1.5">User chooses:<br/>Talk now / Soon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="card-body">
+      <h3>INTENT state</h3>
+      <p>Minimal screen. Plan summary recap at top, single big CTA. This is the explicit commitment gate — curiosity ends here, financing unlocks after this tap. QR/Email behavior diverges on this tap.</p>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,119 @@
+<h2>Full Demo Flow — v4</h2>
+<p class="subtitle">Demo launcher added as the explicit starting point. Choose your entry scenario before anything begins.</p>
+
+<div class="mockup">
+  <div class="mockup-header">End-to-End GreenLyne Demo · Start → Funded</div>
+  <div class="mockup-body" style="padding:24px 20px;font-family:-apple-system,sans-serif">
+
+    <!-- Demo Launcher -->
+    <div style="background:#0f172a;border:2px solid #7c3aed;border-radius:12px;padding:18px;margin-bottom:8px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px">⚡ DEMO LAUNCHER · new screen · /demo</div>
+      <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:12px">Choose the scenario you want to demonstrate</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:480px;margin:0 auto">
+        <div style="background:#1e1a3a;border:1px solid #7c3aed;border-radius:8px;padding:14px;cursor:pointer">
+          <div style="font-size:20px;margin-bottom:6px">📧</div>
+          <div style="font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:4px">Email Lead</div>
+          <div style="font-size:10px;color:#6b7280;line-height:1.5">Homeowner received email<br/>Opening from home/phone<br/>No rep present</div>
+          <div style="margin-top:8px;font-size:10px;color:#7c3aed;font-weight:600">→ /email</div>
+        </div>
+        <div style="background:#1e1a3a;border:1px solid #7c3aed;border-radius:8px;padding:14px;cursor:pointer">
+          <div style="font-size:20px;margin-bottom:6px">📱</div>
+          <div style="font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:4px">On-Site QR</div>
+          <div style="font-size:10px;color:#6b7280;line-height:1.5">Contractor on-site<br/>Homeowner scans QR<br/>Rep standing by</div>
+          <div style="margin-top:8px;font-size:10px;color:#7c3aed;font-weight:600">→ /offer?source=qr</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two paths diverge -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
+
+      <!-- Email path -->
+      <div>
+        <div style="text-align:center;color:#e0271a;font-size:14px;margin-bottom:4px">↓</div>
+        <div style="background:#1a0f0f;border:1px solid #7f1d1d;border-radius:8px;padding:12px">
+          <div style="font-size:9px;font-weight:700;color:#fca5a5;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">📧 Email · /email</div>
+          <div style="font-size:11px;font-weight:600;color:#fef2f2;margin-bottom:4px">Westhaven Power email</div>
+          <div style="font-size:10px;color:#f87171;line-height:1.5">Pre-approval context · Alex Rivera<br/>1482 Sunridge Dr · Westhaven branded</div>
+          <div style="margin-top:8px;background:#7f1d1d;border-radius:4px;padding:5px;text-align:center;font-size:10px;font-weight:700;color:#fff">"Claim My Pre-Approval →"</div>
+          <div style="font-size:9px;color:#6b7280;margin-top:4px;text-align:center">→ /offer?source=email</div>
+        </div>
+        <div style="text-align:center;color:#e0271a;font-size:14px;margin-top:4px">↓</div>
+      </div>
+
+      <!-- QR path -->
+      <div>
+        <div style="text-align:center;color:#16a34a;font-size:14px;margin-bottom:4px">↓</div>
+        <div style="background:#0f1a0f;border:1px solid #14532d;border-radius:8px;padding:12px">
+          <div style="font-size:9px;font-weight:700;color:#86efac;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">📱 QR Scan · direct</div>
+          <div style="font-size:11px;font-weight:600;color:#f0fdf4;margin-bottom:4px">Skips email entirely</div>
+          <div style="font-size:10px;color:#4ade80;line-height:1.5">Lands directly in SmartPOS<br/>source=qr · rep context active</div>
+          <div style="margin-top:8px;background:#14532d;border-radius:4px;padding:5px;text-align:center;font-size:10px;font-weight:700;color:#fff">QR → /offer?source=qr</div>
+          <div style="font-size:9px;color:#6b7280;margin-top:4px;text-align:center">(no email step)</div>
+        </div>
+        <div style="text-align:center;color:#16a34a;font-size:14px;margin-top:4px">↓</div>
+      </div>
+
+    </div>
+
+    <!-- Merge point -->
+    <div style="text-align:center;margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;color:#4ade80;background:#14532d;border-radius:100px;padding:4px 16px;letter-spacing:.06em">Both paths arrive at /offer · source param carries context</span>
+    </div>
+    <div style="text-align:center;color:#475569;font-size:16px;margin-bottom:8px">↓</div>
+
+    <!-- SmartPOS -->
+    <div style="background:#0a1f12;border:1px solid #166534;border-radius:10px;padding:14px;margin-bottom:6px">
+      <div style="font-size:10px;font-weight:700;color:#4ade80;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">SmartPOS · /offer · 8 states</div>
+      <div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:10px;background:#14532d;color:#86efac;padding:4px 8px;border-radius:4px">ESTIMATE</span>
+        <span style="color:#4ade80;font-size:11px">→</span>
+        <span style="font-size:10px;background:#14532d;color:#86efac;padding:4px 8px;border-radius:4px">MICRO_CONFIRM</span>
+        <span style="color:#4ade80;font-size:11px">→</span>
+        <span style="font-size:10px;background:#14532d;color:#86efac;padding:4px 8px;border-radius:4px">REFINED</span>
+        <span style="color:#4ade80;font-size:11px">→</span>
+        <span style="font-size:10px;background:#166534;color:#bbf7d0;padding:4px 8px;border-radius:4px;font-weight:700;border:1px solid #22c55e">INTENT ← gate</span>
+        <span style="color:#4ade80;font-size:11px">→</span>
+        <span style="font-size:10px;background:#172554;color:#93c5fd;padding:4px 8px;border-radius:4px">H·PENDING</span>
+        <span style="color:#60a5fa;font-size:11px">→</span>
+        <span style="font-size:10px;background:#172554;color:#93c5fd;padding:4px 8px;border-radius:4px">H·SCHEDULED</span>
+        <span style="color:#60a5fa;font-size:11px">→</span>
+        <span style="font-size:10px;background:#172554;color:#93c5fd;padding:4px 8px;border-radius:4px">H·ACTIVE</span>
+        <span style="color:#60a5fa;font-size:11px">→</span>
+        <span style="font-size:10px;background:#1e3a5f;color:#bfdbfe;padding:4px 8px;border-radius:4px;border:1px solid #3b82f6;font-weight:700">H·COMPLETED</span>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:#374151;background:#1e293b;border-radius:4px;padding:6px 10px">
+        <span style="color:#f59e0b;font-weight:700">QR:</span> INTENT → auto-notifies rep (2–5 min) &nbsp;|&nbsp;
+        <span style="color:#60a5fa;font-weight:700">Email:</span> INTENT → user chooses "Talk now" or "Reach out shortly"
+      </div>
+    </div>
+
+    <div style="text-align:center;color:#475569;font-size:14px;margin:4px 0">↓ &nbsp;<span style="font-size:9px;background:#1e293b;border-radius:4px;padding:3px 8px;color:#64748b">state: { address, billRange, estimate, source }</span></div>
+
+    <!-- Financing -->
+    <div style="background:#1c1608;border:1px solid #854d0e;border-radius:8px;padding:12px 14px;margin:6px 0">
+      <div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">Financing Intake · /financing</div>
+      <div style="font-size:10px;color:#92400e">4-step form · pre-filled · "Let's finalize your plan" framing · GreenLyne + OWNING visible</div>
+    </div>
+
+    <div style="text-align:center;color:#475569;font-size:14px;margin:4px 0">↓</div>
+
+    <!-- Pre-qual + POS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:#0c1a2e;border:1px solid #1d4ed8;border-radius:8px;padding:10px 12px">
+        <div style="font-size:9px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Pre-qual Confirmed · /pre-qualified</div>
+        <div style="font-size:10px;color:#94a3b8">Offer snapshot · "Continue Application →"</div>
+      </div>
+      <div style="background:#130c1e;border:1px solid #5b21b6;border-radius:8px;padding:10px 12px">
+        <div style="font-size:9px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Full HELOC App · /pos-demo</div>
+        <div style="font-size:10px;color:#7c3aed">7 phases → Funded 🎉 · Closing states clarified</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <p class="label">Demo Launcher · /demo</p>
+  <p style="font-size:13px;color:#94a3b8;line-height:1.7">New lightweight screen. GreenLyne branded. Two scenario cards — Email Lead and On-Site QR. Clicking a card launches the correct entry path with the right <code style="background:#1e293b;padding:1px 6px;border-radius:3px;color:#60a5fa">source</code> param. This replaces the current ad-hoc demo footer bar as the primary scenario selector.</p>
+</div>

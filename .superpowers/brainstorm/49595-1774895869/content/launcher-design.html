@@ -1,0 +1,81 @@
+<h2>Demo Launcher — /demo</h2>
+<p class="subtitle">Which visual direction feels right for the launcher screen? This is what a demo presenter sees first.</p>
+
+<div class="split">
+
+  <!-- Option A: Dark, minimal -->
+  <div class="mockup" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="mockup-header">A — Dark branded</div>
+    <div class="mockup-body" style="background:#001660;padding:0;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
+
+      <!-- Logo area -->
+      <div style="text-align:center;padding:32px 24px 24px">
+        <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:28px;height:28px;border-radius:50%;border:2px solid #254BCE;display:flex;align-items:center;justify-content:center">
+            <div style="width:10px;height:10px;border-radius:50%;background:#254BCE"></div>
+          </div>
+          <span style="font-size:18px;font-weight:700;color:#fff;letter-spacing:-.02em">GreenLyne</span>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:.1em;text-transform:uppercase">Demo · Select a scenario</div>
+      </div>
+
+      <!-- Cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 32px;width:100%">
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px 16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:10px">📧</div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px">Email Lead</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:14px">Homeowner got an email<br/>No rep present</div>
+          <div style="background:#254BCE;border-radius:6px;padding:7px;font-size:11px;font-weight:700;color:#fff">Start Email Demo →</div>
+        </div>
+        <div style="background:rgba(147,221,186,0.08);border:1px solid rgba(147,221,186,0.2);border-radius:12px;padding:20px 16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:10px">📱</div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px">On-Site QR</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:14px">Contractor is present<br/>Homeowner scans QR</div>
+          <div style="background:#016163;border-radius:6px;padding:7px;font-size:11px;font-weight:700;color:#fff">Start QR Demo →</div>
+        </div>
+      </div>
+
+      <div style="font-size:9px;color:rgba(255,255,255,0.2);padding-bottom:20px;letter-spacing:.06em">GREENLYNE INTERNAL DEMO</div>
+    </div>
+  </div>
+
+  <!-- Option B: Light, product-like -->
+  <div class="mockup" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="mockup-header">B — Light product feel</div>
+    <div class="mockup-body" style="background:#F5F1EE;padding:0;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+
+      <!-- Header strip -->
+      <div style="width:100%;background:#fff;border-bottom:1px solid rgba(0,22,96,0.08);padding:14px 24px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:22px;height:22px;border-radius:50%;background:#001660;display:flex;align-items:center;justify-content:center">
+            <div style="width:8px;height:8px;border-radius:50%;background:#254BCE"></div>
+          </div>
+          <span style="font-size:14px;font-weight:700;color:#001660">GreenLyne</span>
+        </div>
+        <span style="font-size:9px;font-weight:700;color:#94a3b8;letter-spacing:.1em;text-transform:uppercase">Demo Launcher</span>
+      </div>
+
+      <!-- Body -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;width:100%">
+        <div style="font-size:20px;font-weight:700;color:#001660;text-align:center;margin-bottom:6px">Which scenario are you demoing?</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:24px;text-align:center">Choose an entry point to begin</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%">
+          <div style="background:#fff;border:1.5px solid rgba(0,22,96,0.1);border-radius:12px;padding:18px;text-align:center">
+            <div style="width:44px;height:44px;border-radius:10px;background:#f0f4ff;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:22px">📧</div>
+            <div style="font-size:12px;font-weight:700;color:#001660;margin-bottom:5px">Email Lead</div>
+            <div style="font-size:10px;color:#94a3b8;line-height:1.6;margin-bottom:12px">Homeowner reads<br/>Westhaven email first</div>
+            <div style="background:#001660;border-radius:8px;padding:8px;font-size:11px;font-weight:700;color:#fff">View Email →</div>
+          </div>
+          <div style="background:#fff;border:1.5px solid rgba(1,97,99,0.15);border-radius:12px;padding:18px;text-align:center">
+            <div style="width:44px;height:44px;border-radius:10px;background:#f0fdf8;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:22px">📱</div>
+            <div style="font-size:12px;font-weight:700;color:#001660;margin-bottom:5px">On-Site QR</div>
+            <div style="font-size:10px;color:#94a3b8;line-height:1.6;margin-bottom:12px">Rep present, homeowner<br/>scans on-site</div>
+            <div style="background:#016163;border-radius:8px;padding:8px;font-size:11px;font-weight:700;color:#fff">Start QR Flow →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
