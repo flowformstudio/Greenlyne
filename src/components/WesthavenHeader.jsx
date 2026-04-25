@@ -1,4 +1,4 @@
-export default function WesthavenHeader({ lender = 'owning' }) {
+export default function WesthavenHeader({ lender = 'owning', maxWidth = 860, padding = '0 20px' }) {
   return (
     <div style={{
       background: '#ffffff',
@@ -7,9 +7,9 @@ export default function WesthavenHeader({ lender = 'owning' }) {
       boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
     }}>
       <div style={{
-        maxWidth: 860,
+        maxWidth,
         margin: '0 auto',
-        padding: '0 20px',
+        padding,
         height: '100%',
         display: 'flex',
         alignItems: 'center',

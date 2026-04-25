@@ -264,7 +264,7 @@ export default function OfferLanding() {
   return (
     <div style={{ minHeight: '100vh', background: T.off, fontFamily: BODY }}>
 
-      <WesthavenHeader lender="grand-bank" />
+      <WesthavenHeader lender="grand-bank" maxWidth={1360} padding="0 40px" />
 
       <main style={{
         maxWidth: 1360, margin: '0 auto', padding: '32px 40px 56px',
@@ -280,10 +280,6 @@ export default function OfferLanding() {
               <h1 style={{ fontFamily: DISPLAY, fontSize: 34, fontWeight: 700, letterSpacing: '-0.025em', margin: '8px 0 0', color: T.navy }}>
                 Hi {CUSTOMER.name} — here's solar on your roof.
               </h1>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: T.white, border: `1px solid ${T.ink10}`, borderRadius: 999, padding: '7px 14px' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: T.emerald, flexShrink: 0 }} />
-              <span style={{ fontWeight: 700, color: T.ink60, letterSpacing: '0.04em', fontSize: 11 }}>Sun heatmap · live</span>
             </div>
           </div>
 
