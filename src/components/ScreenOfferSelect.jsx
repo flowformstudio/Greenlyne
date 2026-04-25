@@ -1085,11 +1085,11 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         </div>
       </div>
 
-      {/* Create custom plan toggle on the left + Trust signals on the right */}
+      {/* Create custom plan toggle on the left + Trust signals on the right (fixed 3-col so trust never shifts) */}
       <div style={{
         marginBottom: 28,
         display: 'grid',
-        gridTemplateColumns: showAdvanced ? 'repeat(3, 1fr)' : '1fr 1fr',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 16,
         alignItems: 'center',
       }}>
@@ -1131,8 +1131,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           </button>
         </div>
 
-        {/* Trust signals + disclaimer — right side, spans the remaining tile columns */}
-        <div style={{ gridColumn: showAdvanced ? '2 / span 2' : '2', textAlign: 'left' }}>
+        {/* Trust signals + disclaimer — right side, always spans cols 2-3 (no shift on advanced toggle) */}
+        <div style={{ gridColumn: '2 / span 2', textAlign: 'left' }}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             {['No obligation', 'No hard pull yet', 'Final terms at closing'].map(t => (
               <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
