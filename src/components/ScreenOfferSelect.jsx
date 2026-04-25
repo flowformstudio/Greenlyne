@@ -1085,7 +1085,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         </div>
       </div>
 
-      {/* Trust signals on the left + Create custom plan toggle on the right (button = 1 tile wide) */}
+      {/* Create custom plan toggle on the left + Trust signals on the right */}
       <div style={{
         marginBottom: 28,
         display: 'grid',
@@ -1093,23 +1093,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         gap: 16,
         alignItems: 'center',
       }}>
-        {/* Trust signals + disclaimer — spans the tile columns to the left */}
-        <div style={{ gridColumn: showAdvanced ? '1 / span 2' : '1', textAlign: 'left' }}>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-            {['No obligation', 'No hard pull yet', 'Final terms at closing'].map(t => (
-              <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style={{ fontSize: 12, fontWeight: 500, color: T.muted }}>{t}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: T.faint, lineHeight: 1.55, marginTop: 4 }}>
-            Estimates only. Final terms subject to underwriting and property appraisal. Payment support is funded via an escrow reserve within the loan principal — not a deferral or rate buydown.
-          </div>
-        </div>
-
-        {/* Create custom plan toggle — kept small/consistent, right-aligned in last column */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Create custom plan toggle — left column, kept small/consistent */}
+        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <button
             onClick={() => {
               if (showAdvanced) {
@@ -1144,6 +1129,21 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             </svg>
             Create custom plan <span style={{ color: showAdvanced ? T.blue : T.faint, fontWeight: 500, opacity: 0.85 }}>(advanced)</span>
           </button>
+        </div>
+
+        {/* Trust signals + disclaimer — right side, spans the remaining tile columns */}
+        <div style={{ gridColumn: showAdvanced ? '2 / span 2' : '2', textAlign: 'left' }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            {['No obligation', 'No hard pull yet', 'Final terms at closing'].map(t => (
+              <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style={{ fontSize: 12, fontWeight: 500, color: T.muted }}>{t}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: T.faint, lineHeight: 1.55, marginTop: 4 }}>
+            Estimates only. Final terms subject to underwriting and property appraisal. Payment support is funded via an escrow reserve within the loan principal — not a deferral or rate buydown.
+          </div>
         </div>
       </div>
 
