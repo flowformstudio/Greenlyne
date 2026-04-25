@@ -149,6 +149,7 @@ function computeOffer({ C, rate, preset }) {
     phaseSub,
     origFee:    calc.origFee,
     totalEscrow: calc.totalEscrow,
+    schedule,
     calc,
   }
 }
@@ -498,8 +499,65 @@ function PlanSelectedBadge({ dark = false }) {
   )
 }
 
+// ─── Payment chart (monthly payment over time, sparkline-style) ──────────────
+function PaymentChart({ schedule, maxY, lineColor, fillColor, axisColor, monthsToShow = 120 }) {
+  if (!schedule || schedule.length === 0 || !maxY) return null
+  const W = 300, H = 70
+  const N = Math.min(monthsToShow, schedule.length)
+  const xStep = W / Math.max(1, N - 1)
+
+  // Build a step-line path so transitions are sharp (horizontal then vertical)
+  const points = []
+  for (let i = 0; i < N; i++) {
+    const x = i * xStep
+    const y = H - (Math.min(schedule[i], maxY) / maxY) * (H - 6) - 3 // 3px top/bottom padding
+    if (i === 0) points.push(`M ${x.toFixed(2)} ${y.toFixed(2)}`)
+    else {
+      const prevY = H - (Math.min(schedule[i - 1], maxY) / maxY) * (H - 6) - 3
+      // step-line: horizontal to current x at previous y, then vertical to current y
+      points.push(`L ${x.toFixed(2)} ${prevY.toFixed(2)}`)
+      points.push(`L ${x.toFixed(2)} ${y.toFixed(2)}`)
+    }
+  }
+  const linePath = points.join(' ')
+  const areaPath = `${linePath} L ${(N - 1) * xStep} ${H} L 0 ${H} Z`
+
+  // Year markers at 5 and 10 years (60 and 120 months)
+  const yearMarks = [60, 120].filter(m => m < N).map(m => m * xStep)
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
+      {/* baseline */}
+      <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke={axisColor} strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
+      {/* dotted year guides */}
+      {yearMarks.map((x, i) => (
+        <line key={i} x1={x} y1="0" x2={x} y2={H} stroke={axisColor} strokeWidth="0.5" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" opacity="0.5" />
+      ))}
+      {/* area fill */}
+      <path d={areaPath} fill={fillColor} />
+      {/* line */}
+      <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="miter" strokeLinecap="square" />
+    </svg>
+  )
+}
+
+function ChartCaption({ color }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between',
+      fontSize: 9.5, fontWeight: 600, color,
+      textTransform: 'uppercase', letterSpacing: '0.08em',
+      marginTop: 4,
+    }}>
+      <span>Now</span>
+      <span>Yr 5</span>
+      <span>Yr 10</span>
+    </div>
+  )
+}
+
 // ─── Offer tile (baseline / recommended) ──────────────────────────────────────
-function OfferTile({ kind, offer, isSelected, onSelect }) {
+function OfferTile({ kind, offer, isSelected, onSelect, maxY }) {
   if (!offer) return null
   const isRecommended = kind === 'recommended'
 
@@ -547,13 +605,25 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
         </div>
 
         {/* Monthly payment */}
-        <div style={{ marginBottom: 22 }}>
+        <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 44, fontWeight: 800, color: T.text, ...NUM, letterSpacing: '-0.025em', lineHeight: 1 }}>
               {formatCurrencyFull(Math.round(offer.monthly))}
             </span>
             <span style={{ fontSize: 17, color: T.muted, fontWeight: 600 }}>/mo</span>
           </div>
+        </div>
+
+        {/* Payment-over-time chart */}
+        <div style={{ marginBottom: 18 }}>
+          <PaymentChart
+            schedule={offer.schedule}
+            maxY={maxY}
+            lineColor={T.blue}
+            fillColor="rgba(37,75,206,0.10)"
+            axisColor="rgba(15,23,42,0.18)"
+          />
+          <ChartCaption color={T.faint} />
         </div>
 
         {/* Divider + APR / Total loan */}
@@ -602,7 +672,7 @@ function OfferTile({ kind, offer, isSelected, onSelect }) {
 }
 
 // ─── Custom tile ──────────────────────────────────────────────────────────────
-function CustomTile({ offer, isSelected, onSelect, onRemove }) {
+function CustomTile({ offer, isSelected, onSelect, onRemove, maxY }) {
   if (!offer) return null
 
   return (
@@ -647,13 +717,25 @@ function CustomTile({ offer, isSelected, onSelect, onRemove }) {
         </div>
 
         {/* Monthly payment */}
-        <div style={{ marginBottom: 22 }}>
+        <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 44, fontWeight: 800, color: T.white, ...NUM, letterSpacing: '-0.025em', lineHeight: 1 }}>
               {formatCurrencyFull(Math.round(offer.monthly))}
             </span>
             <span style={{ fontSize: 17, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>/mo</span>
           </div>
+        </div>
+
+        {/* Payment-over-time chart */}
+        <div style={{ marginBottom: 18 }}>
+          <PaymentChart
+            schedule={offer.schedule}
+            maxY={maxY}
+            lineColor="#7BB6FF"
+            fillColor="rgba(123,182,255,0.18)"
+            axisColor="rgba(255,255,255,0.18)"
+          />
+          <ChartCaption color="rgba(255,255,255,0.45)" />
         </div>
 
         {/* Divider + APR / Total loan */}
@@ -850,6 +932,19 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
       preset: { zeroStart, ioYrs, s, reductionYrs },
     }), [safeDraw, rate, zeroStart, ioYrs, s, reductionYrs])
 
+  // Shared chart Y-axis max so all three tile sparklines use the same scale
+  const chartMaxY = useMemo(() => {
+    const offers = [baselineOffer, recommendedOffer, customOffer].filter(Boolean)
+    if (offers.length === 0) return 1
+    let m = 0
+    for (const o of offers) {
+      for (let i = 0; i < Math.min(120, o.schedule.length); i++) {
+        if (o.schedule[i] > m) m = o.schedule[i]
+      }
+    }
+    return Math.ceil(m * 1.12)  // a bit of headroom above the highest payment
+  }, [baselineOffer, recommendedOffer, customOffer])
+
   // Sanity: keep reductionYrs in line with IO
   useEffect(() => {
     if (ioYrs > 0 && (reductionYrs === null || reductionYrs > 5)) setReductionYrs(ioYrs)
@@ -936,7 +1031,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
       {/* Page header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 11, color: T.faint, ...NUM }}>Step 2 of 7 · Application #{APPLICATION_ID}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Step 2 of 7 · Application #{APPLICATION_ID}</span>
         </div>
         <h1 style={{
           fontSize: 32, fontWeight: 700, color: T.text,
@@ -968,8 +1063,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           alignItems: 'stretch',
           transition: 'grid-template-columns 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <OfferTile kind="baseline"    offer={baselineOffer}    isSelected={selected === 'baseline'}    onSelect={() => setSelected('baseline')} />
-          <OfferTile kind="recommended" offer={recommendedOffer} isSelected={selected === 'recommended'} onSelect={() => setSelected('recommended')} />
+          <OfferTile kind="baseline"    offer={baselineOffer}    isSelected={selected === 'baseline'}    onSelect={() => setSelected('baseline')}    maxY={chartMaxY} />
+          <OfferTile kind="recommended" offer={recommendedOffer} isSelected={selected === 'recommended'} onSelect={() => setSelected('recommended')} maxY={chartMaxY} />
           {showAdvanced && (
             <div style={{
               animation: isRemovingCustom
@@ -983,14 +1078,15 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 isSelected={selected === 'custom'}
                 onSelect={() => setSelected('custom')}
                 onRemove={handleRemoveCustom}
+                maxY={chartMaxY}
               />
             </div>
           )}
         </div>
       </div>
 
-      {/* Create custom plan — selectable toggle (left-aligned) */}
-      <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'flex-start' }}>
+      {/* Create custom plan toggle + trust signals row */}
+      <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
         <button
           onClick={() => {
             if (showAdvanced) {
@@ -1010,6 +1106,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             color: showAdvanced ? T.blue : T.muted,
             cursor: 'pointer', fontFamily: 'inherit',
             transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+            flexShrink: 0,
           }}
           onMouseOver={e => { if (!showAdvanced) { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = T.body } }}
           onMouseOut={e => { if (!showAdvanced) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted } }}
@@ -1021,6 +1118,21 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           )}
           Create custom plan <span style={{ color: showAdvanced ? T.blue : T.faint, fontWeight: 500, opacity: 0.85 }}>(advanced)</span>
         </button>
+
+        {/* Trust signals + disclaimer — sit next to the toggle, right-aligned */}
+        <div style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 560, textAlign: 'right' }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {['No obligation', 'No hard pull yet', 'Terms disclosed at closing'].map(t => (
+              <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style={{ fontSize: 12, fontWeight: 500, color: T.muted }}>{t}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: T.faint, lineHeight: 1.55, marginTop: 8 }}>
+            Estimates only. Final terms subject to underwriting and property appraisal. Payment support is funded via an escrow reserve within the loan principal — not a deferral or rate buydown.
+          </div>
+        </div>
       </div>
 
       {/* Advanced panel */}
@@ -1107,18 +1219,6 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             )}
           </div>
 
-          {/* Trust signals */}
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 16 }}>
-            {['No obligation', 'No hard pull yet', 'Terms disclosed at closing'].map(t => (
-              <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span style={{ fontSize: 12, fontWeight: 500, color: T.muted }}>{t}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: T.faint, lineHeight: 1.55, marginTop: 8 }}>
-            Estimates only. Final terms subject to underwriting and property appraisal. Payment support is funded via an escrow reserve within the loan principal — not a deferral or rate buydown.
-          </div>
         </div>
       )}
 

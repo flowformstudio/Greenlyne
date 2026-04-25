@@ -35,7 +35,7 @@ const SIDEBAR_STEPS = [
   { n: 1, label: 'Basic Info',               states: [S.BASIC_INFO] },
   { n: 2, label: 'Select Offer',             states: [S.OFFER_LOADING, S.OFFER_SELECT, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH] },
   { n: 3, label: 'Provide More Info',        states: [S.MORE_INFO] },
-  { n: 4, label: 'Link Account to Verify Income Sources', states: [S.LINK_INCOME] },
+  { n: 4, label: 'Link income sources', states: [S.LINK_INCOME] },
   { n: 5, label: 'Verify Identity',          states: [S.VERIFY_IDENTITY] },
   { n: 6, label: 'Sign Documents',           states: [S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT, S.FINAL_OFFER, S.DECLINED, S.DOCS_PREPARING, S.READY_TO_SCHEDULE] },
   { n: 7, label: 'Schedule Notary Session',  states: [S.NOTARY_SCHEDULED, S.SIGNING_IN_PROGRESS, S.LOAN_CLOSED, S.FUNDED] },
@@ -1063,7 +1063,7 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
       {/* ── Unified progress header ─────────────────────────────── */}
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             {section.label}
           </span>
           <span style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8', fontVariantNumeric: 'tabular-nums' }}>
