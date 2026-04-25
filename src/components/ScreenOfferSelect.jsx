@@ -1085,53 +1085,65 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         </div>
       </div>
 
-      {/* Create custom plan toggle + trust signals row */}
-      <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
-        <button
-          onClick={() => {
-            if (showAdvanced) {
-              handleRemoveCustom()
-            } else {
-              setShowAdvanced(true)
-              setSelected('custom')
-            }
-          }}
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8,
-            padding: '12px 16px',
-            background: showAdvanced ? 'rgba(37,75,206,0.06)' : 'transparent',
-            border: `1.5px solid ${showAdvanced ? T.blue : T.border}`,
-            borderRadius: 12,
-            fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
-            color: showAdvanced ? T.blue : T.muted,
-            cursor: 'pointer', fontFamily: 'inherit',
-            transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-            flexShrink: 0,
-          }}
-          onMouseOver={e => { if (!showAdvanced) { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = T.body } }}
-          onMouseOut={e => { if (!showAdvanced) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted } }}
-        >
-          {showAdvanced && (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          )}
-          Create custom plan <span style={{ color: showAdvanced ? T.blue : T.faint, fontWeight: 500, opacity: 0.85 }}>(advanced)</span>
-        </button>
-
-        {/* Trust signals + disclaimer — sit next to the toggle, right-aligned */}
-        <div style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 560, textAlign: 'right' }}>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {['No obligation', 'No hard pull yet', 'Terms disclosed at closing'].map(t => (
+      {/* Trust signals on the left + Create custom plan toggle on the right (button = 1 tile wide) */}
+      <div style={{
+        marginBottom: 28,
+        display: 'grid',
+        gridTemplateColumns: showAdvanced ? 'repeat(3, 1fr)' : '1fr 1fr',
+        gap: 16,
+        alignItems: 'center',
+      }}>
+        {/* Trust signals + disclaimer — spans the tile columns to the left */}
+        <div style={{ gridColumn: showAdvanced ? '1 / span 2' : '1', textAlign: 'left' }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            {['No obligation', 'No hard pull yet', 'Final terms at closing'].map(t => (
               <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <span style={{ fontSize: 12, fontWeight: 500, color: T.muted }}>{t}</span>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 11, color: T.faint, lineHeight: 1.55, marginTop: 8 }}>
+          <div style={{ fontSize: 11, color: T.faint, lineHeight: 1.55, marginTop: 4 }}>
             Estimates only. Final terms subject to underwriting and property appraisal. Payment support is funded via an escrow reserve within the loan principal — not a deferral or rate buydown.
           </div>
+        </div>
+
+        {/* Create custom plan toggle — kept small/consistent, right-aligned in last column */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => {
+              if (showAdvanced) {
+                handleRemoveCustom()
+              } else {
+                setShowAdvanced(true)
+                setSelected('custom')
+              }
+            }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              padding: '12px 16px',
+              background: showAdvanced ? 'rgba(37,75,206,0.06)' : 'transparent',
+              border: `1.5px solid ${showAdvanced ? T.blue : T.border}`,
+              borderRadius: 12,
+              fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
+              color: showAdvanced ? T.blue : T.muted,
+              cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseOver={e => { if (!showAdvanced) { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = T.body } }}
+            onMouseOut={e => { if (!showAdvanced) { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted } }}
+          >
+            <svg width="16" height="16" viewBox="-1 -1 32 32" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6.35 8.8H1.58" />
+              <path d="M28.42 8.8H12.51" />
+              <path d="M17.49 21.37H1.58" />
+              <path d="M28.42 21.37h-4.77" />
+              <path d="M6.35 8.625a3.08 3.08 0 1 0 6.16 0 3.08 3.08 0 1 0 -6.16 0" />
+              <path d="M17.49 21.37a3.08 3.08 0 1 0 6.16 0 3.08 3.08 0 1 0 -6.16 0" />
+            </svg>
+            Create custom plan <span style={{ color: showAdvanced ? T.blue : T.faint, fontWeight: 500, opacity: 0.85 }}>(advanced)</span>
+          </button>
         </div>
       </div>
 
