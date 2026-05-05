@@ -339,6 +339,58 @@ function CardHeader({ title, sub }) {
 }
 
 function NavButtons({ onBack, onNext, nextLabel = 'Continue', disabled = false, showBack = true }) {
+  const isMobile = useIsMobile(640)
+  if (isMobile) {
+    // Mobile: sticky bottom action bar — primary CTA dominates, secondary actions in a quieter row.
+    return (
+      <>
+        <div style={{
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
+          background: 'rgba(245,241,238,0.95)',
+          backdropFilter: 'saturate(180%) blur(14px)',
+          borderTop: '1px solid rgba(0,22,96,0.08)',
+          padding: '12px 16px calc(14px + env(safe-area-inset-bottom)) 16px',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <button
+            onClick={onNext}
+            disabled={disabled}
+            style={{
+              width: '100%', padding: '15px 20px', borderRadius: 999,
+              fontSize: 16, fontWeight: 700,
+              background: disabled ? 'rgba(0,22,96,0.18)' : '#001660',
+              color: '#fff', border: 'none',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+              transition: 'background .15s',
+            }}
+          >
+            {nextLabel}
+          </button>
+          {(showBack || true) && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {showBack && (
+                <button onClick={onBack} style={{
+                  flex: 1, padding: '11px 16px', borderRadius: 999,
+                  fontSize: 14, fontWeight: 600,
+                  background: 'transparent', border: '1.5px solid rgba(0,22,96,0.12)',
+                  color: 'rgba(0,22,96,0.7)', cursor: 'pointer',
+                  fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+                }}>← Back</button>
+              )}
+              <button style={{
+                flex: 1, padding: '11px 16px', borderRadius: 999,
+                fontSize: 14, fontWeight: 600,
+                background: 'transparent', border: '1.5px solid rgba(0,22,96,0.12)',
+                color: 'rgba(0,22,96,0.55)', cursor: 'pointer',
+                fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+              }}>Save for later</button>
+            </div>
+          )}
+        </div>
+      </>
+    )
+  }
   return (
     <div className="flex items-center justify-between pt-2 pb-8">
       <div className="flex items-center gap-3">
@@ -1027,13 +1079,13 @@ const PURPOSE_OPTIONS = [
 
 // Inline field row helper for proportional layouts
 function FieldRow({ children, gap = 12 }) {
-  return <div style={{ display: 'flex', gap, alignItems: 'flex-start' }}>{children}</div>
+  return <div className="ff-field-row" style={{ display: 'flex', gap, alignItems: 'flex-start' }}>{children}</div>
 }
 
 // Sized input wrapper
 function FieldWrap({ flex, minWidth, maxWidth, children }) {
   return (
-    <div style={{ flex: flex ?? '1 1 0', minWidth: minWidth ?? 0, maxWidth: maxWidth ?? 'none' }}>
+    <div className="ff-field-wrap" style={{ flex: flex ?? '1 1 0', minWidth: minWidth ?? 0, maxWidth: maxWidth ?? 'none' }}>
       {children}
     </div>
   )
@@ -1242,6 +1294,7 @@ function OwnershipTiles({ value, onChange }) {
 function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
   const [screenIdx, setScreenIdx] = useState(initialScreen)
   const [animDir,   setAnimDir]   = useState('fwd')
+  const isMobile = useIsMobile(640)
   const set = (field, value) => dispatch({ type: 'SET_STEP1', field, value })
 
   const meta        = SCREEN_META[screenIdx]
@@ -1280,12 +1333,16 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
   }
 
   return (
-    <div style={{ maxWidth: 560 }}>
+    <div style={{ maxWidth: isMobile ? '100%' : 560 }}>
       <style>{`
         @keyframes slideInFwd  { from { opacity:0; transform:translateX(28px);  } to { opacity:1; transform:none; } }
         @keyframes slideInBack { from { opacity:0; transform:translateX(-28px); } to { opacity:1; transform:none; } }
         .anim-fwd  { animation: slideInFwd  0.28s cubic-bezier(0.22,1,0.36,1) both; }
         .anim-back { animation: slideInBack 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+        @media (max-width: 640px) {
+          .ff-field-row { flex-direction: column !important; gap: 14px !important; }
+          .ff-field-wrap { max-width: none !important; flex: 1 1 auto !important; width: 100%; }
+        }
       `}</style>
 
       {/* ── Unified progress header ─────────────────────────────── */}
@@ -1330,8 +1387,8 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
         {/* Heading + helper — design-system display type */}
         <h1 style={{
           fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
-          fontSize: 38, fontWeight: 700,
-          letterSpacing: '-0.025em', lineHeight: 1.05,
+          fontSize: isMobile ? 26 : 38, fontWeight: 700,
+          letterSpacing: '-0.025em', lineHeight: 1.1,
           color: '#001660', margin: '0 0 10px',
         }}>
           {meta.heading}

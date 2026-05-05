@@ -1510,7 +1510,13 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
       {/* Offer tiles wrapper — constant marginBottom so button padding stays consistent */}
       <div style={{ position: 'relative', marginBottom: 48 }}>
-        <div style={{
+        <style>{`
+          @media (max-width: 720px) {
+            .ff-offer-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+            .ff-offer-trust-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+          }
+        `}</style>
+        <div className="ff-offer-grid" style={{
           display: 'grid',
           gridTemplateColumns: showAdvanced ? 'repeat(3, 1fr)' : '1fr 1fr',
           gap: 16,
@@ -1543,7 +1549,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
       </div>
 
       {/* Create custom plan toggle on the left + Trust signals on the right (fixed 3-col so trust never shifts) */}
-      <div style={{
+      <div className="ff-offer-trust-grid" style={{
         marginBottom: 28,
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
