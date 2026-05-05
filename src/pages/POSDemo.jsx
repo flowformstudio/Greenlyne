@@ -5261,7 +5261,7 @@ export default function POSDemo() {
       <BrandBar onRestart={() => dispatch({ type: 'RESTART' })} onToggleSim={() => dispatch({ type: 'TOGGLE_SIM' })} onViewEmail={() => navigate('/email')} />
       <div className={isMobile ? 'flex flex-1 overflow-hidden flex-col' : 'flex flex-1 overflow-hidden'}>
         {!isMobile && <StepSidebar appState={app} dispatch={dispatch} />}
-        <main className={isFlexScreen ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
+        <main className={(isFlexScreen ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto') + ' ff-flow-screen'}>
           {isMobile && !isFlexScreen && <MobileStepStrip appState={app} dispatch={dispatch} />}
           {isFlexScreen ? renderScreen() : (
             <div style={isMobile
