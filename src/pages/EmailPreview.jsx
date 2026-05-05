@@ -1,4 +1,26 @@
 import { useNavigate } from 'react-router-dom'
+import { getDemoSession } from '../lib/demoSession'
+import { DEMO_PERSONA } from '../lib/persona'
+import { calcRate } from '../lib/loanCalc'
+import { computeOffer, computeFiveYearTotal } from '../components/ScreenOfferSelect'
+import { useActivePartners } from '../lib/PartnersContext'
+
+function slugify(s = '') {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'partner'
+}
+
+// Same recommended preset used in the prescreen + application Step 2
+const RECOMMENDED_PRESET = { zeroStart: true, ioYrs: 5, s: 0.30, reductionYrs: 5 }
+const STANDARD_PRESET    = { zeroStart: false, ioYrs: 0, s: 0, reductionYrs: null }
+const PROFILE_BASE = {
+  fico:        740,
+  propValue:   DEMO_PERSONA.propValueN,
+  mortgageBal: DEMO_PERSONA.mortgageBalanceN,
+  creditLim:   120_000,
+}
+const APPROVED_MAX = 150_000
+
+function fmt(v) { return '$' + Math.round(v).toLocaleString() }
 
 const CTA_ROUTE = '/offer'
 
@@ -6,8 +28,9 @@ const C = {
   dark:    '#101010',
   dark2:   '#2a2a2a',
   red:     '#D82020',
-  green:   '#38B715',
-  greenBg: 'rgba(56,183,21,0.11)',
+  // This email is branded for Westhaven — use their deep black instead of GreenLyne emerald.
+  green:   '#101010',
+  greenBg: 'rgba(16,16,16,0.06)',
   navy:    '#001660',
   gray400: '#9CA3AF',
   gray500: '#6B7280',
@@ -19,45 +42,82 @@ const C = {
   bg:      '#EDEAE6',
 }
 
-export default function EmailPreview() {
+export default function EmailPreview({ hideClientChrome = false, loanAmountOverride }) {
   const navigate = useNavigate()
+  const session  = getDemoSession()
+  const { merchant, lender } = useActivePartners()
+  const merchantName   = merchant?.name || 'Westhaven Power'
+  const merchantLogo   = merchant?.logoUrl || '/westhaven-logo-new.avif'
+  const merchantSymbol = merchant?.symbolLogoUrl || merchant?.logoUrl || '/westhaven-icon.svg'
+  const merchantCover  = merchant?.coverImageUrl || '/solar-heat-map.jpg'
+  const brandRed       = merchant?.brandColor || C.red
+  const merchantSlug   = slugify(merchantName)
+  const merchantDomain = `${merchantSlug}.com`
+  const lenderName     = lender?.name || 'Owning'
+  const lenderLogo     = lender?.logoUrl || '/owning-logo.webp'
+  const lenderNmls     = lender?.nmls || '2611'
+  const firstName = session.firstName || DEMO_PERSONA.firstName
+  const lastName  = session.lastName  || DEMO_PERSONA.lastName
+  const recipientEmail = session.email || DEMO_PERSONA.email
+  const recipientAddress = session.address || DEMO_PERSONA.address
+  const recipientCity    = session.city    || DEMO_PERSONA.city
+  const recipientState   = session.state   || DEMO_PERSONA.state
+  const slug = `${firstName}-${lastName}`.toLowerCase().replace(/[^a-z0-9-]/g, '')
+
+  // Live offer figures — `loanAmountOverride` (e.g. from the prescreen slider) wins
+  // so the email preview re-renders instantly on each slider move. Falls back to
+  // the demo session for standalone /email visits.
+  const drawAmt = Number(loanAmountOverride) || Number(session.requestedLoanAmount) || DEMO_PERSONA.requestedLoanAmountN || 45_000
+  const projectCost = Number(session.projectCost) || drawAmt
+  const profile = { ...PROFILE_BASE, drawAmt }
+  const cltv  = (profile.mortgageBal + profile.creditLim) / profile.propValue
+  const rate  = calcRate(profile.fico, cltv) ?? 0.0825
+  const stdOffer = computeOffer({ C: drawAmt, rate, preset: STANDARD_PRESET })
+  const recOffer = computeOffer({ C: drawAmt, rate, preset: RECOMMENDED_PRESET })
+  const stdMonthly = stdOffer ? Math.round(stdOffer.monthly) : 0
+  const recMonthly = recOffer ? Math.round(recOffer.monthly) : 0   // active-phase monthly (interest-only window)
+  const stdFive    = stdOffer ? computeFiveYearTotal(stdOffer) : 0
+  const recFive    = recOffer ? computeFiveYearTotal(recOffer) : 0
+  const fiveYearSavings = Math.max(0, stdFive - recFive)
+
   const go = e => {
     e.preventDefault()
     navigate(CTA_ROUTE, {
       state: {
-        firstName: 'Alex', lastName: 'Rivera',
-        address: '1482 Sunridge Drive', city: 'Sacramento', state: 'CA',
+        firstName, lastName,
+        address: recipientAddress, city: recipientCity, state: recipientState,
       }
     })
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", display: 'flow-root' }}>
 
       {/* ── Email client chrome ─────────────────────────────────── */}
-      <div style={{ background: C.white, borderBottom: `1px solid ${C.gray200}`, padding: '14px 0' }}>
+      {!hideClientChrome && <div style={{ background: C.white, borderBottom: `1px solid ${C.gray200}`, padding: '14px 0' }}>
         <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: '50%', background: C.navy,
+              width: 44, height: 44, borderRadius: '50%', background: C.navy,
               overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              padding: 6,
             }}>
-              <img src="/westhaven-logo-new.avif" alt="WP" style={{ width: 26, height: 26, objectFit: 'contain' }} />
+              <img src={merchantSymbol} alt={merchantName} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Trevor Evanson — Westhaven Power</span>
-                <span style={{ fontSize: 12, color: C.gray400 }}>trevor@westhavenpower.com</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Trevor Evanson — {merchantName}</span>
+                <span style={{ fontSize: 12, color: C.gray400 }}>trevor@{merchantDomain}</span>
               </div>
-              <div style={{ fontSize: 12, color: C.gray400, marginTop: 1 }}>To: alex.rivera@email.com</div>
+              <div style={{ fontSize: 12, color: C.gray400, marginTop: 1 }}>To: {recipientEmail}</div>
             </div>
             <div style={{ fontSize: 12, color: C.gray400, whiteSpace: 'nowrap' }}>Today, 9:14 AM</div>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', paddingLeft: 46 }}>
-            Alex, your solar offer is ready
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', paddingLeft: 54 }}>
+            {firstName}, you are pre-qualified for a HELOC
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* ── Email body ──────────────────────────────────────────── */}
       <div style={{ maxWidth: 640, margin: '28px auto', padding: '0 16px 60px' }}>
@@ -68,7 +128,7 @@ export default function EmailPreview() {
             padding: '20px 32px', display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', borderBottom: `1px solid ${C.gray100}`,
           }}>
-            <img src="/westhaven-logo-new.avif" alt="Westhaven Power" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
+            <img src={merchantLogo} alt={merchantName} style={{ maxHeight: 33, maxWidth: 184, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontSize: 13, fontWeight: 500, color: '#001660' }}>Financing powered by</span>
@@ -76,8 +136,8 @@ export default function EmailPreview() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
-                <img src="/grand-bank-logo.png" alt="Grand Bank" style={{ height: 11, width: 'auto', objectFit: 'contain' }} />
-                <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #2611</span>
+                <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 12, maxWidth: 77, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
               </div>
             </div>
           </div>
@@ -85,8 +145,8 @@ export default function EmailPreview() {
           {/* COVER PHOTO */}
           <div style={{ padding: '16px 16px 0' }}>
             <img
-              src="/solar-heat-map.jpg"
-              alt="Solar heat map — 1482 Sunridge Drive"
+              src={merchantCover}
+              alt={`${merchantName} cover`}
               style={{ width: '100%', height: 200, objectFit: 'cover', objectPosition: 'center center', borderRadius: 10, display: 'block' }}
             />
           </div>
@@ -94,48 +154,129 @@ export default function EmailPreview() {
           {/* HERO */}
           <div style={{ padding: '36px 32px 32px' }}>
 
-            {/* Badge — green */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: C.greenBg, borderRadius: 20, padding: '4px 12px', marginBottom: 20,
-            }}>
-              <div style={{ width: 6, height: 6, borderRadius: 3, background: C.green }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.green, letterSpacing: '0.04em' }}>YOUR OFFER IS READY</span>
-            </div>
-
-            {/* Headline — 39px, dark, red highlights */}
+            {/* Headline — uses the agent-set amount from the prescreen modal */}
             <h1 style={{ fontSize: 39, fontWeight: 700, color: C.dark2, lineHeight: 1.05, letterSpacing: '-0.5px', margin: '0 0 16px' }}>
-              Hi Alex! Your home <span style={{ color: C.red }}>qualifies</span> for <span style={{ color: C.red }}>solar financing.</span>
+              Hi {firstName} — you&apos;re <span style={{ color: brandRed }}>pre-qualified</span> for a <span style={{ color: brandRed }}>HELOC</span> of up to <span style={{ color: brandRed }}>{fmt(drawAmt)}</span>.
             </h1>
 
-            {/* Narrative */}
-            <p style={{ fontSize: 16, color: C.gray500, lineHeight: 1.7, margin: '0 0 28px' }}>
-              Your Westhaven consultant pre-screened <strong style={{ color: C.dark, fontWeight: 700 }}>1482 Sunridge Drive</strong> and
-              we&apos;ve pre-built a solar HELOC offer for your property.
-              No hard credit pull, no commitment — just your numbers.
+            {/* Narrative — friendly, light on numbers */}
+            <p style={{ fontSize: 16, color: C.gray500, lineHeight: 1.7, margin: '0 0 24px' }}>
+              Your {merchantName} consultant pre-screened <strong style={{ color: C.dark, fontWeight: 700 }}>{recipientAddress}</strong> — no hard credit pull, no commitment.
             </p>
 
-            {/* Stat cards — white with shadow */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
-              {/* Savings card */}
-              <div style={{ background: C.white, borderRadius: 12, padding: '20px 20px 18px', boxShadow: '0 4px 9px rgba(0,0,0,0.21)' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(16,16,16,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                  Est. Monthly Savings
+            {/* Section header — savings-focused framing */}
+            <div style={{ fontSize: 18, fontWeight: 700, color: C.dark, marginBottom: 12, letterSpacing: '-0.3px' }}>
+              Two HELOC options · pre-qualified
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              {/* ── Standard HELOC ── */}
+              <div style={{ background: C.white, borderRadius: 12, padding: '0 0 18px', overflow: 'hidden', border: `1px solid ${C.gray200}`, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ background: C.gray50, padding: '10px 16px', borderBottom: `1px solid ${C.gray100}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: C.dark, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1.2 }}>
+                    Standard<br/>HELOC
+                  </div>
                 </div>
-                <div style={{ fontSize: 36, fontWeight: 900, color: C.green, letterSpacing: '-1px', lineHeight: 1, marginBottom: 6 }}>
-                  ~$55<span style={{ fontSize: 16, fontWeight: 600, color: '#b8b8b8' }}>/mo</span>
+                <div style={{ padding: '14px 16px 0', minHeight: 96 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(16,16,16,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Monthly payment</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: C.dark2, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                    {fmt(stdMonthly)}<span style={{ fontSize: 13, fontWeight: 600, color: C.gray400 }}>/mo</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.gray500, marginTop: 4 }}>Same payment, every month</div>
                 </div>
-                <div style={{ fontSize: 10, color: 'rgba(16,16,16,0.5)', lineHeight: 1.5 }}>Based on your current bill</div>
+                <div style={{ padding: '12px 16px 0', display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: C.gray500 }}>
+                  <span>5-yr total <strong style={{ color: C.dark, fontWeight: 700 }}>{fmt(stdFive)}</strong></span>
+                  <span>APR <strong style={{ color: C.dark, fontWeight: 700 }}>{(stdOffer ? stdOffer.apr * 100 : 8).toFixed(2)}%</strong></span>
+                </div>
               </div>
-              {/* Pre-approved card */}
-              <div style={{ background: C.white, borderRadius: 12, padding: '20px 20px 18px', boxShadow: '0 4px 9px rgba(0,0,0,0.21)' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(16,16,16,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                  Pre-Approved Amount
+
+              {/* ── Optimum HELOC — highlighted as the saver ── */}
+              <div style={{
+                background: C.white, borderRadius: 12, padding: '0 0 18px',
+                overflow: 'hidden', border: `1.5px solid ${C.green}`,
+                boxShadow: '0 6px 16px rgba(16,16,16,0.18)',
+                display: 'flex', flexDirection: 'column',
+              }}>
+                <div style={{ background: C.greenBg, padding: '10px 16px', borderBottom: `1px solid rgba(16,16,16,0.18)`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: C.green, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1.2 }}>
+                    Optimum<br/>HELOC
+                  </div>
+                  <span style={{
+                    background: C.green, color: C.white,
+                    fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+                    padding: '2px 7px', borderRadius: 99, textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  }}>Lowest 5-yr cost</span>
                 </div>
-                <div style={{ fontSize: 36, fontWeight: 900, color: C.dark2, letterSpacing: '-1px', lineHeight: 1, marginBottom: 6 }}>
-                  $131,800
+                <div style={{ padding: '14px 16px 0', minHeight: 96 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(16,16,16,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Monthly payment</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: C.green, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                    $0<span style={{ fontSize: 13, fontWeight: 600, color: C.gray400 }}>/mo</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.gray500, marginTop: 4 }}>First 6 months — then ~{fmt(recMonthly)}/mo</div>
                 </div>
-                <div style={{ fontSize: 10, color: 'rgba(16,16,16,0.5)' }}>Solar Home Equity Line of Credit</div>
+                <div style={{ padding: '12px 16px 0', display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: C.gray500 }}>
+                  <span>5-yr total <strong style={{ color: C.dark, fontWeight: 700 }}>{fmt(recFive)}</strong></span>
+                  <span>APR <strong style={{ color: C.dark, fontWeight: 700 }}>{(recOffer ? recOffer.apr * 100 : 8).toFixed(2)}%</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Why choose Optimum HELOC — high-energy benefits panel */}
+            <div style={{
+              background: C.green, color: C.white, borderRadius: 14, padding: '24px 24px 26px',
+              marginBottom: 28, boxShadow: '0 12px 28px -10px rgba(16,16,16,0.4)',
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 800, letterSpacing: '0.16em',
+                textTransform: 'uppercase', color: C.white, opacity: 0.85, marginBottom: 8,
+              }}>
+                Why Optimum HELOC?
+              </div>
+              <div style={{
+                fontSize: 26, fontWeight: 900, letterSpacing: '-0.6px',
+                lineHeight: 1.15, marginBottom: 18, color: C.white,
+              }}>
+                Two big wins for your wallet.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Point 1 — first 6 months free */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: C.white, color: C.green,
+                    fontSize: 14, fontWeight: 900,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.18)',
+                  }}>1</div>
+                  <div style={{ paddingTop: 2 }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: C.white, letterSpacing: '-0.3px', lineHeight: 1.25 }}>
+                      First 6 months free
+                    </div>
+                    <div style={{ fontSize: 14, color: C.white, opacity: 0.92, marginTop: 4, lineHeight: 1.55 }}>
+                      Gives your solar savings time to ramp up before payments start.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Point 2 — 5-year savings vs Standard */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: C.white, color: C.green,
+                    fontSize: 14, fontWeight: 900,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.18)',
+                  }}>2</div>
+                  <div style={{ paddingTop: 2 }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: C.white, letterSpacing: '-0.3px', lineHeight: 1.25 }}>
+                      Save <span style={{ background: C.white, color: C.green, padding: '0 8px', borderRadius: 6 }}>~{fmt(fiveYearSavings)}</span> over 5 years
+                    </div>
+                    <div style={{ fontSize: 14, color: C.white, opacity: 0.92, marginTop: 4, lineHeight: 1.55 }}>
+                      Optimum HELOC vs Standard HELOC — real money back in your pocket.
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -143,7 +284,7 @@ export default function EmailPreview() {
             <div style={{ textAlign: 'center', marginBottom: 12 }}>
               <a href="#" onClick={go} style={{
                 display: 'inline-block', textAlign: 'center',
-                background: C.red, color: C.white,
+                background: brandRed, color: C.white,
                 fontSize: 16, fontWeight: 700, letterSpacing: '-0.2px',
                 padding: '0 40px', height: 53, lineHeight: '53px',
                 borderRadius: 0, textDecoration: 'none',
@@ -156,7 +297,7 @@ export default function EmailPreview() {
             {/* Plain-text fallback */}
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <span style={{ fontSize: 12, color: C.gray400 }}>Or copy: </span>
-              <span style={{ fontSize: 12, color: C.dark, fontWeight: 500 }}>westhavenpower.com/offer/alex-rivera</span>
+              <span style={{ fontSize: 12, color: C.dark, fontWeight: 500 }}>{merchantDomain}/offer/{slug}</span>
             </div>
 
             {/* Fine print */}
@@ -177,18 +318,18 @@ export default function EmailPreview() {
               {[
                 {
                   n: '1',
-                  title: <span>Review your <span style={{ color: C.red }}>pre-built offer</span></span>,
+                  title: <span>Review your <span style={{ color: brandRed }}>pre-built offer</span></span>,
                   body: 'Confirm a few details — takes about 5 minutes. No hard credit pull.',
                 },
                 {
                   n: '2',
-                  title: <span>Complete your <span style={{ color: C.red }}>application</span></span>,
+                  title: <span>Complete your <span style={{ color: brandRed }}>application</span></span>,
                   body: 'Verify income and identity online. GreenLyne guides every step.',
                 },
                 {
                   n: '3',
-                  title: <span><span style={{ color: C.red }}>Installation</span> &amp; savings begin</span>,
-                  body: 'Westhaven schedules your install within days of funding.',
+                  title: <span><span style={{ color: brandRed }}>Installation</span> &amp; savings begin</span>,
+                  body: `${merchantName} schedules your install within days of funding.`,
                 },
               ].map((s, i) => (
                 <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -219,15 +360,15 @@ export default function EmailPreview() {
             />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: C.gray400, marginBottom: 2 }}>Your local energy consultant</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: C.dark }}>Trevor Evanson · Westhaven Power</div>
-              <div style={{ fontSize: 12, color: C.red, marginTop: 2 }}>(530) 812-1006 · westhavenpower.com</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.dark }}>Trevor Evanson · {merchantName}</div>
+              <div style={{ fontSize: 12, color: brandRed, marginTop: 2 }}>(530) 812-1006 · {merchantDomain}</div>
             </div>
           </div>
 
           {/* SOCIAL PROOF */}
           <div style={{ padding: '28px 32px', borderTop: `1px solid ${C.gray100}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.dark, textAlign: 'center', lineHeight: 1.5, marginBottom: 20 }}>
-              Over <span style={{ color: C.red }}>10,000</span> Northern California Families Chose <span style={{ color: C.red }}>Westhaven</span> — Here&apos;s Why
+              Over <span style={{ color: brandRed }}>10,000</span> Northern California Families Chose <span style={{ color: brandRed }}>{merchantName}</span> — Here&apos;s Why
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               {[
@@ -283,7 +424,7 @@ export default function EmailPreview() {
               Terms are estimates and subject to verification and approval. This offer is based on information indicating you meet certain criteria and is not a guaranteed commitment to lend. Checking eligibility uses a soft credit inquiry and will not affect your credit score. Final loan terms subject to full underwriting, property appraisal, and lender approval.
               <br /><br />
               Pre-screen opt-out: If you do not want to receive prescreened offers, call 1-888-5-OPT-OUT or visit optoutprescreen.com.
-              Financing powered by GreenLyne. Lending by Owning, NMLS #2611. © 2025 Westhaven Power. CA Lic. 965111.
+              Financing powered by GreenLyne. Lending by {lenderName}{lenderNmls ? `, NMLS #${lenderNmls}` : ''}. © 2025 {merchantName}. CA Lic. 965111.
             </p>
           </div>
 

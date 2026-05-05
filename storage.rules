@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Demo project — public read, public write to partner logos only.
+// Tighten before any non-demo use.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Partner logos used by the demo (merchants + lenders).
+    match /partners/{role}/{file=**} {
+      allow read:  if true;
+      allow write: if request.resource.size < 2 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Default deny.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

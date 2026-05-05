@@ -1,9 +1,21 @@
-export default function WesthavenHeader({ lender = 'owning', maxWidth = 860, padding = '0 20px' }) {
+import { useActivePartners } from '../lib/PartnersContext'
+
+/**
+ * Partner header — shows the active merchant on the left and the active
+ * lender + GreenLyne credit on the right. Driven by PartnersContext so
+ * "Manage Demo" selections cascade automatically.
+ *
+ * Props are kept for layout reasons; the lender prop is now ignored
+ * (active lender comes from context).
+ */
+export default function WesthavenHeader({ maxWidth = 860, padding = '0 20px' }) {
+  const { merchant, lender } = useActivePartners()
+
   return (
     <div style={{
       background: '#ffffff',
       borderBottom: '1px solid rgba(0,22,96,0.08)',
-      height: 61,
+      height: 72,
       boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
     }}>
       <div style={{
@@ -16,12 +28,18 @@ export default function WesthavenHeader({ lender = 'owning', maxWidth = 860, pad
         justifyContent: 'space-between',
       }}>
 
-        {/* Left — Westhaven brand */}
-        <img
-          src="/westhaven-logo-new.avif"
-          alt="Westhaven Power"
-          style={{ height: 30, width: 'auto', objectFit: 'contain' }}
-        />
+        {/* Left — active merchant brand */}
+        {merchant?.logoUrl ? (
+          <img
+            src={merchant.logoUrl}
+            alt={merchant.name}
+            style={{ maxHeight: 40, maxWidth: 200, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+          />
+        ) : (
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0d0d0d' }}>
+            {merchant?.name || ''}
+          </span>
+        )}
 
         {/* Right — brand bar (two stacked rows) */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -39,35 +57,27 @@ export default function WesthavenHeader({ lender = 'owning', maxWidth = 860, pad
           </div>
 
           {/* Row 2: Lending services — subtle */}
-          {lender === 'grand-bank' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ fontSize: 10, fontWeight: 400, color: '#bcc7d5' }}>
-                Lending services by
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 10, fontWeight: 400, color: '#bcc7d5' }}>
+              Lending by
+            </span>
+            {lender?.logoUrl ? (
               <img
-                src="/grand-bank-logo.png"
-                alt="Grand Bank"
-                style={{ height: 12, width: 'auto', objectFit: 'contain' }}
+                src={lender.logoUrl}
+                alt={lender.name}
+                style={{ maxHeight: 22, maxWidth: 150, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block', opacity: 0.85 }}
               />
-              <span style={{ fontSize: 10, fontWeight: 400, color: '#bcc7d5' }}>
-                NMLS #2611
+            ) : (
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8' }}>
+                {lender?.name || ''}
               </span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            )}
+            {lender?.nmls && (
               <span style={{ fontSize: 10, fontWeight: 400, color: '#bcc7d5' }}>
-                Lending by
+                · NMLS #{lender.nmls}
               </span>
-              <img
-                src="/owning-logo.webp"
-                alt="Owning"
-                style={{ height: 10, width: 'auto', verticalAlign: 'middle', opacity: 0.5 }}
-              />
-              <span style={{ fontSize: 10, fontWeight: 400, color: '#bcc7d5' }}>
-                · NMLS #2611
-              </span>
-            </div>
-          )}
+            )}
+          </div>
 
         </div>
       </div>

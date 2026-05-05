@@ -7,14 +7,22 @@ import { useState, useMemo, useReducer, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { calcLoan, FEE_TIERS, DEFERRED_OPTIONS, formatCurrencyFull } from '../lib/loanCalc'
 import ScreenOfferSelectNew from '../components/ScreenOfferSelect'
+import { PrimaryButton, SecondaryButton } from '../components/PrimaryButton'
+import { DEMO_PERSONA } from '../lib/persona'
+import { getDemoSession } from '../lib/demoSession'
+import { getDemoScenario, simForScenario, personaOverridesForScenario } from '../lib/demoScenario'
+import { useActivePartners } from '../lib/PartnersContext'
 
 // ─── State constants ───────────────────────────────────────────────────────────
 const S = {
   BASIC_INFO:            'basic_info',
   OFFER_LOADING:         'offer_loading',
+  OFFER_REANALYZING:     'offer_reanalyzing',
+  OUTCOME_PICKER:        'outcome_picker',
   OFFER_SELECT:          'offer_select',
   IDENTITY_CHALLENGE:    'identity_challenge',
   ADDRESS_MISMATCH:      'address_mismatch',
+  DEBT_CONSOLIDATION:    'debt_consolidation',
   MORE_INFO:             'more_info',
   LINK_INCOME:           'link_income',
   VERIFY_IDENTITY:       'verify_identity',
@@ -33,7 +41,7 @@ const S = {
 
 const SIDEBAR_STEPS = [
   { n: 1, label: 'Basic Info',               states: [S.BASIC_INFO] },
-  { n: 2, label: 'Select Offer',             states: [S.OFFER_LOADING, S.OFFER_SELECT, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH] },
+  { n: 2, label: 'Select Offer',             states: [S.OFFER_LOADING, S.OFFER_REANALYZING, S.OUTCOME_PICKER, S.OFFER_SELECT, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH, S.DEBT_CONSOLIDATION] },
   { n: 3, label: 'Provide More Info',        states: [S.MORE_INFO] },
   { n: 4, label: 'Link income sources', states: [S.LINK_INCOME] },
   { n: 5, label: 'Verify Identity',          states: [S.VERIFY_IDENTITY] },
@@ -53,26 +61,50 @@ const STEP_JUMP = {
 
 const SEED = { projectCost: 45000, maxCredit: 294821, minCredit: 25000, defaultCredit: 131800, defaultWithdraw: 91800 }
 
+// Active scenario + persona (with scenario-specific overrides applied).
+// `?scenario=identityChallenge` etc. switches behavior without touching code.
+// Demo-session values (set by PMPro's Quick Prescreen) override base persona so
+// whatever the merchant entered upstream flows into the application form.
+const ACTIVE_SCENARIO = getDemoScenario()
+const SESSION = getDemoSession()
+const PERSONA = { ...DEMO_PERSONA, ...personaOverridesForScenario(ACTIVE_SCENARIO), ...SESSION }
+
+// Seed Step 1 form state from the persona — every field pre-fills, user edits persist.
 const SEED_STEP1 = {
-  firstName: 'Alex', middleInitial: '', lastName: 'Rivera',
-  dob: '',
-  phone: '', email: '',
-  marital: '', purpose: '',
-  address: '4821 Oakbrook Dr', city: 'San Jose', state: 'CA', zip: '95126',
-  propType: '', ownership: '',
-  propValue: '485000', mortgageBalance: '', forSale: false,
-  singleFamily: false, goodRoof: false,
-  annualIncome: '', incomeSource: '',
-  loanAmount: '', projectCost: '',
+  firstName:     PERSONA.firstName,
+  middleInitial: PERSONA.middleInitial,
+  lastName:      PERSONA.lastName,
+  dob:           PERSONA.dob,
+  phone:         PERSONA.phone,
+  email:         PERSONA.email,
+  marital:       PERSONA.marital,
+  purpose:       PERSONA.purpose,
+  address:       PERSONA.address,
+  unit:          '',
+  city:          PERSONA.city,
+  state:         PERSONA.state,
+  zip:           PERSONA.zip,
+  propType:      PERSONA.propType,
+  ownership:     PERSONA.ownership,
+  propValue:     PERSONA.propValue,
+  mortgageBalance: PERSONA.mortgageBalance,
+  forSale: false,
+  singleFamily: true,
+  goodRoof: true,
+  annualIncome: '',
+  otherIncome:  '',
+  incomeSource: PERSONA.incomeSource,
+  loanAmount:   PERSONA.requestedLoanAmount,
+  projectCost:  PERSONA.projectCost,
 }
 
 const SEED_STEP3 = {
   ssn: '',
-  marital: '', purpose: 'Home improvement',
+  marital: PERSONA.marital, purpose: PERSONA.purpose,
   propOccupancy: 'Primary residence', hoa: 'No', floodZone: 'No',
   employmentStatus: 'Full-time employed',
-  employer: 'Horizon Tech Solutions', yearsEmployed: '6',
-  annualIncome: '124000', monthlyExpenses: '3200',
+  employer: PERSONA.employer, yearsEmployed: PERSONA.yearsEmployed,
+  annualIncome: PERSONA.annualIncome, monthlyExpenses: PERSONA.monthlyExpenses,
   disclosuresAccepted: false,
   ethnicity: '', race: '', sex: '',
 }
@@ -85,8 +117,9 @@ const initialState = {
   step3: { ...SEED_STEP3 },
   step4: { bankLinked: false, idVerified: false },
   loan: null,
-  sim: { offerCheck: 'ok', propertyCheck: 'ok', appraisalRequired: false, opsReview: false, notaryMethod: 'enotary' },
+  sim: simForScenario(ACTIVE_SCENARIO),
   simOpen: false,
+  scenario: ACTIVE_SCENARIO,
   step2Config: null,  // persists configurator choices during session; cleared on restart
 }
 
@@ -133,15 +166,12 @@ function appReducer(state, action) {
       }
       const prev = backMap[state.app]
       if (!prev) return state
-      const step1Screen = state.app === S.OFFER_SELECT ? 7 : 0
+      const step1Screen = state.app === S.OFFER_SELECT ? 5 : 0
       return { ...state, app: prev, step1Screen }
     }
     case 'AUTO_ADVANCE': {
       if (state.app === S.OFFER_LOADING) {
-        const { offerCheck } = state.sim
-        if (offerCheck === 'identity_challenge') return { ...state, app: S.IDENTITY_CHALLENGE }
-        if (offerCheck === 'address_mismatch')   return { ...state, app: S.ADDRESS_MISMATCH }
-        return { ...state, app: S.OFFER_SELECT }
+        return { ...state, app: S.OUTCOME_PICKER }
       }
       if (state.app === S.PROPERTY_VERIFY_WAIT) {
         const { propertyCheck, opsReview, appraisalRequired } = state.sim
@@ -150,6 +180,34 @@ function appReducer(state, action) {
         return { ...state, app: opsReview ? S.OPS_REVIEW_WAIT : S.FINAL_OFFER }
       }
       return state
+    }
+    case 'IDENTITY_CONFIRMED': {
+      // User picked the correct name from the property title — adopt that name
+      // as the canonical applicant name, then re-run analysis before showing the offer.
+      const [first, ...rest] = String(action.fullName).split(' ')
+      const last = rest.join(' ')
+      return {
+        ...state,
+        app: S.OFFER_REANALYZING,
+        step1: { ...state.step1, firstName: first || state.step1.firstName, lastName: last || state.step1.lastName },
+      }
+    }
+    case 'PICK_OUTCOME': {
+      switch (action.outcome) {
+        case 'success':            return { ...state, app: S.OFFER_SELECT }
+        case 'identity':           return { ...state, app: S.IDENTITY_CHALLENGE }
+        case 'address':            return { ...state, app: S.ADDRESS_MISMATCH }
+        case 'property':           return { ...state, app: S.DECLINED }
+        case 'decline':            return { ...state, app: S.DECLINED }
+        case 'debt_consolidation': return { ...state, app: S.DEBT_CONSOLIDATION }
+        default: return state
+      }
+    }
+    case 'ADDRESS_CONFIRMED': {
+      // User picked the correct alternate address — re-run analysis before
+      // showing the offer. The application's property address is intentionally
+      // NOT updated; the alternate is only used to verify the applicant's history.
+      return { ...state, app: S.OFFER_REANALYZING }
     }
     case 'ACCEPT':           return { ...state, app: S.DOCS_PREPARING }
     case 'DECLINE_OFFER':    return { ...state, app: S.DECLINED }
@@ -192,24 +250,69 @@ function Input({ value, onChange, placeholder, type = 'text', readOnly }) {
       type={type} value={value}
       onChange={onChange ? e => onChange(e.target.value) : undefined}
       placeholder={placeholder} readOnly={readOnly}
-      className="w-full rounded-xl px-3.5 py-2.5 outline-none transition-all"
-      style={{ fontSize: 18, border: '1px solid rgba(0,22,96,0.15)', background: readOnly ? '#F8F9FC' : '#fff', color: readOnly ? 'rgba(0,22,96,0.5)' : '#001660' }}
-      onFocus={e => !readOnly && (e.target.style.borderColor = '#254BCE')}
-      onBlur={e => (e.target.style.borderColor = 'rgba(0,22,96,0.15)')}
+      className="w-full outline-none"
+      style={{
+        fontSize: 15, padding: '10px 12px', borderRadius: 10,
+        border: '1px solid rgba(0,22,96,0.15)',
+        background: readOnly ? '#F5F1EE' : '#fff',
+        color: readOnly ? 'rgba(0,22,96,0.5)' : '#001660',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}
+      onFocus={e => { if (readOnly) return; e.target.style.borderColor = '#254BCE'; e.target.style.boxShadow = '0 0 0 3px rgba(37,75,206,0.16)' }}
+      onBlur={e  => { e.target.style.borderColor = 'rgba(0,22,96,0.15)'; e.target.style.boxShadow = 'none' }}
     />
   )
 }
+
+// Date helpers — convert between MM/DD/YYYY (display) and YYYY-MM-DD (native date input)
+function dobToIso(mdy) {
+  if (!mdy) return ''
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(mdy)
+  if (!m) return ''
+  return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`
+}
+function dobFromIso(iso) {
+  if (!iso) return ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return ''
+  return `${m[2]}/${m[3]}/${m[1]}`
+}
+
+// US state options for the address form (2-letter code as value, full name as label)
+const US_STATE_OPTIONS = [
+  { value: '', label: 'Select state…' },
+  ...[
+    ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+    ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],
+    ['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],
+    ['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],
+    ['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],
+    ['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],
+    ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],
+    ['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],
+    ['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],
+    ['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],
+    ['WI','Wisconsin'],['WY','Wyoming'],
+  ].map(([value, label]) => ({ value, label })),
+]
 
 function Select({ value, onChange, options }) {
   return (
     <div style={{ position: 'relative' }}>
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full rounded-xl px-3.5 py-2.5 outline-none appearance-none"
-        style={{ fontSize: 18, border: '1px solid rgba(0,22,96,0.15)', background: '#fff', color: '#001660', paddingRight: '2rem', cursor: 'pointer' }}>
+        className="w-full outline-none appearance-none"
+        style={{
+          fontSize: 15, padding: '10px 32px 10px 12px', borderRadius: 10,
+          border: '1px solid rgba(0,22,96,0.15)',
+          background: '#fff', color: '#001660', cursor: 'pointer',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+        }}
+        onFocus={e => { e.target.style.borderColor = '#254BCE'; e.target.style.boxShadow = '0 0 0 3px rgba(37,75,206,0.16)' }}
+        onBlur={e  => { e.target.style.borderColor = 'rgba(0,22,96,0.15)'; e.target.style.boxShadow = 'none' }}>
         {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
       </select>
-      <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
-        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+        width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="6 9 12 15 18 9"/>
       </svg>
     </div>
@@ -239,29 +342,23 @@ function NavButtons({ onBack, onNext, nextLabel = 'Continue', disabled = false, 
     <div className="flex items-center justify-between pt-2 pb-8">
       <div className="flex items-center gap-3">
         {showBack && (
-          <button onClick={onBack} className="px-5 py-2.5 font-semibold rounded-xl border transition-colors"
-            style={{ fontSize: 18, borderColor: 'rgba(0,22,96,0.15)', color: '#001660', background: '#fff' }}
-            onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
-            onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
-            ← Back
-          </button>
+          <SecondaryButton onClick={onBack} back>Back</SecondaryButton>
         )}
-        <button className="px-5 py-2.5 font-medium rounded-xl border transition-colors"
-          style={{ fontSize: 18, borderColor: 'rgba(0,22,96,0.15)', color: 'rgba(0,22,96,0.55)', background: '#fff' }}
-          onMouseOver={e => (e.currentTarget.style.background = '#F8F9FC')}
-          onMouseOut={e => (e.currentTarget.style.background = '#fff')}>
+        <button
+          style={{
+            padding: '14px 22px', borderRadius: 999,
+            fontSize: 15, fontWeight: 600,
+            border: '1.5px solid rgba(0,22,96,0.12)', color: 'rgba(0,22,96,0.55)', background: '#fff',
+            fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+            cursor: 'pointer',
+            transition: 'background .18s, border-color .18s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.background = '#F5F1EE'; e.currentTarget.style.borderColor = 'rgba(0,22,96,0.22)' }}
+          onMouseOut={e  => { e.currentTarget.style.background = '#fff';   e.currentTarget.style.borderColor = 'rgba(0,22,96,0.12)' }}>
           Save for later
         </button>
       </div>
-      <button onClick={onNext} disabled={disabled}
-        className="py-2.5 px-6 font-bold rounded-xl transition-all flex items-center gap-2"
-        style={{ fontSize: 18, background: disabled ? 'rgba(0,22,96,0.2)' : '#254BCE', color: '#fff',
-          boxShadow: disabled ? 'none' : '0 4px 16px rgba(37,75,206,0.3)', cursor: disabled ? 'not-allowed' : 'pointer' }}
-        onMouseOver={e => { if (!disabled) e.currentTarget.style.background = '#1e3fa8' }}
-        onMouseOut={e => { if (!disabled) e.currentTarget.style.background = '#254BCE' }}>
-        {nextLabel}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
+      <PrimaryButton onClick={onNext} disabled={disabled}>{nextLabel}</PrimaryButton>
     </div>
   )
 }
@@ -306,6 +403,7 @@ function CreditBar({ withdrawNow, creditLimit }) {
 
 // ─── Brand bar ─────────────────────────────────────────────────────────────────
 function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
+  const { merchant, lender } = useActivePartners()
   return (
     <div className="border-b px-6 shrink-0" style={{ background: '#fff', borderColor: 'rgba(0,22,96,0.08)', height: 56, display: 'flex', alignItems: 'center' }}>
       {/* LEFT — GreenLyne primary */}
@@ -316,22 +414,32 @@ function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
       {/* RIGHT — two labeled partner blocks */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
 
-        {/* Block 1 — Project by Westhaven Power */}
+        {/* Block 1 — Project by [merchant] */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 20, marginRight: 20, borderRight: '1px solid rgba(0,22,96,0.1)' }}>
           <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, whiteSpace: 'nowrap', lineHeight: 1.3 }}>
             Project by
           </span>
-          <img src="/westhaven-icon.png" alt="Westhaven Power" style={{ height: 19, width: 'auto', objectFit: 'contain' }} />
+          {merchant?.logoUrl ? (
+            <img src={merchant.logoUrl} alt={merchant.name} style={{ height: 24, maxWidth: 130, width: 'auto', objectFit: 'contain', display: 'block' }} />
+          ) : (
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0d0d0d' }}>{merchant?.name || ''}</span>
+          )}
         </div>
 
-        {/* Block 2 — Financing services by Grand Bank */}
+        {/* Block 2 — Financing services by [lender] */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, whiteSpace: 'nowrap', lineHeight: 1.3, textAlign: 'right' }}>
             Financing services<br/>powered by
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-            <img src="/grand-bank-logo.png" alt="Grand Bank" style={{ height: 16, width: 'auto', objectFit: 'contain' }} />
-            <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, letterSpacing: '0.01em' }}>NMLS #2611</span>
+            {lender?.logoUrl ? (
+              <img src={lender.logoUrl} alt={lender.name} style={{ height: 16, maxWidth: 76, width: 'auto', objectFit: 'contain', display: 'block' }} />
+            ) : (
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#001660' }}>{lender?.name || ''}</span>
+            )}
+            {lender?.nmls && (
+              <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, letterSpacing: '0.01em' }}>NMLS #{lender.nmls}</span>
+            )}
           </div>
         </div>
 
@@ -340,63 +448,71 @@ function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
   )
 }
 
-// ─── Step sidebar (7 steps) ────────────────────────────────────────────────────
+// ─── Step sidebar (7 steps) — design-system v2 style ───────────────────────────
 function StepSidebar({ appState, dispatch }) {
   const currentStep = SIDEBAR_STEPS.find(s => s.states.includes(appState))?.n ?? 1
   const isHidden = appState === S.FUNDED
   if (isHidden) return null
   return (
-    <div className="w-56 shrink-0 flex flex-col" style={{ background: '#fff', borderRight: '1px solid rgba(0,22,96,0.08)' }}>
-      <div className="px-5 pt-6 pb-4">
-        <div className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(0,22,96,0.35)' }}>Application steps</div>
-        <div className="text-[16px] font-bold leading-snug mb-1" style={{ color: '#001660' }}>Application progress</div>
-        <div className="text-[13px] leading-relaxed" style={{ color: '#6B7280' }}>Complete the loan process today and get funded in as little as five days.</div>
+    <aside className="shrink-0 flex flex-col" style={{
+      width: 250, padding: '32px 22px',
+      background: '#fff', borderRight: '1px solid rgba(0,22,96,0.08)',
+    }}>
+      {/* Eyebrow + display step title */}
+      <div style={{
+        fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.16em',
+        textTransform: 'uppercase', color: 'rgba(0,22,96,0.65)',
+      }}>Application progress</div>
+      <div style={{
+        fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
+        fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em',
+        color: '#001660', marginTop: 10,
+      }}>
+        Step {currentStep} of {SIDEBAR_STEPS.length}
       </div>
-      <nav className="flex flex-col px-3 gap-0.5 flex-1">
-        {SIDEBAR_STEPS.map((s, i) => {
+
+      {/* Step list */}
+      <div style={{ marginTop: 22, display: 'grid', gap: 10 }}>
+        {SIDEBAR_STEPS.map(s => {
           const done   = s.n < currentStep
           const active = s.n === currentStep
-          const future = s.n > currentStep
+          const dotBg     = done ? '#016163' : active ? '#001660' : 'transparent'
+          const dotColor  = done || active ? '#F5F1EE' : 'rgba(0,22,96,0.4)'
+          const dotBorder = (!done && !active) ? '1.5px solid rgba(0,22,96,0.15)' : '0'
+          const labelColor = (done || active) ? '#001660' : 'rgba(0,22,96,0.4)'
           return (
-            <div key={s.n} className="flex flex-col">
-              <div
-                onClick={() => !active && dispatch({ type: 'JUMP_TO', state: STEP_JUMP[s.n] })}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left transition-all"
-                style={{ background: active ? 'rgba(37,75,206,0.07)' : 'transparent', cursor: active ? 'default' : 'pointer' }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(0,22,96,0.04)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = active ? 'rgba(37,75,206,0.07)' : 'transparent' }}>
-                <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold"
-                  style={{ background: done ? '#10B981' : active ? '#254BCE' : 'rgba(0,22,96,0.08)', color: (done || active) ? '#fff' : 'rgba(0,22,96,0.3)' }}>
-                  {done
-                    ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    : s.n}
-                </div>
-                <div>
-                  <div className="text-[14px] leading-snug"
-                    style={{ fontWeight: active ? 700 : 500, color: active ? '#001660' : done ? '#6B7280' : 'rgba(0,22,96,0.3)' }}>
-                    {s.label}
-                  </div>
-                </div>
+            <div
+              key={s.n}
+              onClick={() => !active && dispatch({ type: 'JUMP_TO', state: STEP_JUMP[s.n] })}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '8px 10px', borderRadius: 10,
+                background: active ? 'rgba(0,22,96,0.04)' : 'transparent',
+                cursor: active ? 'default' : 'pointer',
+                transition: 'background 0.15s',
+              }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%',
+                background: dotBg, color: dotColor, border: dotBorder,
+                display: 'grid', placeItems: 'center', flexShrink: 0,
+                fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+                fontWeight: 700, fontSize: 12,
+              }}>
+                {done ? '✓' : s.n}
               </div>
-              {i < SIDEBAR_STEPS.length - 1 && (
-                <div className="ml-6 w-px h-3" style={{ background: done ? '#10B981' : 'rgba(0,22,96,0.08)' }} />
-              )}
+              <span style={{
+                fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+                fontSize: 13.5, fontWeight: active ? 700 : 500,
+                color: labelColor,
+              }}>
+                {s.label}
+              </span>
             </div>
           )
         })}
-      </nav>
-      <div className="px-4 py-4 mt-auto border-t" style={{ borderColor: 'rgba(0,22,96,0.08)' }}>
-        <button
-          onClick={() => dispatch({ type: 'TOGGLE_SIM' })}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-colors"
-          style={{ background: 'rgba(37,75,206,0.07)', color: '#254BCE', border: '1px solid rgba(37,75,206,0.15)' }}
-          onMouseOver={e => (e.currentTarget.style.background = 'rgba(37,75,206,0.13)')}
-          onMouseOut={e => (e.currentTarget.style.background = 'rgba(37,75,206,0.07)')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-          Sim Controls
-        </button>
       </div>
-    </div>
+    </aside>
   )
 }
 
@@ -567,7 +683,7 @@ function ReviewCheckCard({ label, rows, onEdit }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         {rows.map(row => (
           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 16, color: '#6B7280', flexShrink: 0 }}>{row.label}</span>
+            <span style={{ fontSize: 16, color: 'rgba(0,22,96,0.65)', flexShrink: 0 }}>{row.label}</span>
             <span style={{ fontSize: 17, fontWeight: 600, color: '#111827', textAlign: 'right' }}>{row.value || '—'}</span>
           </div>
         ))}
@@ -586,7 +702,7 @@ function ReviewHeader({ totalSteps, heading, sub }) {
       </div>
       <div style={{ height: 3, background: '#254BCE', borderRadius: 0, marginBottom: 28 }} />
       <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>{heading}</h1>
-      <p style={{ fontSize: 18, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>{sub}</p>
+      <p style={{ fontSize: 18, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>{sub}</p>
     </div>
   )
 }
@@ -631,7 +747,6 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
       label: 'Property Details',
       rows: [
         { label: 'Property type',  value: step1.propType },
-        { label: 'Ownership',      value: step1.ownership },
         { label: 'Est. value',     value: step1.propValue ? `$${Number(step1.propValue).toLocaleString()}` : '—' },
         { label: 'Mortgage bal.',  value: step1.mortgageBalance ? `$${Number(step1.mortgageBalance).toLocaleString()}` : '—' },
       ],
@@ -707,22 +822,26 @@ function BasicInfoReview({ step1, onEdit, onContinue }) {
 // ─────────────────────────────────────────────────────────────────────────────
 const BASIC_SECTIONS = [
   { label: 'Personal Info',  screens: [0, 1] },
-  { label: 'Property Info',  screens: [2, 3, 4] },
-  { label: 'Income & Loan',  screens: [5, 6, 7] },
+  { label: 'Property Info',  screens: [2, 3] },
+  { label: 'Income & Loan',  screens: [4, 5] },
+  // To re-enable the Purpose screen, append `, 6` to the screens array above
+  // and uncomment the Purpose entry in SCREEN_META below.
 ]
 
 const SCREEN_META = [
   // Section 0 — Personal Info
-  { section: 0, heading: "What's your name?",              helper: 'Legal name and date of birth.' },
+  { section: 0, heading: 'Personal information',           helper: 'For verification purposes, please provide your legal name as it appears on your government-issued ID.' },
   { section: 0, heading: 'How can we reach you?',          helper: 'Only used for your application.' },
   // Section 1 — Property Info
-  { section: 1, heading: 'Where is the property?',         helper: 'The home used as collateral.' },
+  { section: 1, heading: 'Property information',           helper: 'The home used as collateral.' },
   { section: 1, heading: 'Tell us about the property',     helper: 'A few quick details about your home.' },
-  { section: 1, heading: 'Property value & mortgage',      helper: 'Estimates are fine — verified later.' },
   // Section 2 — Income & Loan
   { section: 2, heading: "What's your annual income?",     helper: 'Include all sources, pre-tax.' },
   { section: 2, heading: 'How much would you like to borrow?', helper: 'Match it to your solar project.' },
-  { section: 2, heading: "What's the primary purpose?",    helper: 'Helps us match you with the right terms.' },
+  // ── Purpose screen (DISABLED) — uncomment the line below + the BASIC_SECTIONS
+  //   entry above to bring back the "What's the primary purpose?" question.
+  //   The render block (screenIdx === 6) is preserved in the source.
+  // { section: 2, heading: "What's the primary purpose?",    helper: 'Helps us match you with the right terms.' },
 ]
 
 // Streamline icon: Real-Estate-Action-House-Wrench
@@ -843,23 +962,32 @@ function NarrowInput({ value, onChange, placeholder, maxWidth = 96, center = fal
 function PrefillBadge({ text = 'Pre-filled' }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 6 }}>
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       <span style={{ fontSize: 12, fontWeight: 600, color: '#065F46' }}>{text}</span>
     </div>
   )
 }
 
 function DollarInput({ value, onChange, placeholder }) {
+  const display = value && String(value).length >= 5
+    ? Number(String(value).replace(/\D/g, '')).toLocaleString()
+    : value
   return (
     <div style={{ position: 'relative' }}>
-      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>$</span>
+      <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: 'rgba(0,22,96,0.4)', pointerEvents: 'none', fontWeight: 600 }}>$</span>
       <input
-        value={value}
+        value={display}
         onChange={onChange ? e => onChange(e.target.value.replace(/\D/g, '')) : undefined}
         placeholder={placeholder}
-        style={{ width: '100%', boxSizing: 'border-box', fontSize: 18, border: '1px solid rgba(0,22,96,0.15)', borderRadius: 12, background: '#fff', color: '#001660', padding: '12px 14px 12px 30px', outline: 'none' }}
-        onFocus={e => (e.target.style.borderColor = '#254BCE')}
-        onBlur={e => (e.target.style.borderColor = 'rgba(0,22,96,0.15)')}
+        style={{
+          width: '100%', boxSizing: 'border-box',
+          fontSize: 15, padding: '10px 12px 10px 24px', borderRadius: 10,
+          border: '1px solid rgba(0,22,96,0.15)',
+          background: '#fff', color: '#001660', outline: 'none',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+        }}
+        onFocus={e => { e.target.style.borderColor = '#254BCE'; e.target.style.boxShadow = '0 0 0 3px rgba(37,75,206,0.16)' }}
+        onBlur={e  => { e.target.style.borderColor = 'rgba(0,22,96,0.15)'; e.target.style.boxShadow = 'none' }}
       />
     </div>
   )
@@ -917,9 +1045,8 @@ function IconInvestment({ size = 35, color = 'currentColor', strokeWidth = 1.5 }
 
 function PropTypeTiles({ value, onChange }) {
   const opts = [
-    { value: 'Primary residence',   renderIcon: (c) => <IconHouse color={c} />,          fallbackEmoji: null },
-    { value: 'Secondary residence', renderIcon: (c) => <IconSecondaryHouse color={c} />, fallbackEmoji: null },
-    { value: 'Investment property', renderIcon: (c) => <IconInvestment color={c} />,     fallbackEmoji: null },
+    { value: 'Primary property',   renderIcon: (c) => <IconHouse color={c} />,          fallbackEmoji: null },
+    { value: 'Secondary property', renderIcon: (c) => <IconSecondaryHouse color={c} />, fallbackEmoji: null },
   ]
   return (
     <div style={{ display: 'flex', gap: 8 }}>
@@ -936,7 +1063,7 @@ function PropTypeTiles({ value, onChange }) {
             <span style={{ fontSize: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 35 }}>
               {opt.renderIcon ? opt.renderIcon(iconColor) : opt.fallbackEmoji}
             </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
+            <span style={{ fontSize: 16, fontWeight: 600, color: active ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{opt.value}</span>
           </button>
         )
       })}
@@ -1027,12 +1154,11 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
     switch (screenIdx) {
       case 0: return !!step1.firstName && !!step1.lastName       // DOB optional
       case 1: return !!step1.phone && !!step1.email
-      case 2: return !!step1.address && !!step1.city
-      case 3: return !!step1.propType && !!step1.ownership
-      case 4: return !!step1.propValue && !!step1.mortgageBalance
-      case 5: return !!step1.annualIncome && !!step1.incomeSource
-      case 6: return !!step1.loanAmount && Number(step1.loanAmount) >= 25000
-      case 7: return !!step1.purpose
+      case 2: return !!step1.address && !!step1.city              // unit optional
+      case 3: return !!step1.propType                              // for-sale toggle has a default
+      case 4: return !!step1.annualIncome && !!step1.incomeSource  // otherIncome optional
+      case 5: return !!step1.loanAmount && Number(step1.loanAmount) >= 25000
+      // case 6: return !!step1.purpose   // ← re-enable when Purpose screen is restored
       default: return false
     }
   })()
@@ -1099,11 +1225,21 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
       {/* ── Animated question area ───────────────────────────────── */}
       <div key={`${screenIdx}-${animDir}`} className={animDir === 'fwd' ? 'anim-fwd' : 'anim-back'} style={{ marginBottom: 36 }}>
 
-        {/* Heading + helper */}
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+        {/* Heading + helper — design-system display type */}
+        <h1 style={{
+          fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
+          fontSize: 38, fontWeight: 700,
+          letterSpacing: '-0.025em', lineHeight: 1.05,
+          color: '#001660', margin: '0 0 10px',
+        }}>
           {meta.heading}
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+        <p style={{
+          fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+          fontSize: 15, fontWeight: 400, lineHeight: 1.5,
+          color: 'rgba(0,22,96,0.65)',
+          margin: '0 0 28px', maxWidth: 560,
+        }}>
           {meta.helper}
         </p>
 
@@ -1111,121 +1247,87 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
         {screenIdx === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <FieldRow gap={12}>
-              <FieldWrap flex="2 1 0"><Field label="First name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
-              <FieldWrap maxWidth={96}><Field label="Mid. initial"><Input value={step1.middleInitial || ''} onChange={v => set('middleInitial', v.slice(0, 1).toUpperCase())} placeholder="A" /></Field></FieldWrap>
-              <FieldWrap flex="2 1 0"><Field label="Last name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
+              <FieldWrap flex="2 1 0"><Field label="First Name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
+              <FieldWrap maxWidth={96}><Field label="Mid. Initial"><Input value={step1.middleInitial || ''} onChange={v => set('middleInitial', v.slice(0, 1).toUpperCase())} placeholder="A" /></Field></FieldWrap>
+              <FieldWrap flex="2 1 0"><Field label="Last Name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
             </FieldRow>
-            <FieldWrap maxWidth={168}>
-              <Field label="Date of birth" helper="optional">
-                <Input value={step1.dob} onChange={v => set('dob', v)} placeholder="MM/DD/YYYY" />
-              </Field>
-            </FieldWrap>
+            <FieldRow gap={12}>
+              <FieldWrap flex="2 1 0">
+                <Field label="Date of Birth">
+                  <Input type="date"
+                    value={dobToIso(step1.dob)}
+                    onChange={v => set('dob', dobFromIso(v))}
+                    placeholder="MM/DD/YYYY" />
+                </Field>
+              </FieldWrap>
+              {/* spacers so DOB visually matches First Name width above */}
+              <FieldWrap maxWidth={96} />
+              <FieldWrap flex="2 1 0" />
+            </FieldRow>
           </div>
         )}
 
         {/* ── Screen 1: Contact ───────────────────────────────────── */}
         {screenIdx === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ maxWidth: 168 }}>
-              <Field label="Phone number">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+            <div style={{ maxWidth: 280 }}>
+              <Field label="Phone Number">
                 <Input value={step1.phone} onChange={v => set('phone', v)} placeholder="(___) ___-____" />
               </Field>
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                * Used to reach you about your pre-qualification, application, or account.
+              </p>
             </div>
-            <Field label="Email address">
-              <Input value={step1.email} onChange={v => set('email', v)} />
-            </Field>
+            <div style={{ maxWidth: 460 }}>
+              <Field label="Email Address">
+                <Input value={step1.email} onChange={v => set('email', v)} />
+              </Field>
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                * We'll send your pre-qualification result and account updates here.
+              </p>
+            </div>
           </div>
         )}
 
         {/* ── Screen 2: Property Address ──────────────────────────── */}
         {screenIdx === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Field label="Street address">
+            <Field label="Street Address">
               <Input value={step1.address} onChange={v => set('address', v)} placeholder="123 Main St" />
             </Field>
-            <FieldRow gap={10}>
-              <FieldWrap flex="2 1 0"><Field label="City"><Input value={step1.city} onChange={v => set('city', v)} /></Field></FieldWrap>
-              <FieldWrap maxWidth={76}><Field label="State"><Input value={step1.state} onChange={v => set('state', v.toUpperCase().slice(0, 2))} placeholder="CA" /></Field></FieldWrap>
-              <FieldWrap maxWidth={108}><Field label="ZIP"><Input value={step1.zip} onChange={v => set('zip', v.replace(/\D/g, '').slice(0, 5))} /></Field></FieldWrap>
-            </FieldRow>
+            <div style={{ maxWidth: 220 }}>
+              <Field label="Apt/Suite" helper="optional">
+                <Input value={step1.unit || ''} onChange={v => set('unit', v)} placeholder="Apt 4B" />
+              </Field>
+            </div>
+            <Field label="City">
+              <Input value={step1.city} onChange={v => set('city', v)} />
+            </Field>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ flex: '1 1 0', minWidth: 0 }}>
+                <Field label="State">
+                  <Select value={step1.state || ''} onChange={v => set('state', v)} options={US_STATE_OPTIONS} />
+                </Field>
+              </div>
+              <div style={{ flex: '0 0 200px', minWidth: 0 }}>
+                <Field label="ZIP">
+                  <Input value={step1.zip} onChange={v => set('zip', v.replace(/\D/g, '').slice(0, 5))} />
+                </Field>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ── Screen 3: Property Type + Ownership + Home condition ─── */}
+        {/* ── Screen 3: Property Type + For-sale toggle ────────────── */}
         {screenIdx === 3 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 52 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Property type</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#001660', marginBottom: 10 }}>Occupancy type</div>
               <PropTypeTiles value={step1.propType} onChange={v => set('propType', v)} />
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '8px 0 0', lineHeight: 1.5 }}>
+                * Investment properties are not eligible.
+              </p>
             </div>
-            <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Ownership</div>
-              <OwnershipTiles value={step1.ownership} onChange={v => set('ownership', v)} />
-            </div>
-            <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { key: 'singleFamily', locked: false, title: 'Single-family home', desc: 'The property is a standalone residential home.' },
-                { key: 'goodRoof',     locked: false, title: 'Good roof condition', desc: 'The roof is in good condition with no known issues.' },
-              ].map(({ key, locked, title, desc }) => {
-                const checked = !!step1[key]
-                return (
-                  <button
-                    key={key}
-                    onClick={() => !locked && set(key, !checked)}
-                    style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 14,
-                      padding: '14px 16px', borderRadius: 14, width: '100%', textAlign: 'left',
-                      cursor: locked ? 'default' : 'pointer',
-                      background: checked ? 'rgba(37,75,206,0.06)' : '#F8F9FC',
-                      border: `1.5px solid ${checked ? '#254BCE' : 'rgba(0,22,96,0.1)'}`,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {/* Checkbox */}
-                    <div style={{
-                      width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
-                      background: checked ? '#254BCE' : '#fff',
-                      border: `2px solid ${checked ? '#254BCE' : 'rgba(0,22,96,0.18)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.15s',
-                      boxShadow: checked ? '0 1px 4px rgba(37,75,206,0.25)' : 'none',
-                    }}>
-                      {checked && (
-                        <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-                          <path d="M1.5 5L4.5 8L10.5 1.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </div>
-                    {/* Text */}
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: checked ? '#254BCE' : '#001660', lineHeight: 1.3 }}>{title}</div>
-                      <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3, lineHeight: 1.4 }}>{desc}</div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Screen 4: Property Value + Mortgage + For Sale ──────── */}
-        {screenIdx === 4 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <FieldRow gap={12}>
-              <FieldWrap flex="1 1 0">
-                <Field label="Estimated property value">
-                  <DollarInput value={step1.propValue} onChange={v => set('propValue', v)} placeholder="485,000" />
-                </Field>
-              </FieldWrap>
-              <FieldWrap flex="1 1 0">
-                <Field label="Current mortgage balance">
-                  <DollarInput value={step1.mortgageBalance} onChange={v => set('mortgageBalance', v)} placeholder="190,000" />
-                </Field>
-              </FieldWrap>
-            </FieldRow>
-            <div style={{ height: 1, background: 'rgba(0,22,96,0.06)' }} />
             <div>
               <div style={{ fontSize: 16, fontWeight: 600, color: '#001660', marginBottom: 10 }}>Is this property currently for sale?</div>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -1246,23 +1348,40 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
               </div>
               {step1.forSale && (
                 <p style={{ fontSize: 12, color: '#9CA3AF', margin: '10px 0 0', lineHeight: 1.5 }}>
-                  Properties listed for sale may affect your eligibility. A loan officer will review your application.
+                  * Properties listed for sale may affect your eligibility. A loan officer will review your application.
                 </p>
               )}
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                * If you have purchased your home in the last 90 days or if the title was transferred to you in the last 90 days, you are not eligible for a Guaranteed Rate, Inc dba Owning Home Equity Line of Credit.
+              </p>
             </div>
           </div>
         )}
 
-        {/* ── Screen 5: Income ────────────────────────────────────── */}
-        {screenIdx === 5 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <FieldWrap maxWidth={280}>
-              <Field label="Annual income (pre-tax)">
+        {/* ── Screen 4: Income ────────────────────────────────────── */}
+        {screenIdx === 4 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <FieldWrap maxWidth={420}>
+              <Field label="Annual Income (Pre-Tax)">
                 <DollarInput value={step1.annualIncome} onChange={v => set('annualIncome', v)} placeholder="124,000" />
               </Field>
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                * You may include income that is considered community or marital income in your state.
+              </p>
             </FieldWrap>
-            <FieldWrap maxWidth={280}>
-              <Field label="Primary income source">
+            <FieldWrap maxWidth={420}>
+              <Field label="Other Income" helper="optional">
+                <DollarInput value={step1.otherIncome || ''} onChange={v => set('otherIncome', v)} placeholder="0" />
+              </Field>
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                * Rental, investment, retirement, etc.
+              </p>
+              <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                * Disclosure of alimony, child support, or separate maintenance payments is not required unless you would like us to consider this income for qualification purposes.
+              </p>
+            </FieldWrap>
+            <FieldWrap maxWidth={420}>
+              <Field label="Primary Source of Annual Income">
                 <Select value={step1.incomeSource || ''} onChange={v => set('incomeSource', v)}
                   options={[{ value: '', label: 'Select income source…' }, 'Employment', 'Self-employment', 'Retirement / pension', 'Social Security', 'Rental income', 'Other']} />
               </Field>
@@ -1270,21 +1389,19 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
           </div>
         )}
 
-        {/* ── Screen 6: Loan Amount ────────────────────────────────── */}
-        {screenIdx === 6 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <FieldRow gap={12}>
-              <FieldWrap flex="1 1 0">
-                <Field label="Requested loan amount">
-                  <DollarInput value={step1.loanAmount} onChange={v => set('loanAmount', v)} placeholder="120,000" />
-                </Field>
-              </FieldWrap>
-              <FieldWrap flex="1 1 0">
-                <Field label="Estimated project cost" helper="optional">
-                  <DollarInput value={step1.projectCost || ''} onChange={v => set('projectCost', v)} placeholder="96,000" />
-                </Field>
-              </FieldWrap>
-            </FieldRow>
+        {/* ── Screen 5: Loan Amount ────────────────────────────────── */}
+        {screenIdx === 5 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <FieldWrap maxWidth={294}>
+              <Field label="Requested Loan Amount">
+                <DollarInput value={step1.loanAmount} onChange={v => set('loanAmount', v)} placeholder="120,000" />
+              </Field>
+            </FieldWrap>
+            <FieldWrap maxWidth={294}>
+              <Field label="Estimated Project Cost">
+                <DollarInput value={step1.projectCost || ''} onChange={v => set('projectCost', v)} placeholder="96,000" />
+              </Field>
+            </FieldWrap>
             {step1.loanAmount && Number(step1.loanAmount) < 25000 && (
               <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 13, color: '#B91C1C', fontWeight: 500 }}>
                 Minimum loan amount is $25,000.
@@ -1293,8 +1410,8 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
           </div>
         )}
 
-        {/* ── Screen 7: Purpose ────────────────────────────────────── */}
-        {screenIdx === 7 && (
+        {/* ── Screen 6: Purpose (DISABLED — see SCREEN_META + BASIC_SECTIONS to restore) ─ */}
+        {screenIdx === 6 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {PURPOSE_OPTIONS.map(opt => {
               const active = step1.purpose === opt.value
@@ -1312,7 +1429,7 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 17, fontWeight: 600, color: active ? '#254BCE' : '#001660' }}>{opt.value}</div>
-                    <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{opt.desc}</div>
+                    <div style={{ fontSize: 13, color: 'rgba(0,22,96,0.65)', marginTop: 2 }}>{opt.desc}</div>
                   </div>
                 </button>
               )
@@ -1324,84 +1441,37 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
       {/* ── Navigation ───────────────────────────────────────────── */}
       {isLastScreen ? (
         <div style={{
-          marginTop: 28,
+          marginTop: 90,
           background: '#ffffff',
           borderRadius: 16,
           border: '1px solid rgba(0,22,96,0.1)',
           boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
           padding: '24px 28px',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
           gap: 20,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={goBack} style={{
-              padding: '12px 18px', borderRadius: 10,
-              border: '1.5px solid rgba(0,22,96,0.15)', background: 'transparent',
-              fontSize: 14, fontWeight: 600, color: '#6B7280',
-              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-            }}>
-              ← Back
-            </button>
-            <div style={{ width: 1, height: 32, background: 'rgba(0,22,96,0.08)' }} />
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
-                Almost there
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                We'll generate your personalized loan offer
-              </div>
-            </div>
+          <div style={{
+            width: '100%',
+            fontSize: 16,
+            fontWeight: 700,
+            color: '#001660',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.3,
+          }}>
+            Almost there — we'll generate your personalized loan offer.
           </div>
-          <button
-            onClick={goNext}
-            disabled={!canContinue}
-            style={{
-              flexShrink: 0,
-              padding: '16px 32px',
-              borderRadius: 12,
-              background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.08)',
-              color: canContinue ? '#fff' : '#9CA3AF',
-              border: 'none',
-              fontSize: 16,
-              fontWeight: 700,
-              letterSpacing: '-0.01em',
-              cursor: canContinue ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
-              boxShadow: canContinue ? '0 6px 20px rgba(37,75,206,0.35)' : 'none',
-              transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseOver={e => { if (canContinue) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(37,75,206,0.4)' } }}
-            onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = canContinue ? '0 6px 20px rgba(37,75,206,0.35)' : 'none' }}
-          >
-            Generate My Offer →
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+            <SecondaryButton onClick={goBack} back>Back</SecondaryButton>
+            <PrimaryButton onClick={goNext} disabled={!canContinue} size="lg" style={{ flexShrink: 0 }}>
+              Generate My Offer
+            </PrimaryButton>
+          </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', justifyContent: screenIdx === 0 ? 'flex-end' : 'space-between', alignItems: 'center', paddingTop: 20, borderTop: '1px solid rgba(0,22,96,0.06)' }}>
-          {screenIdx > 0 && (
-            <button onClick={goBack} style={{
-              padding: '11px 20px', borderRadius: 10,
-              border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
-              fontSize: 16, fontWeight: 600, color: '#001660',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              ← Back
-            </button>
-          )}
-          <button onClick={goNext} disabled={!canContinue} style={{
-            padding: '13px 28px', borderRadius: 10, border: 'none',
-            background: canContinue ? '#254BCE' : 'rgba(0,22,96,0.15)',
-            color: '#fff', fontSize: 17, fontWeight: 700,
-            cursor: canContinue ? 'pointer' : 'not-allowed',
-            fontFamily: 'inherit', letterSpacing: '-0.1px',
-            boxShadow: canContinue ? '0 4px 16px rgba(37,75,206,0.28)' : 'none',
-            transition: 'all 0.15s',
-          }}>
-            Continue →
-          </button>
+        <div style={{ display: 'flex', justifyContent: screenIdx === 0 ? 'flex-end' : 'space-between', alignItems: 'center', marginTop: screenIdx === 5 ? 200 : 80 }}>
+          {screenIdx > 0 && <SecondaryButton onClick={goBack} back>Back</SecondaryButton>}
+          <PrimaryButton onClick={goNext} disabled={!canContinue}>Continue</PrimaryButton>
         </div>
       )}
     </div>
@@ -1653,7 +1723,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
       {/* DTI meter */}
       <div style={{ background: '#fff', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Current DTI</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,22,96,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Current DTI</span>
           <span style={{ fontSize: 18, fontWeight: 800, color: '#DC2626' }}>{Math.round(currentDTI * 100)}% — {dtiLabel(currentDTI)}</span>
         </div>
         <div style={{ height: 8, borderRadius: 4, background: '#F3F4F6', overflow: 'hidden', position: 'relative' }}>
@@ -1689,7 +1759,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
                 <div style={{ fontSize: 11, fontWeight: 700, color: dtiColor(coBorrowerDTI), marginBottom: 3 }}>
                   {Math.round(coBorrowerDTI * 100)}% DTI · {approvePct(coBorrowerDTI)}% approval likelihood
                 </div>
-                <div style={{ fontSize: 10, color: '#6B7280' }}>
+                <div style={{ fontSize: 10, color: 'rgba(0,22,96,0.65)' }}>
                   {coBorrowerDTI <= DTI_THRESHOLD ? '✓ This would meet lender requirements.' : 'Still above threshold — try a higher income.'}
                 </div>
               </div>
@@ -1727,7 +1797,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
                 ))}
               </div>
             </div>
-            <div style={{ fontSize: 10, color: '#6B7280', lineHeight: 1.55, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: 'rgba(0,22,96,0.65)', lineHeight: 1.55, marginBottom: 12 }}>
               Running the loan in Maria's name brings DTI well below 40%, significantly improving approval odds and potentially qualifying for a better rate.
             </div>
             <button onClick={() => onApply('switch_primary', {})}
@@ -1740,10 +1810,10 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
         {/* Option C — debt payoff */}
         <RecoveryOption id="C" icon="💳" title="Roll existing debts into the loan"
           badge={selectedDebts.length > 0 ? `Projected DTI: ${Math.round(debtPayoffDTI*100)}% — saves $${savedMonthly}/mo in minimums` : 'Select debts to roll in and see the net impact'}
-          badgeColor={selectedDebts.length > 0 ? dtiColor(debtPayoffDTI) : '#6B7280'}
+          badgeColor={selectedDebts.length > 0 ? dtiColor(debtPayoffDTI) : 'rgba(0,22,96,0.65)'}
           expandedOption={expandedOption} setExpandedOption={setExpandedOption}>
           <div style={{ paddingTop: 14 }}>
-            <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.55, marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: 'rgba(0,22,96,0.65)', lineHeight: 1.55, marginBottom: 10 }}>
               Pay off high-interest debts by rolling them into your HELOC at {TERM_OPTIONS.find(o => o.years === termYears)?.apr ?? 7.75}% — then your minimums disappear from your DTI calculation.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
@@ -1773,7 +1843,7 @@ function SoftDeclineRecovery({ payment, withdrawNow, creditLimit, termYears, tie
 
             {selectedDebts.length > 0 && (
               <div style={{ background: '#F8F9FC', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Before vs. after</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,22,96,0.65)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Before vs. after</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {[
                     { label: 'Current DTI', value: `${Math.round(currentDTI*100)}%`, color: '#DC2626' },
@@ -1982,10 +2052,10 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, animation: `offerFadeUp 0.35s ease ${delay} both` }}>
               <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', border: '1.5px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                  <path d="M1 4L3.5 6.5L9 1" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M1 4L3.5 6.5L9 1" stroke="#016163" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span style={{ fontSize: 16, color: '#374151' }}>{label}</span>
+              <span style={{ fontSize: 16, color: 'rgba(0,22,96,0.78)' }}>{label}</span>
             </div>
           ))}
         </div>
@@ -2003,7 +2073,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 6px', letterSpacing: '0em' }}>
           What matters most to you?
         </h1>
-        <p style={{ fontSize: 17, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 17, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
           Tell us in your own words, or pick one below — we'll build your ideal plan in seconds.
         </p>
       </div>
@@ -2107,7 +2177,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                 <div style={{ fontSize: 16, color: '#9CA3AF' }}>Choose an option to improve your approval odds</div>
               </div>
               <button onClick={() => setShowDecline(false)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', borderRadius: 8, cursor: 'pointer', padding: '7px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.78)" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
             {/* Scrollable content */}
@@ -2130,7 +2200,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '0em', lineHeight: 1.2 }}>
           Build your loan
         </h1>
-        <p style={{ fontSize: 18, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 18, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
           Answer each question — your plan summary updates live on the right.
         </p>
       </div>
@@ -2200,7 +2270,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                         </div>
                         <div>
                           <div style={{ fontSize: 18, fontWeight: 700, color: active ? '#254BCE' : '#001660', marginBottom: 3 }}>{opt.label}</div>
-                          <div style={{ fontSize: 16, color: '#6B7280', lineHeight: 1.5 }}>{opt.sub}</div>
+                          <div style={{ fontSize: 16, color: 'rgba(0,22,96,0.65)', lineHeight: 1.5 }}>{opt.sub}</div>
                         </div>
                       </button>
                     )
@@ -2216,7 +2286,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                       <div style={{ fontSize: 17, fontWeight: 600, color: '#001660' }}>Total credit line</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#001660', letterSpacing: '0em' }}>{formatCurrencyFull(creditLimit)}</div>
                     </div>
-                    <div style={{ fontSize: 16, color: '#6B7280', marginBottom: 10 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
+                    <div style={{ fontSize: 16, color: 'rgba(0,22,96,0.65)', marginBottom: 10 }}>Your maximum approved amount. You only pay interest on what you draw.</div>
                     <RangeSlider value={creditLimit} min={SEED.minCredit} max={maxCredit} step={5000} onChange={v => { setCreditLimit(v); if (withdrawNow > v) setWithdrawNow(v) }} formatLabel={v => formatCurrencyFull(v)} />
                   </div>
                   <div>
@@ -2224,7 +2294,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                       <div style={{ fontSize: 17, fontWeight: 600, color: '#254BCE' }}>Amount to draw at closing</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: '#254BCE', letterSpacing: '0em' }}>{formatCurrencyFull(safeWithdraw)}</div>
                     </div>
-                    <div style={{ fontSize: 16, color: '#6B7280', marginBottom: 10 }}>{formatCurrencyFull(creditLimit - safeWithdraw)} stays in your line — draw it later, no rush.</div>
+                    <div style={{ fontSize: 16, color: 'rgba(0,22,96,0.65)', marginBottom: 10 }}>{formatCurrencyFull(creditLimit - safeWithdraw)} stays in your line — draw it later, no rush.</div>
                     <RangeSlider value={safeWithdraw} min={0} max={creditLimit} step={5000} onChange={v => setWithdrawNow(v)} formatLabel={v => formatCurrencyFull(v)} />
                     <CreditBar withdrawNow={safeWithdraw} creditLimit={creditLimit} />
                   </div>
@@ -2255,7 +2325,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               {/* Step 2 — Payment timing */}
               {index === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 4 }}>Delay your first payment while solar savings kick in from day one.</div>
+                  <div style={{ fontSize: 17, color: 'rgba(0,22,96,0.65)', marginBottom: 4 }}>Delay your first payment while solar savings kick in from day one.</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                     {DEFERRED_OPTIONS.map(opt => {
                       const active = deferredMonths === opt.months
@@ -2264,7 +2334,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
                           padding: '14px 4px', borderRadius: 10, textAlign: 'center',
                           border: `2px solid ${active ? '#016163' : 'rgba(0,22,96,0.12)'}`,
                           background: active ? 'rgba(1,97,99,0.06)' : '#F8F9FC',
-                          color: active ? '#016163' : '#374151',
+                          color: active ? '#016163' : 'rgba(0,22,96,0.78)',
                           fontSize: 17, fontWeight: active ? 700 : 500, cursor: 'pointer', transition: 'all 0.15s',
                         }}>
                           {opt.months === 0 ? 'Right away' : `${opt.months} mo`}
@@ -2287,15 +2357,15 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
               {/* Step 3 — Informational */}
               {index === 3 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ fontSize: 18, color: '#374151', lineHeight: 1.65, margin: 0 }}>
+                  <p style={{ fontSize: 18, color: 'rgba(0,22,96,0.78)', lineHeight: 1.65, margin: 0 }}>
                     For the first {termYears > 20 ? 10 : 5} years, you'll make lower monthly payments that cover interest only. Your loan balance stays about the same during this time.
                   </p>
                   <p style={{ fontSize: 17, color: '#9CA3AF', lineHeight: 1.6, margin: 0 }}>
                     After this period, your regular payments begin and you start paying down your loan.
                   </p>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(0,22,96,0.04)', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '6px 14px' }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#6B7280' }}>This is part of how your loan works — not a choice you make</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.65)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(0,22,96,0.65)' }}>This is part of how your loan works — not a choice you make</span>
                   </div>
                 </div>
               )}
@@ -2319,7 +2389,7 @@ function ScreenOfferSelect({ step2, step1, dispatch }) {
       {/* Trust badges */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {['🔒 No obligation', '📋 No hard credit pull yet', '⏱️ Takes 5 minutes'].map(t => (
-          <div key={t} style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '5px 12px', fontSize: 16, fontWeight: 600, color: '#6B7280' }}>{t}</div>
+          <div key={t} style={{ background: '#fff', border: '1px solid rgba(0,22,96,0.1)', borderRadius: 100, padding: '5px 12px', fontSize: 16, fontWeight: 600, color: 'rgba(0,22,96,0.65)' }}>{t}</div>
         ))}
       </div>
       <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 24 }}>
@@ -2493,7 +2563,7 @@ function OfferSidebar({ loan, step2 }) {
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* ── Narrative ────────────────────────────────────────────── */}
-        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#374151', lineHeight: 1.55 }}>{narrative}</p>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'rgba(0,22,96,0.78)', lineHeight: 1.55 }}>{narrative}</p>
 
         {/* ── Timeline ─────────────────────────────────────────────── */}
         <div style={{ position: 'relative', paddingLeft: 2 }}>
@@ -2512,7 +2582,7 @@ function OfferSidebar({ loan, step2 }) {
                       <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>/mo</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.5 }}>{step.note}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(0,22,96,0.65)', lineHeight: 1.5 }}>{step.note}</div>
                   {step.sub && (
                     <div style={{ marginTop: 4, fontSize: 10, fontWeight: 600, color: '#92400e', background: 'rgba(234,179,8,0.07)', borderRadius: 6, padding: '3px 7px', display: 'inline-block' }}>{step.sub}</div>
                   )}
@@ -2539,7 +2609,7 @@ function OfferSidebar({ loan, step2 }) {
 
         {/* ── Footer ───────────────────────────────────────────────── */}
         <div style={{ paddingTop: 10, borderTop: '1px solid rgba(0,22,96,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 10, color: '#9CA3AF' }}>Financing by <span style={{ fontWeight: 700, color: '#374151' }}>Grand Bank</span></div>
+          <div style={{ fontSize: 10, color: '#9CA3AF' }}>Financing by <span style={{ fontWeight: 700, color: 'rgba(0,22,96,0.78)' }}>Grand Bank</span></div>
           <div style={{ fontSize: 10, color: '#B0B7C3' }}>NMLS #2611</div>
         </div>
 
@@ -2608,7 +2678,7 @@ function HmdaAccordion({ label, value, onChange, options }) {
                 }}>
                   {selected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: selected ? 600 : 400, color: selected ? '#254BCE' : '#374151' }}>{opt}</span>
+                <span style={{ fontSize: 13, fontWeight: selected ? 600 : 400, color: selected ? '#254BCE' : 'rgba(0,22,96,0.78)' }}>{opt}</span>
               </button>
             )
           })}
@@ -2645,7 +2715,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           Almost done — just a few final details
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
           Your offer is locked in — we need this to submit.
         </p>
       </div>
@@ -2733,7 +2803,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
 
           {/* Authorization block */}
           <div>
-            <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 12px', lineHeight: 1.7 }}>
+            <p style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', margin: '0 0 12px', lineHeight: 1.7 }}>
               By submitting, you authorize GreenLyne to verify your identity, run a soft credit check, and share your application with our lending partners.
               A hard credit pull only happens later — and only with your explicit approval.
             </p>
@@ -2761,7 +2831,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
                   </svg>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: step3.disclosuresAccepted ? '#254BCE' : '#374151' }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: step3.disclosuresAccepted ? '#254BCE' : 'rgba(0,22,96,0.78)' }}>
                 I've read and agree to the{' '}
                 <span
                   onClick={e => { e.stopPropagation(); setDisclosureOpen(true) }}
@@ -2859,7 +2929,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#001660' }}>Application Disclosures</div>
-              <button onClick={() => setDisclosureOpen(false)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', cursor: 'pointer', width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', fontSize: 18, fontFamily: 'inherit' }}>×</button>
+              <button onClick={() => setDisclosureOpen(false)} style={{ background: 'rgba(0,22,96,0.06)', border: 'none', cursor: 'pointer', width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(0,22,96,0.65)', fontSize: 18, fontFamily: 'inherit' }}>×</button>
             </div>
             {[
               { title: 'Privacy Policy', body: 'GreenLyne collects and uses your personal information solely to process your loan application and verify your identity. Your data is protected under our Privacy Policy and applicable state and federal regulations.' },
@@ -2870,7 +2940,7 @@ function ScreenMoreInfo({ step3, dispatch }) {
             ].map(({ title, body }) => (
               <div key={title} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#001660', marginBottom: 5 }}>{title}</div>
-                <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.7 }}>{body}</p>
+                <p style={{ fontSize: 13, color: 'rgba(0,22,96,0.78)', margin: 0, lineHeight: 1.7 }}>{body}</p>
               </div>
             ))}
             <button
@@ -2934,7 +3004,7 @@ function ScreenLinkIncome({ dispatch }) {
     { id: 'usbank', name: 'US Bank',         url: 'www.usbank.com',        color: '#00274D' },
     { id: 'schwab', name: 'Charles Schwab',  url: 'www.schwab.com',        color: '#00A0DF' },
     { id: 'td',     name: 'TD Bank',         url: 'www.td.com',            color: '#00B140' },
-    { id: 'other',  name: 'Other bank',      url: 'Search all banks',      color: '#6B7280' },
+    { id: 'other',  name: 'Other bank',      url: 'Search all banks',      color: 'rgba(0,22,96,0.65)' },
   ]
 
   const filteredBanks = banks.filter(b =>
@@ -2976,7 +3046,7 @@ function ScreenLinkIncome({ dispatch }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           Link your account to verify income
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
           Powered by Plaid · Secure · Read-only access
         </p>
       </div>
@@ -3019,7 +3089,7 @@ function ScreenLinkIncome({ dispatch }) {
         <div style={{ fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6, lineHeight: 1.3 }}>
           GreenLyne uses Plaid to connect your accounts
         </div>
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 28, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: 'rgba(0,22,96,0.65)', marginBottom: 28, lineHeight: 1.6 }}>
           To verify your income, we'll securely link your bank using Plaid.
         </div>
 
@@ -3032,7 +3102,7 @@ function ScreenLinkIncome({ dispatch }) {
               <span style={{ fontSize: 18, marginTop: 1 }}>{icon}</span>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>{title}</div>
-                <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>{body}</div>
+                <div style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', lineHeight: 1.5 }}>{body}</div>
               </div>
             </div>
           ))}
@@ -3163,7 +3233,7 @@ function ScreenLinkIncome({ dispatch }) {
     <PlaidShell step="income">
       <div style={{ padding: '20px 20px 8px' }}>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#111', marginBottom: 6 }}>Select your income</div>
-        <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 6, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: 'rgba(0,22,96,0.65)', marginBottom: 6, lineHeight: 1.5 }}>
           Below are transactions from your <strong style={{ color: '#111' }}>{selectedBank?.name}</strong> account that may represent your income from the past year.
         </div>
 
@@ -3234,7 +3304,7 @@ function ScreenLinkIncome({ dispatch }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           Link your account to verify income
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Powered by Plaid · Secure · Read-only access</p>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>Powered by Plaid · Secure · Read-only access</p>
       </div>
 
       {/* Success banner */}
@@ -3244,7 +3314,7 @@ function ScreenLinkIncome({ dispatch }) {
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#014f51' }}>Income verified</div>
-          <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{selectedBank?.name} · Checking ····8241</div>
+          <div style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', marginTop: 2 }}>{selectedBank?.name} · Checking ····8241</div>
         </div>
       </div>
 
@@ -3318,7 +3388,7 @@ function ScreenVerifyIdentity({ dispatch }) {
       <div className="mb-6">
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 5 of 7</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Verify your identity</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Required by federal law. Encrypted and never shared.</p>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>Required by federal law. Encrypted and never shared.</p>
       </div>
 
       {/* ID Upload */}
@@ -3337,7 +3407,7 @@ function ScreenVerifyIdentity({ dispatch }) {
             </button>
           ) : (
             <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               <div>
                 <div className="text-sm font-semibold text-emerald-800">ID uploaded</div>
                 <div className="text-[10px] text-emerald-600">drivers_license_front.jpg</div>
@@ -3363,7 +3433,7 @@ function ScreenVerifyIdentity({ dispatch }) {
             </button>
           ) : (
             <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               <div>
                 <div className="text-sm font-semibold text-emerald-800">Selfie captured</div>
                 <div className="text-[10px] text-emerald-600">Identity match: high confidence</div>
@@ -3388,9 +3458,12 @@ function ScreenVerifyIdentity({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Offer Loading (30-45 s pre-offer check)
 // ─────────────────────────────────────────────────────────────────────────────
-function ScreenOfferLoading({ dispatch, sim }) {
+function ScreenOfferLoading({ dispatch, sim, mode = 'initial' }) {
+  const isReanalyze = mode === 'reanalyze'
   const [progress, setProgress] = useState(0)
   const [stepIdx,  setStepIdx]  = useState(0)
+  const [isDone,   setIsDone]   = useState(false)
+  const [outcome,  setOutcome]  = useState('success')
 
   const steps = [
     'Retrieving Property Value…',
@@ -3402,9 +3475,26 @@ function ScreenOfferLoading({ dispatch, sim }) {
     'Configuring Loan Insurance…',
   ]
 
+  const OUTCOMES = [
+    { value: 'success',            label: 'Success — show offer' },
+    { value: 'identity',           label: 'Identity challenge' },
+    { value: 'address',            label: 'Address challenge' },
+    { value: 'property',           label: 'Property challenge (not qualified)' },
+    { value: 'decline',            label: 'Full decline' },
+    { value: 'debt_consolidation', label: 'Debt consolidation' },
+  ]
+
   useEffect(() => {
-    const stagePcts = [10, 25, 42, 58, 72, 85, 95]
-    const stageMsec = [400, 1100, 2000, 2900, 3700, 4500, 5300]
+    // Reanalyze runs longer + caps the analyzing phase at 70% so the remaining
+    // 30% fills during the "Verified — preparing your offer" success state.
+    const stagePcts = isReanalyze
+      ? [8, 18, 28, 40, 50, 60, 68]
+      : [10, 25, 42, 58, 72, 85, 95]
+    const stageMsec = isReanalyze
+      ? [600, 1500, 2700, 3900, 5000, 6100, 7100]
+      : [400, 1100, 2000, 2900, 3700, 4500, 5300]
+    const doneMs   = isReanalyze ? 8400 : 6300
+    const finalPct = isReanalyze ? 70   : 100
 
     const timers = stageMsec.map((ms, i) => setTimeout(() => {
       setProgress(stagePcts[i])
@@ -3412,27 +3502,53 @@ function ScreenOfferLoading({ dispatch, sim }) {
     }, ms))
 
     const done = setTimeout(() => {
-      setProgress(100)
-      setTimeout(() => dispatch({ type: 'AUTO_ADVANCE' }), 400)
-    }, 6300)
+      setProgress(finalPct)
+      setStepIdx(steps.length)
+      setIsDone(true)
+    }, doneMs)
 
-    return () => { timers.forEach(clearTimeout); clearTimeout(done) }
-  }, [dispatch])
+    // In reanalyze mode: ramp the bar from 70% → 100% during the success state,
+    // then auto-advance to the offer.
+    let fillFinal, advance
+    if (isReanalyze) {
+      fillFinal = setTimeout(() => setProgress(100), doneMs + 300)
+      advance   = setTimeout(() => dispatch({ type: 'JUMP_TO', state: S.OFFER_SELECT }), doneMs + 3800)
+    }
+
+    return () => {
+      timers.forEach(clearTimeout)
+      clearTimeout(done)
+      if (fillFinal) clearTimeout(fillFinal)
+      if (advance)   clearTimeout(advance)
+    }
+  }, [isReanalyze, dispatch])  // eslint-disable-line
 
   return (
     <div className="flex-1 flex justify-center" style={{ paddingTop: 48, paddingInline: 32, paddingBottom: 32 }}>
       <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
 
-        {/* Animated icon */}
-        <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(37,75,206,0.07)', border: '2px solid rgba(37,75,206,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-          <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-          </svg>
-        </div>
+        {/* Animated icon — switches to a green check on success in reanalyze mode */}
+        {isReanalyze && isDone ? (
+          <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(16,185,129,0.1)', border: '2px solid rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        ) : (
+          <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(37,75,206,0.07)', border: '2px solid rgba(37,75,206,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+          </div>
+        )}
 
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Analyzing your application</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 28px', lineHeight: 1.55 }}>
-          This usually takes 30–45 seconds.
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+          {isReanalyze && isDone ? 'Verified — preparing your offer' : 'Analyzing your application'}
+        </h1>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: '0 0 28px', lineHeight: 1.55 }}>
+          {isReanalyze && isDone
+            ? "All checks passed. We're loading your personalized offer now."
+            : 'This usually takes 30–45 seconds.'}
         </p>
 
         {/* Progress bar */}
@@ -3449,15 +3565,159 @@ function ScreenOfferLoading({ dispatch, sim }) {
             return (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < steps.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none' }}>
                 <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: done ? '#10B981' : active ? '#254BCE' : 'rgba(0,22,96,0.08)' }}>
+                  background: done ? '#016163' : active ? '#254BCE' : 'rgba(0,22,96,0.08)' }}>
                   {done && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                   {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                 </div>
-                <span style={{ fontSize: 13, color: done ? '#6B7280' : active ? '#001660' : 'rgba(0,22,96,0.28)', fontWeight: active ? 600 : 400 }}>{s}</span>
+                <span style={{ fontSize: 13, color: done ? 'rgba(0,22,96,0.65)' : active ? '#001660' : 'rgba(0,22,96,0.28)', fontWeight: active ? 600 : 400 }}>{s}</span>
               </div>
             )
           })}
         </div>
+
+        {/* Minimized demo-control panel — appears when analysis is done (initial run only) */}
+        {isDone && !isReanalyze && (
+          <div style={{
+            marginTop: 56,
+            padding: '12px 14px',
+            background: '#fff',
+            border: '1px solid rgba(245,158,11,0.3)',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            textAlign: 'left',
+            animation: 'fadeIn 0.3s ease',
+          }}>
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: '#92400E',
+              padding: '3px 7px', borderRadius: 6,
+              background: 'rgba(245,158,11,0.12)', flexShrink: 0,
+            }}>
+              Demo
+            </span>
+            <select
+              value={outcome}
+              onChange={e => setOutcome(e.target.value)}
+              style={{
+                flex: 1, minWidth: 0,
+                padding: '8px 30px 8px 10px', fontSize: 13,
+                border: '1px solid rgba(0,22,96,0.18)', borderRadius: 8,
+                background: "#fff url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23001660' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\") no-repeat right 10px center",
+                color: '#001660',
+                appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+                cursor: 'pointer',
+              }}>
+              {OUTCOMES.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => dispatch({ type: 'PICK_OUTCOME', outcome })}
+              style={{
+                flexShrink: 0,
+                padding: '8px 16px', fontSize: 13, fontWeight: 600,
+                background: '#254BCE', color: '#fff', border: 'none', borderRadius: 8,
+                cursor: 'pointer',
+              }}>
+              Continue →
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Demo Outcome Picker — internal, picks what happens after analyzing
+// ─────────────────────────────────────────────────────────────────────────────
+function ScreenOutcomePicker({ dispatch }) {
+  const [outcome, setOutcome] = useState('success')
+
+  const OPTIONS = [
+    { value: 'success',            label: 'Success — show offer' },
+    { value: 'identity',           label: 'Identity challenge' },
+    { value: 'address',            label: 'Address challenge' },
+    { value: 'property',           label: 'Property challenge (not qualified)' },
+    { value: 'decline',            label: 'Full decline' },
+    { value: 'debt_consolidation', label: 'Debt consolidation' },
+  ]
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div style={{ maxWidth: 460, width: '100%' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '4px 10px', borderRadius: 99,
+          background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)',
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: '#92400E', marginBottom: 16,
+        }}>
+          Demo control
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+          Pick the next outcome
+        </h1>
+        <p style={{ fontSize: 14, color: 'rgba(0,22,96,0.65)', margin: '0 0 20px', lineHeight: 1.5 }}>
+          Analysis complete. Choose what happens next for this demo run.
+        </p>
+
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#001660', marginBottom: 6, letterSpacing: '0.02em' }}>
+          Outcome
+        </label>
+        <select
+          value={outcome}
+          onChange={e => setOutcome(e.target.value)}
+          style={{
+            width: '100%', padding: '12px 14px', fontSize: 14,
+            border: '1px solid rgba(0,22,96,0.18)', borderRadius: 10,
+            background: '#fff', color: '#001660', marginBottom: 20,
+            appearance: 'none', cursor: 'pointer',
+          }}>
+          {OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={() => dispatch({ type: 'PICK_OUTCOME', outcome })}
+          style={{
+            width: '100%', padding: '14px 18px', fontSize: 15, fontWeight: 600,
+            background: '#254BCE', color: '#fff', border: 'none', borderRadius: 10,
+            cursor: 'pointer', letterSpacing: '0.01em',
+          }}>
+          Continue →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen: Debt Consolidation (placeholder outcome)
+// ─────────────────────────────────────────────────────────────────────────────
+function ScreenDebtConsolidation({ dispatch }) {
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div style={{ maxWidth: 460, width: '100%', textAlign: 'center' }}>
+        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(37,75,206,0.08)', border: '2px solid rgba(37,75,206,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+          Debt consolidation path
+        </h1>
+        <p style={{ fontSize: 14, color: 'rgba(0,22,96,0.65)', margin: '0 0 24px', lineHeight: 1.55 }}>
+          Placeholder — this flow will show consolidating eligible debts into the HELOC.
+        </p>
+        <button
+          onClick={() => dispatch({ type: 'BACK' })}
+          style={{ fontSize: 14, color: 'rgba(0,22,96,0.65)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
+          ← Return
+        </button>
       </div>
     </div>
   )
@@ -3466,43 +3726,147 @@ function ScreenOfferLoading({ dispatch, sim }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Identity Challenge
 // ─────────────────────────────────────────────────────────────────────────────
-function ScreenIdentityChallenge({ dispatch }) {
+function ScreenIdentityChallenge({ dispatch, step1 }) {
+  // Property-title name = canonical persona; entered name = step1 (may differ).
+  const titleName   = `${DEMO_PERSONA.firstName} ${DEMO_PERSONA.lastName}`
+  const enteredName = `${step1?.firstName ?? ''} ${step1?.lastName ?? ''}`.trim()
+  const fullAddress = [step1?.address, step1?.city, step1?.state, step1?.zip].filter(Boolean).join(', ')
+
+  // Pool of plausible distractors — pick 3, shuffle with the correct one.
+  const DISTRACTORS = useMemo(() => [
+    'Jordan Bennett', 'Casey Morgan', 'Taylor Brooks', 'Morgan Reyes',
+    'Riley Sanchez', 'Quinn Patterson', 'Avery Sullivan', 'Drew Walsh',
+    'Sydney Chen', 'Logan Hayes', 'Parker Nguyen', 'Hayden Cole',
+  ], [])
+
+  const choices = useMemo(() => {
+    const shuffled = [...DISTRACTORS].sort(() => Math.random() - 0.5).slice(0, 3)
+    return [titleName, ...shuffled].sort(() => Math.random() - 0.5)
+  }, [titleName, DISTRACTORS])
+
+  const [picked, setPicked] = useState(null)
+  const [error,  setError]  = useState(false)
+
+  const isCorrect = picked === titleName
+
+  function handleConfirm() {
+    if (!picked) return
+    if (picked === titleName) {
+      dispatch({ type: 'IDENTITY_CONFIRMED', fullName: titleName })
+    } else {
+      setError(true)
+    }
+  }
+
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div style={{ maxWidth: 440, width: '100%', textAlign: 'center' }}>
+    <div className="flex-1 flex justify-center" style={{ paddingTop: 48, paddingInline: 32, paddingBottom: 32 }}>
+      <div style={{ maxWidth: 540, width: '100%' }}>
 
-        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
+        {/* Header — soft, not alarming */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(37,75,206,0.07)', border: '1px solid rgba(37,75,206,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+            Quick identity check
+          </h1>
+          <p style={{ fontSize: 14, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
+            We pulled the public title record for the property you entered. Please select the name that appears on the title so we can match it to your application.
+          </p>
         </div>
 
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Identity verification required</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
-          We need a bit more from you to finish verifying.
-        </p>
-
-        <div style={{ background: '#FFFBEB', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 16, padding: 20, textAlign: 'left', marginBottom: 24 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#92400E', marginBottom: 12 }}>What happens next</div>
-          {[
-            "Upload a government-issued photo ID (driver's license or passport)",
-            'Take a quick selfie for facial matching',
-            "We'll re-run the check automatically — typically completes in under 2 minutes",
-          ].map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < 2 ? 10 : 0 }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff' }}>{i + 1}</span>
-              </div>
-              <span style={{ fontSize: 13, color: '#92400E', lineHeight: 1.5 }}>{item}</span>
-            </div>
-          ))}
+        {/* Context card */}
+        <div style={{
+          background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 12,
+          padding: '14px 16px', marginBottom: 20,
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>You entered</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>{enteredName || '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Property</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: '#001660', lineHeight: 1.4 }}>{fullAddress || '—'}</div>
+          </div>
         </div>
 
-        <button
-          onClick={() => dispatch({ type: 'BACK' })}
-          style={{ fontSize: 14, color: '#6B7280', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', marginTop: 8 }}>
-          ← Return to application
-        </button>
+        {/* Choice list */}
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#001660', marginBottom: 10, letterSpacing: '0.01em' }}>
+          Which name is on the title?
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {choices.map(name => {
+            const active = picked === name
+            return (
+              <button
+                key={name}
+                onClick={() => { setPicked(name); setError(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px',
+                  background: active ? 'rgba(37,75,206,0.06)' : '#fff',
+                  border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
+                  borderRadius: 12,
+                  cursor: 'pointer', textAlign: 'left',
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}>
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.25)'}`,
+                  background: active ? '#254BCE' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 15, fontWeight: 600, color: '#001660' }}>{name}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Inline error */}
+        {error && !isCorrect && (
+          <div style={{
+            padding: '10px 14px', marginBottom: 16,
+            background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)',
+            borderRadius: 10, fontSize: 13, color: '#B91C1C', lineHeight: 1.5,
+          }}>
+            That name doesn't match the property title. Please review your selection — you can't proceed until it matches.
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <button
+            onClick={() => dispatch({ type: 'BACK' })}
+            style={{
+              padding: '11px 18px', borderRadius: 10,
+              border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
+              fontSize: 14, fontWeight: 600, color: '#001660',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+            ← Back
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!picked}
+            style={{
+              padding: '12px 24px', borderRadius: 10, border: 'none',
+              background: picked ? '#254BCE' : 'rgba(0,22,96,0.12)',
+              color: picked ? '#fff' : '#9CA3AF',
+              fontSize: 15, fontWeight: 700,
+              cursor: picked ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              boxShadow: picked ? '0 4px 14px rgba(37,75,206,0.28)' : 'none',
+              transition: 'background 0.15s, box-shadow 0.15s',
+            }}>
+            Confirm →
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -3511,35 +3875,141 @@ function ScreenIdentityChallenge({ dispatch }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Address Mismatch
 // ─────────────────────────────────────────────────────────────────────────────
-function ScreenAddressMismatch({ dispatch }) {
+function ScreenAddressMismatch({ dispatch, step1 }) {
+  // The "alternate" address that returned a credit match. The applicant should
+  // recognize it as a current or prior address. The property address from
+  // step1 is unaffected and remains the application's address of record.
+  const ALTERNATE_ADDRESS = '218 Maple Ridge Lane, Roseville, CA 95661'
+
+  const DISTRACTORS = useMemo(() => [
+    '904 Linden Park Way, Folsom, CA 95630',
+    '5612 Birchwood Court, Elk Grove, CA 95758',
+    '1207 Hillcrest Avenue, Davis, CA 95616',
+    '3340 Cedar Glen Drive, Rocklin, CA 95677',
+    '78 Westgate Terrace, Citrus Heights, CA 95610',
+    '1456 Brookside Lane, Carmichael, CA 95608',
+    '631 Summit Ridge Road, Auburn, CA 95603',
+    '2280 Heritage Oaks Drive, Lincoln, CA 95648',
+  ], [])
+
+  const choices = useMemo(() => {
+    const shuffled = [...DISTRACTORS].sort(() => Math.random() - 0.5).slice(0, 3)
+    return [ALTERNATE_ADDRESS, ...shuffled].sort(() => Math.random() - 0.5)
+  }, [DISTRACTORS])
+
+  const [picked, setPicked] = useState(null)
+  const [error,  setError]  = useState(false)
+
+  const enteredAddress = [step1?.address, step1?.city, step1?.state, step1?.zip].filter(Boolean).join(', ')
+
+  function handleConfirm() {
+    if (!picked) return
+    if (picked === ALTERNATE_ADDRESS) {
+      dispatch({ type: 'ADDRESS_CONFIRMED' })
+    } else {
+      setError(true)
+    }
+  }
+
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div style={{ maxWidth: 440, width: '100%', textAlign: 'center' }}>
+    <div className="flex-1 flex justify-center" style={{ paddingTop: 48, paddingInline: 32, paddingBottom: 32 }}>
+      <div style={{ maxWidth: 540, width: '100%' }}>
 
-        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(37,75,206,0.07)', border: '1px solid rgba(37,75,206,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+            Confirm a previous address
+          </h1>
+          <p style={{ fontSize: 14, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
+            To complete your credit check, please confirm an address associated with your file. Select the address that you currently or previously lived at.
+          </p>
         </div>
 
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>We couldn't match your address</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
-          Review and correct the property address to continue.
-        </p>
-
-        <div style={{ background: '#FEF2F2', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 16, padding: 20, textAlign: 'left', marginBottom: 24 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#991B1B', marginBottom: 8 }}>Address on file</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#DC2626', marginBottom: 4 }}>4821 Oakbrook Dr</div>
-          <div style={{ fontSize: 13, color: '#991B1B' }}>San Jose, CA 95126</div>
+        {/* Application context */}
+        <div style={{
+          background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.08)', borderRadius: 12,
+          padding: '14px 16px', marginBottom: 20,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Property on application</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#001660', lineHeight: 1.4 }}>{enteredAddress || '—'}</div>
         </div>
 
-        <button
-          onClick={() => dispatch({ type: 'BACK' })}
-          style={{ width: '100%', padding: '13px 24px', borderRadius: 14, background: '#254BCE', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(37,75,206,0.28)', marginBottom: 12 }}>
-          ← Review &amp; correct my address
-        </button>
-        <div style={{ fontSize: 12, color: '#9CA3AF' }}>
-          Or contact support if you believe the address is correct.
+        {/* Choice list */}
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#001660', marginBottom: 10, letterSpacing: '0.01em' }}>
+          Which of these addresses have you lived at?
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {choices.map(addr => {
+            const active = picked === addr
+            return (
+              <button
+                key={addr}
+                onClick={() => { setPicked(addr); setError(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px',
+                  background: active ? 'rgba(37,75,206,0.06)' : '#fff',
+                  border: `1.5px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.12)'}`,
+                  borderRadius: 12,
+                  cursor: 'pointer', textAlign: 'left',
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}>
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${active ? '#254BCE' : 'rgba(0,22,96,0.25)'}`,
+                  background: active ? '#254BCE' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#001660', lineHeight: 1.4 }}>{addr}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {error && (
+          <div style={{
+            padding: '10px 14px', marginBottom: 16,
+            background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)',
+            borderRadius: 10, fontSize: 13, color: '#B91C1C', lineHeight: 1.5,
+          }}>
+            That address doesn't match what we found on your file. Please review your selection — you can't proceed until it matches.
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <button
+            onClick={() => dispatch({ type: 'BACK' })}
+            style={{
+              padding: '11px 18px', borderRadius: 10,
+              border: '1.5px solid rgba(0,22,96,0.15)', background: 'none',
+              fontSize: 14, fontWeight: 600, color: '#001660',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+            ← Back
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!picked}
+            style={{
+              padding: '12px 24px', borderRadius: 10, border: 'none',
+              background: picked ? '#254BCE' : 'rgba(0,22,96,0.12)',
+              color: picked ? '#fff' : '#9CA3AF',
+              fontSize: 15, fontWeight: 700,
+              cursor: picked ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              boxShadow: picked ? '0 4px 14px rgba(37,75,206,0.28)' : 'none',
+              transition: 'background 0.15s, box-shadow 0.15s',
+            }}>
+            Confirm →
+          </button>
         </div>
       </div>
     </div>
@@ -3571,7 +4041,7 @@ function ScreenPropertyVerifyWait({ dispatch }) {
           <svg className="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Verifying your property</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>Usually takes a few seconds.</p>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: '0 0 24px', lineHeight: 1.55 }}>Usually takes a few seconds.</p>
         <div className="h-2 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(0,22,96,0.07)' }}>
           <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: '#254BCE' }} />
         </div>
@@ -3626,11 +4096,11 @@ function ScreenAppraisalWait() {
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-2.5">
                     <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: item.done ? '#10B981' : item.active ? '#F59E0B' : 'rgba(0,22,96,0.1)' }}>
+                      style={{ background: item.done ? '#016163' : item.active ? '#F59E0B' : 'rgba(0,22,96,0.1)' }}>
                       {item.done && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                       {item.active && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
-                    <span className="text-[12px]" style={{ color: item.done ? '#6B7280' : item.active ? '#92400E' : 'rgba(0,22,96,0.3)' }}>{item.label}</span>
+                    <span className="text-[12px]" style={{ color: item.done ? 'rgba(0,22,96,0.65)' : item.active ? '#92400E' : 'rgba(0,22,96,0.3)' }}>{item.label}</span>
                   </div>
                 ))}
               </div>
@@ -3666,7 +4136,7 @@ function ScreenOpsReviewWait() {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           We're doing a quick manual review
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: '0 0 24px', lineHeight: 1.55 }}>
           Routine — your rate, terms, and approval aren't affected.
         </p>
 
@@ -3676,7 +4146,7 @@ function ScreenOpsReviewWait() {
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(0,22,96,0.4)' }}>What our team is reviewing</div>
           </div>
           <div style={{ padding: '16px 18px', background: '#fff' }}>
-            <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.65, margin: 0 }}>
+            <p style={{ fontSize: 13, color: 'rgba(0,22,96,0.78)', lineHeight: 1.65, margin: 0 }}>
               Our operations team is verifying the ownership and title details on your property. This step fires automatically when our system detects a discrepancy that needs a human to confirm — things like vesting name differences or address formatting.
             </p>
           </div>
@@ -3691,7 +4161,7 @@ function ScreenOpsReviewWait() {
             ['Estimated resolution', '1–2 business days'],
           ].map(([l, v], i, arr) => (
             <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none' }}>
-              <span style={{ fontSize: 12, color: '#6B7280' }}>{l}</span>
+              <span style={{ fontSize: 12, color: 'rgba(0,22,96,0.65)' }}>{l}</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>{v}</span>
             </div>
           ))}
@@ -3729,13 +4199,13 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
           Step 6 of 7
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#016163' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46' }}>Conditionally approved</span>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           One last look before you sign
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
           Review the numbers, then we'll walk you through your documents.
         </p>
       </div>
@@ -3820,7 +4290,7 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
             <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#254BCE', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 11, fontWeight: 800, marginTop: 1 }}>{item.n}</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', marginBottom: 3 }}>{item.title}</div>
-              <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>{item.desc}</div>
+              <div style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', lineHeight: 1.55 }}>{item.desc}</div>
             </div>
           </div>
         ))}
@@ -3835,7 +4305,7 @@ function ScreenFinalOffer({ loan, step2, dispatch }) {
               {agreed && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
           </div>
-          <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', lineHeight: 1.6 }}>
             I have reviewed the terms above and authorize GreenLyne / Owning (NMLS #2611) to proceed to closing. This is not a final binding agreement until all documents are signed.
           </div>
         </label>
@@ -3871,7 +4341,7 @@ function ScreenDeclined({ dispatch }) {
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>We're unable to approve at this time</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: '0 0 24px', lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: '0 0 24px', lineHeight: 1.55 }}>
           Not a reflection of your overall creditworthiness.
         </p>
         <Card className="text-left">
@@ -3998,14 +4468,14 @@ function ScreenDocsPreparing({ dispatch }) {
                 <div style={{ fontSize: 12, color: '#9CA3AF' }}>{modalDoc.desc}</div>
               </div>
               <button onClick={closeModal} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,22,96,0.06)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 16 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.65)" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
 
             {/* Signed banner (view-only mode) */}
             {viewOnly && (
               <div style={{ padding: '9px 24px', background: '#ECFDF5', borderBottom: '1px solid rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#065F46' }}>Signed — {signedDate}</span>
               </div>
             )}
@@ -4054,7 +4524,7 @@ function ScreenDocsPreparing({ dispatch }) {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
             Sign your documents
           </h1>
-          <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
             {allSigned
               ? "All signed — ready to schedule your notary."
               : 'Open each document, read, and sign.'}
@@ -4069,13 +4539,13 @@ function ScreenDocsPreparing({ dispatch }) {
               <div key={doc.name} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '15px 18px', borderBottom: i < SIGN_DOCS.length - 1 ? '1px solid rgba(0,22,96,0.06)' : 'none', background: signed ? 'rgba(16,185,129,0.025)' : '#fff', transition: 'background 0.2s' }}>
                 <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: signed ? '#ECFDF5' : 'rgba(37,75,206,0.07)', border: `1.5px solid ${signed ? 'rgba(16,185,129,0.3)' : 'rgba(37,75,206,0.12)'}`, transition: 'all 0.2s' }}>
                   {signed
-                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     : <span style={{ fontSize: 11, fontWeight: 700, color: '#254BCE' }}>{i + 1}</span>
                   }
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: signed ? '#6B7280' : '#001660', marginBottom: 2 }}>{doc.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: signed ? 'rgba(0,22,96,0.65)' : '#001660', marginBottom: 2 }}>{doc.name}</div>
                   <div style={{ fontSize: 12, color: '#9CA3AF', lineHeight: 1.4 }}>{doc.desc}</div>
                 </div>
 
@@ -4085,7 +4555,7 @@ function ScreenDocsPreparing({ dispatch }) {
                       View
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 99, background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.25)' }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#065F46' }}>Signed</span>
                     </div>
                   </div>
@@ -4153,7 +4623,7 @@ function ScreenReadyToSchedule({ dispatch }) {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
             Notarize the Deed of Trust
           </h1>
-          <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
             Pick how you want to meet your notary — both options are free.
           </p>
         </div>
@@ -4186,7 +4656,7 @@ function ScreenReadyToSchedule({ dispatch }) {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#001660', marginBottom: 4 }}>{opt.title}</div>
-              <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5, marginBottom: 8 }}>{opt.desc}</div>
+              <div style={{ fontSize: 13, color: 'rgba(0,22,96,0.65)', lineHeight: 1.5, marginBottom: 8 }}>{opt.desc}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{opt.detail}</div>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,22,96,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }}><polyline points="9 18 15 12 9 6"/></svg>
@@ -4202,12 +4672,12 @@ function ScreenReadyToSchedule({ dispatch }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <button onClick={() => setPhase('choose')} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← Back</button>
+          <button onClick={() => setPhase('choose')} style={{ fontSize: 13, color: 'rgba(0,22,96,0.65)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← Back</button>
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 7 of 7 · In-person notary</div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Schedule your appointment</h1>
-          <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Pick a day, time, and location.</p>
+          <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>Pick a day, time, and location.</p>
         </div>
 
         {/* Day picker */}
@@ -4267,7 +4737,7 @@ function ScreenReadyToSchedule({ dispatch }) {
               ['Who needs to be there', 'All borrowers on the application'],
             ].map(([l, v]) => (
               <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, gap: 16 }}>
-                <span style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>{l}</span>
+                <span style={{ fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif", fontSize: 12.5, fontWeight: 500, color: 'rgba(0,22,96,0.65)', flexShrink: 0 }}>{l}</span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#001660', textAlign: 'right' }}>{v}</span>
               </div>
             ))}
@@ -4286,12 +4756,12 @@ function ScreenReadyToSchedule({ dispatch }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <button onClick={() => setPhase('choose')} style={{ fontSize: 13, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← Back</button>
+        <button onClick={() => setPhase('choose')} style={{ fontSize: 13, color: 'rgba(0,22,96,0.65)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← Back</button>
       </div>
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Step 7 of 7 · eNotary</div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Before we connect you with a notary</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>20–30 minutes and can't be paused once it starts.</p>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>20–30 minutes and can't be paused once it starts.</p>
       </div>
 
       {/* Checklist */}
@@ -4318,7 +4788,7 @@ function ScreenReadyToSchedule({ dispatch }) {
       </div>
 
       {/* Hours + accessibility */}
-      <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)', fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+      <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)', fontSize: 13, color: 'rgba(0,22,96,0.78)', lineHeight: 1.6 }}>
         <strong style={{ color: '#001660' }}>Available Mon–Fri, 8 AM–8 PM PT.</strong> Sessions are recorded for compliance. If you need accessibility accommodations, call us before starting: (844) 855-0160.
       </div>
 
@@ -4339,11 +4809,11 @@ function ScreenNotaryScheduled({ dispatch }) {
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Step 7 of 7</div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 99, background: '#ECFDF5', border: '1px solid rgba(16,185,129,0.2)', marginBottom: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#016163' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#065F46' }}>Appointment confirmed</span>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Your notary is booked</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>We'll remind you 24 hours before. Have your photo ID ready.</p>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>We'll remind you 24 hours before. Have your photo ID ready.</p>
       </div>
 
       {/* Appointment card */}
@@ -4371,7 +4841,7 @@ function ScreenNotaryScheduled({ dispatch }) {
       </div>
 
       {/* What to expect */}
-      <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)', fontSize: 13, color: '#374151', lineHeight: 1.65 }}>
+      <div style={{ borderRadius: 14, padding: '14px 18px', background: '#F8F9FC', border: '1px solid rgba(0,22,96,0.07)', fontSize: 13, color: 'rgba(0,22,96,0.78)', lineHeight: 1.65 }}>
         Your notary will verify your ID and witness you sign the Deed of Trust. The session takes 30–45 minutes. Once complete, your documents go to the county recorder — typically within 1–2 business days.
       </div>
 
@@ -4391,11 +4861,11 @@ function ScreenSigningInProgress({ dispatch }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 3px rgba(16,185,129,0.25)' }} />
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Session in progress</div>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#016163', boxShadow: '0 0 0 3px rgba(16,185,129,0.25)' }} />
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#016163', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Session in progress</div>
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>Almost done</h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>Sign each page as the notary walks you through the Deed of Trust.</p>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>Sign each page as the notary walks you through the Deed of Trust.</p>
       </div>
 
       {/* Signing checklist */}
@@ -4410,7 +4880,7 @@ function ScreenSigningInProgress({ dispatch }) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.06)' : 'none', background: item.active ? 'rgba(37,75,206,0.04)' : '#fff' }}>
             <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: item.done ? '#ECFDF5' : item.active ? '#254BCE' : 'rgba(0,22,96,0.06)', border: item.done ? '1px solid rgba(16,185,129,0.3)' : 'none' }}>
               {item.done
-                ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 : item.active ? <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} /> : null}
             </div>
             <span style={{ fontSize: 14, fontWeight: item.active ? 700 : 500, color: item.done ? '#9CA3AF' : item.active ? '#001660' : 'rgba(0,22,96,0.3)' }}>{item.label}</span>
@@ -4442,7 +4912,7 @@ function ScreenLoanClosed({ dispatch }) {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: '#001660', margin: '0 0 8px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
           You've signed everything
         </h1>
-        <p style={{ fontSize: 15, color: '#6B7280', margin: 0, lineHeight: 1.55 }}>
+        <p style={{ fontSize: 15, color: 'rgba(0,22,96,0.65)', margin: 0, lineHeight: 1.55 }}>
           Here's what happens over the next few days.
         </p>
       </div>
@@ -4469,8 +4939,8 @@ function ScreenLoanClosed({ dispatch }) {
           { day: 'Within 3–5 days',label: 'Westhaven contacts you to schedule install',done: false},
         ].map((item, i, arr) => (
           <div key={i} style={{ display: 'flex', gap: 14, padding: '13px 18px', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,22,96,0.05)' : 'none', background: '#fff' }}>
-            <div style={{ width: 60, flexShrink: 0, fontSize: 11, fontWeight: 700, color: item.done ? '#10B981' : 'rgba(0,22,96,0.35)', paddingTop: 1 }}>{item.day}</div>
-            <div style={{ fontSize: 13, color: item.done ? '#374151' : 'rgba(0,22,96,0.55)', fontWeight: item.done ? 600 : 400 }}>{item.label}</div>
+            <div style={{ width: 60, flexShrink: 0, fontSize: 11, fontWeight: 700, color: item.done ? '#016163' : 'rgba(0,22,96,0.35)', paddingTop: 1 }}>{item.day}</div>
+            <div style={{ fontSize: 13, color: item.done ? 'rgba(0,22,96,0.78)' : 'rgba(0,22,96,0.55)', fontWeight: item.done ? 600 : 400 }}>{item.label}</div>
           </div>
         ))}
       </div>
@@ -4500,7 +4970,7 @@ function ScreenFunded({ loan, step2, dispatch }) {
         <div className="text-center mb-8">
           <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-5"
             style={{ background: 'rgba(16,185,129,0.2)', border: '2px solid rgba(16,185,129,0.4)' }}>
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div className="text-4xl font-bold text-white mb-2">Your solar project is funded.</div>
           <div className="text-lg text-white/60">Westhaven Power will contact you within 3–5 business days to schedule your installation.</div>
@@ -4569,7 +5039,20 @@ function ScreenFunded({ loan, step2, dispatch }) {
 // Root component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function POSDemo() {
-  const [state, dispatch] = useReducer(appReducer, initialState)
+  // Lazy init so the latest demo-session values (set in PMPro's Quick Prescreen)
+  // are read at mount time, not at module load.
+  const [state, dispatch] = useReducer(appReducer, undefined, () => {
+    const session = getDemoSession()
+    // Prescreen uses `requestedLoanAmount` as its session key but step1 reads
+    // `loanAmount` — bridge those names so the entered amount flows through.
+    const seeded = { ...session }
+    if (session.requestedLoanAmount) seeded.loanAmount = session.requestedLoanAmount
+    return {
+      ...initialState,
+      step1: { ...initialState.step1, ...seeded },
+      step3: { ...initialState.step3 },
+    }
+  })
   const { app, step1, step2, step3, step4, loan, sim, simOpen } = state
   const navigate = useNavigate()
 
@@ -4581,10 +5064,13 @@ export default function POSDemo() {
   function renderScreen() {
     switch (app) {
       case S.BASIC_INFO:           return <ScreenBasicInfo step1={step1} dispatch={dispatch} initialScreen={state.step1Screen ?? 0} />
-      case S.OFFER_LOADING:        return <ScreenOfferLoading dispatch={dispatch} sim={sim} />
+      case S.OFFER_LOADING:        return <ScreenOfferLoading dispatch={dispatch} sim={sim} mode="initial" />
+      case S.OFFER_REANALYZING:    return <ScreenOfferLoading dispatch={dispatch} sim={sim} mode="reanalyze" />
+      case S.OUTCOME_PICKER:       return <ScreenOutcomePicker dispatch={dispatch} />
       case S.OFFER_SELECT:         return <ScreenOfferSelectNew step2={step2} step1={step1} dispatch={dispatch} savedConfig={state.step2Config} />
-      case S.IDENTITY_CHALLENGE:   return <ScreenIdentityChallenge dispatch={dispatch} />
-      case S.ADDRESS_MISMATCH:     return <ScreenAddressMismatch dispatch={dispatch} />
+      case S.IDENTITY_CHALLENGE:   return <ScreenIdentityChallenge dispatch={dispatch} step1={step1} />
+      case S.ADDRESS_MISMATCH:     return <ScreenAddressMismatch dispatch={dispatch} step1={step1} />
+      case S.DEBT_CONSOLIDATION:   return <ScreenDebtConsolidation dispatch={dispatch} />
       case S.MORE_INFO:            return <ScreenMoreInfo step3={step3} dispatch={dispatch} />
       case S.LINK_INCOME:          return <ScreenLinkIncome dispatch={dispatch} />
       case S.VERIFY_IDENTITY:      return <ScreenVerifyIdentity dispatch={dispatch} />
@@ -4603,7 +5089,7 @@ export default function POSDemo() {
   }
 
   // Screens with full-height flex layout (no inner scroll)
-  const flexScreens = new Set([S.OFFER_LOADING, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT])
+  const flexScreens = new Set([S.OFFER_LOADING, S.OFFER_REANALYZING, S.OUTCOME_PICKER, S.IDENTITY_CHALLENGE, S.ADDRESS_MISMATCH, S.DEBT_CONSOLIDATION, S.PROPERTY_VERIFY_WAIT, S.APPRAISAL_WAIT, S.OPS_REVIEW_WAIT])
   const isFlexScreen = flexScreens.has(app)
 
   // Loan-plan sidebar is only relevant on Step 2 (OFFER_SELECT), which renders its own panel.
@@ -4611,13 +5097,13 @@ export default function POSDemo() {
   const showOfferSidebar = false
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F8F9FC' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F1EE', fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif" }}>
       <BrandBar onRestart={() => dispatch({ type: 'RESTART' })} onToggleSim={() => dispatch({ type: 'TOGGLE_SIM' })} onViewEmail={() => navigate('/email')} />
       <div className="flex flex-1 overflow-hidden">
         <StepSidebar appState={app} dispatch={dispatch} />
         <main className={isFlexScreen ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
           {isFlexScreen ? renderScreen() : (
-            <div style={{ maxWidth: 980, width: '100%', margin: '0 auto', padding: '32px 32px 64px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+            <div style={{ maxWidth: 1240, width: '100%', margin: '0 auto', padding: '32px 32px 144px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {renderScreen()}
               </div>

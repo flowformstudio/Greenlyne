@@ -1,8 +1,77 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
 import LoanConfigFlow from '../components/LoanConfigFlow'
+import EmailPreview from './EmailPreview'
+import { PhasePaymentChart, ChartCaption, OfferTile, computeOffer, computeFiveYearTotal } from '../components/ScreenOfferSelect'
+import { calcRate, calcEscrowLoan, formatCurrencyFull, AMORT_TERM_MO, ORIGINATION_FEE } from '../lib/loanCalc'
+import { DEMO_PERSONA } from '../lib/persona'
+import { setDemoSession } from '../lib/demoSession'
+import { subscribeLeads, addLead, deleteLead } from '../lib/firebase'
+
+// ─── Demo borrower profile (mirrors the SmartPOS persona for downstream calcs) ─
+const DEMO_PROFILE = {
+  fico: 740,
+  propValue:   DEMO_PERSONA.propValueN,
+  mortgageBal: DEMO_PERSONA.mortgageBalanceN,
+  creditLim:   120_000,
+  drawAmt:     DEMO_PERSONA.requestedLoanAmountN || 96_000,
+}
+const DEFAULT_RECOMMENDED_PRESET = { zeroStart: true, ioYrs: 5, s: 0.30, reductionYrs: 5 }
+const STANDARD_PRESET = { zeroStart: false, ioYrs: 0, s: 0, reductionYrs: null }
+const MERCHANT_PLAN_KEY = 'merchant_recommended_plan'
+
+// Compute payments for a given preset using the same lib as the application flow
+function computePresetCalc(preset, profile = DEMO_PROFILE) {
+  const cltv = (profile.mortgageBal + profile.creditLim) / profile.propValue
+  const rate = calcRate(profile.fico, cltv) ?? 0.0825
+  const n1 = preset.zeroStart ? 6 : 0
+  const redMo = (preset.reductionYrs ?? preset.ioYrs ?? 0) * 12
+  const n2_IO = preset.s > 0 ? Math.max(0, redMo - n1) : 0
+  const n2_PI = (preset.ioYrs === 0 && preset.s > 0) ? Math.max(0, 24 - n1) : 0
+  const calc = calcEscrowLoan({
+    C: profile.drawAmt, rate, f: ORIGINATION_FEE,
+    n1, n2_IO, n2_PI, s: preset.s,
+    amortMo: AMORT_TERM_MO,
+  })
+  return calc ? { calc, rate } : null
+}
+
+function derivePresetPhases(result, preset) {
+  if (!result?.calc) return []
+  const { calc } = result
+  const phases = []
+  if (preset.zeroStart) phases.push({ amount: 0, period: 'First 6 months' })
+  if (preset.ioYrs > 0) {
+    const start = preset.zeroStart ? 7 : 1
+    const end   = preset.ioYrs * 12
+    const ioPayment = preset.s > 0 ? calc.Red_IO : calc.IO_custom
+    phases.push({ amount: ioPayment, period: `Months ${start}–${end}` })
+  }
+  let finalPeriod
+  if (preset.ioYrs > 0)      finalPeriod = `After year ${preset.ioYrs}`
+  else if (preset.zeroStart) finalPeriod = 'After 6 months'
+  else                       finalPeriod = 'Every month'
+  phases.push({ amount: calc.PI_custom || calc.B, period: finalPeriod })
+  return phases
+}
+
+function presetPhaseColor(phase, idx, total) {
+  if (phase.amount === 0) return '#016163'                          // green
+  if (idx === total - 1 && total > 1) return '#5B5FC7'              // purple
+  return '#254BCE'                                                   // blue
+}
+
+// Compact label / value row used inside the plan cards' term grids
+function TermPair({ label, value, small = false }) {
+  return (
+    <div className="flex flex-col">
+      <div className={`uppercase tracking-wide font-semibold text-gray-400 ${small ? 'text-[9.5px]' : 'text-[10px]'}`}>{label}</div>
+      <div className={`mt-0.5 tabular-nums text-gray-800 ${small ? 'text-xs font-semibold' : 'text-base font-semibold'}`}>{value}</div>
+    </div>
+  )
+}
 
 const STATUSES = [
   { key: 'qualified', label: 'Qualified', color: 'bg-blue-500',    textColor: '#60A5FA', activeBg: 'bg-blue-50',    info: 'Passed prescreen, offer ready, no outreach.\nAction: Send email or postcard' },
@@ -26,7 +95,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -46,7 +115,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -67,7 +136,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -91,7 +160,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -116,7 +185,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -141,7 +210,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -167,7 +236,7 @@ const LEADS_BASE = [
     prescreenChecks: [
       { check: 'Address Verification', result: 'Pass', reason: null },
       { check: 'Max CLTV', result: 'Pass', reason: null },
-      { check: 'Credit / DTI', result: 'Pass', reason: null },
+      { check: 'Credit check', result: 'Pass', reason: null },
       { check: 'Loan Offer', result: 'Generated', reason: null },
     ],
     timeline: [
@@ -287,7 +356,7 @@ const LEADS_BASE = [
       prescreenChecks: [
         { check: 'Address Verification', result: 'Pass', reason: null },
         { check: 'Max CLTV', result: 'Pass', reason: null },
-        { check: 'Credit / DTI', result: 'Pass', reason: null },
+        { check: 'Credit check', result: 'Pass', reason: null },
         { check: 'Loan Offer', result: 'Generated', reason: null },
       ],
       timeline: [
@@ -320,39 +389,161 @@ function PostcardIcon({ size = 20 }) {
   )
 }
 
-function ActionBtn({ icon, label, onClick, primary }) {
+function ActionBtn({ icon, label, onClick, primary, variant, disabled }) {
+  const v = variant || (primary ? 'primary' : 'tertiary')
+  const STYLE = {
+    primary:   { bg: '#254BCE', border: '#254BCE', fg: '#fff',    iconColor: '#fff',    hoverBg: '#1e3fa8' },
+    secondary: { bg: '#fff',    border: '#254BCE', fg: '#254BCE', iconColor: '#254BCE', hoverBg: '#F1F4FF' },
+    done:      { bg: '#ECFDF5', border: '#A7F3D0', fg: '#065F46', iconColor: '#016163', hoverBg: '#ECFDF5' },
+    tertiary:  { bg: '#fff',    border: 'rgba(0,22,96,0.1)', fg: '#374151', iconColor: '#254BCE', hoverBg: '#F8F9FC' },
+  }[v]
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 transition-all"
+      disabled={disabled}
+      className="flex flex-col items-center justify-center gap-2 transition-all disabled:cursor-default"
       style={{
         height: 75,
         borderRadius: 6,
-        border: primary ? '0.8px solid #254BCE' : '0.8px solid rgba(0,22,96,0.1)',
-        background: primary ? '#254BCE' : '#fff',
-        color: primary ? '#fff' : '#374151',
+        border: `0.8px solid ${STYLE.border}`,
+        background: STYLE.bg,
+        color: STYLE.fg,
         padding: '16.8px 0.8px',
       }}
-      onMouseOver={e => { e.currentTarget.style.background = primary ? '#1e3fa8' : '#F8F9FC' }}
-      onMouseOut={e => { e.currentTarget.style.background = primary ? '#254BCE' : '#fff' }}
+      onMouseOver={e => { if (!disabled) e.currentTarget.style.background = STYLE.hoverBg }}
+      onMouseOut={e => { if (!disabled) e.currentTarget.style.background = STYLE.bg }}
     >
-      <span style={{color: primary ? '#fff' : '#254BCE', display:'flex', alignItems:'center', justifyContent:'center', width:24, height:24}}>{icon}</span>
-      <span className="text-[11px] font-semibold text-center whitespace-nowrap" style={{fontFamily:"'PostGrotesk', sans-serif", lineHeight:'13.75px', color: primary ? '#fff' : '#374151'}}>{label}</span>
+      <span style={{color: STYLE.iconColor, display:'flex', alignItems:'center', justifyContent:'center', width:24, height:24}}>{icon}</span>
+      <span className="text-[11px] font-semibold text-center whitespace-nowrap" style={{fontFamily:"'PostGrotesk', sans-serif", lineHeight:'13.75px', color: STYLE.fg}}>{label}</span>
     </button>
   )
 }
 
-function LeadDrawer({ lead, onClose }) {
-  if (!lead) return null
+function useMerchantRecommendedPreview() {
+  return useMemo(() => {
+    let preset = DEFAULT_RECOMMENDED_PRESET
+    try {
+      const raw = localStorage.getItem(MERCHANT_PLAN_KEY)
+      if (raw) preset = { ...DEFAULT_RECOMMENDED_PRESET, ...JSON.parse(raw) }
+    } catch {}
+    const result = computePresetCalc(preset)
+    const phases = derivePresetPhases(result, preset)
+    return { preset, phases }
+  }, [])
+}
+
+function LeadDrawer({ lead, onClose, onEmailSent, emailSentInSession = false, onDelete }) {
+  // Hooks must run on every render in the same order — keep them above any early return
+  const merchantRecommended = useMerchantRecommendedPreview()
   const [showLoanFlow, setShowLoanFlow] = useState(false)
+  const [emailFlow, setEmailFlow] = useState(null)   // null | 'sending' | 'sent'
+  const [emailSent, setEmailSent] = useState(false)
+  const [emailSentAt, setEmailSentAt] = useState(null)
+  const [sendProgress, setSendProgress] = useState(0)
+  const navigate = useNavigate()
+  // Reflect already-sent state when re-opening a lead
+  useEffect(() => {
+    setEmailSent(emailSentInSession)
+    setEmailFlow(null)
+    setSendProgress(0)
+    if (!emailSentInSession) setEmailSentAt(null)
+  }, [lead?.id, emailSentInSession])
+  if (!lead) return null
   const initials = lead.name.split(' ').map(n => n[0]).join('')
   const statusColor = { qualified:'#60A5FA', contacted:'#38BDF8', engaged:'#FBBF24', hot:'#FB923C', applying:'#C084FC', approved:'#34D399', funded:'#A3E635' }
 
+  // Send-email demo flow: idle → sending (animated progress) → sent. Notifies
+  // parent so the lead row reflects "Sent · Just now" status across the pipeline.
+  function handleSendEmail() {
+    if (emailFlow === 'sending' || emailSent) return
+    setEmailFlow('sending')
+    setSendProgress(0)
+    const duration = 1800
+    const start    = Date.now()
+    const interval = setInterval(() => {
+      const pct = Math.min((Date.now() - start) / duration, 1)
+      setSendProgress(Math.round(pct * 100))
+      if (pct >= 1) {
+        clearInterval(interval)
+        setEmailSent(true)
+        setEmailSentAt(new Date())
+        setEmailFlow(null)
+        if (onEmailSent && lead?.id) onEmailSent(lead.id)
+      }
+    }, 50)
+  }
+  function handleViewEmailDemo() {
+    setEmailFlow(null)
+    onClose()
+    navigate('/email')
+  }
+
   return (
     <>
-      {showLoanFlow && <LoanConfigFlow lead={lead} onClose={() => setShowLoanFlow(false)} />}
+      {showLoanFlow && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            onClick={() => setShowLoanFlow(false)}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+          />
+          <div style={{
+            position: 'relative',
+            width: 'min(720px, calc(100vw - 48px))',
+            height: 'min(820px, calc(100vh - 48px))',
+            background: '#fff',
+            borderRadius: 14,
+            boxShadow: '0 24px 60px -12px rgba(0,0,0,0.45)',
+            overflow: 'hidden',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            {/* Close button — sits above the email content */}
+            <button
+              onClick={() => setShowLoanFlow(false)}
+              aria-label="Close email preview"
+              style={{
+                position: 'absolute', top: 12, right: 12, zIndex: 2,
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.08)',
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              {/* Non-interactive preview — scroll works, clicks/hover don't */}
+              <div style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                <EmailPreview hideClientChrome />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="fixed inset-0 bg-black/25 z-40" onClick={onClose} />
       <div className="fixed top-0 right-0 h-full w-[500px] bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+
+        {/* Email-send overlay — sits on top of the drawer body */}
+        {emailFlow === 'sending' && (
+          <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm flex items-center justify-center px-8 py-10">
+            <div className="flex flex-col items-center gap-5 max-w-sm w-full text-center">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{background:'rgba(37,75,206,0.08)', border:'2px solid rgba(37,75,206,0.18)'}}>
+                <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+              </div>
+              <div>
+                <div className="text-base font-semibold" style={{color:'#001660'}}>Sending email…</div>
+                <div className="text-sm text-gray-500 mt-1">Delivering the Standard plan offer to <span className="font-medium text-gray-700">{lead.email}</span></div>
+              </div>
+              <div className="w-full">
+                <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(0,22,96,0.08)'}}>
+                  <div className="h-full transition-all duration-150" style={{background:'#254BCE', width:`${sendProgress}%`}} />
+                </div>
+                <div className="mt-2 text-[12px] tabular-nums" style={{color:'#6B7280'}}>{sendProgress}% delivered</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Header ── */}
         <div className="px-6 pt-5 pb-4 shrink-0" style={{background:'#001660'}}>
@@ -368,11 +559,27 @@ function LeadDrawer({ lead, onClose }) {
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{color:'rgba(255,255,255,0.5)'}}
-              onMouseOver={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}
-              onMouseOut={e=>e.currentTarget.style.background='transparent'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div className="flex items-center gap-1">
+              {onDelete && (
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Remove ${lead.name} from your pipeline?`)) onDelete(lead)
+                  }}
+                  title="Delete lead"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-colors"
+                  style={{ color: '#FCA5A5', background: 'rgba(255,99,99,0.12)', border: '1px solid rgba(255,99,99,0.28)' }}
+                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,99,99,0.22)'; e.currentTarget.style.color = '#fff' }}
+                  onMouseOut={e  => { e.currentTarget.style.background = 'rgba(255,99,99,0.12)'; e.currentTarget.style.color = '#FCA5A5' }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                  Delete
+                </button>
+              )}
+              <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{color:'rgba(255,255,255,0.5)'}}
+                onMouseOver={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}
+                onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
           <div className="flex gap-2 text-xs" style={{color:'rgba(255,255,255,0.45)'}}>
             <span>{lead.phone}</span>
@@ -383,11 +590,41 @@ function LeadDrawer({ lead, onClose }) {
 
         {/* ── Action Buttons ── */}
         <div className="px-5 py-4 border-b border-gray-100 shrink-0" style={{background:'#F8F9FC'}}>
+          {/* Email-sent success banner */}
+          {emailSent && (
+            <div className="rounded-md px-3 py-2.5 mb-3 flex items-center gap-3" style={{background:'#ECFDF5', border:'1px solid #A7F3D0'}}>
+              <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{background:'#016163'}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-semibold truncate" style={{color:'#065F46'}}>Email sent to {lead.email}</div>
+                <div className="text-[10.5px]" style={{color:'#047857'}}>
+                  {emailSentAt
+                    ? `Delivered ${emailSentAt.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})} · Tracking opens & clicks`
+                    : 'Tracking opens & clicks'}
+                </div>
+              </div>
+              <button
+                onClick={handleViewEmailDemo}
+                className="text-[10.5px] font-semibold whitespace-nowrap px-2 py-1 rounded transition-colors"
+                style={{color:'#065F46'}}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(1,97,99,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                View email →
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-2.5 mb-3">
-            <ActionBtn primary icon={
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            } label="Send Email" />
-            <ActionBtn primary icon={<PostcardIcon size={20} />} label="Send Postcard" />
+            <ActionBtn
+              variant={emailSent ? 'done' : 'primary'}
+              disabled={emailSent || emailFlow === 'sending'}
+              onClick={handleSendEmail}
+              icon={emailSent
+                ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              }
+              label={emailSent ? 'Email Sent' : 'Send Email'} />
+            <ActionBtn variant={emailSent ? 'primary' : 'secondary'} icon={<PostcardIcon size={20} />} label="Send Postcard" />
             <ActionBtn icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.58 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 5.99 5.99l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             } label="Call Lead" />
@@ -421,15 +658,61 @@ function LeadDrawer({ lead, onClose }) {
               </div>
             </div>
 
-            {/* Payment metrics row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl p-4" style={{background:'#F8F9FC', border:'1px solid rgba(0,22,96,0.07)'}}>
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">Monthly Payment</div>
-                <div className="text-2xl font-bold" style={{color:'#001660'}}>{lead.monthly}</div>
+            {/* Standard plan card (the offer that goes out to the customer) */}
+            <div className="rounded-xl p-4 mb-3" style={{background:'#F8F9FC', border:'1px solid rgba(0,22,96,0.07)'}}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Standard plan</div>
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">Sent in outreach</span>
               </div>
-              <div className="rounded-xl p-4" style={{background:'#F8F9FC', border:'1px solid rgba(0,22,96,0.07)'}}>
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">APR</div>
-                <div className="text-2xl font-bold" style={{color:'#001660'}}>{lead.apr}</div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">Monthly Payment</div>
+                  <div className="text-xl font-bold" style={{color:'#001660'}}>{lead.monthly}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">APR</div>
+                  <div className="text-xl font-bold" style={{color:'#001660'}}>{lead.apr}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">5-Yr Total</div>
+                  <div className="text-xl font-bold" style={{color:'#001660'}}>
+                    {lead.fiveYear || `$${(parseInt(String(lead.monthly).replace(/[^0-9]/g,'')) * 60).toLocaleString()}`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommended plan card (configured by merchant — what customer sees in the application) */}
+            <div className="rounded-xl p-4" style={{background:'rgba(37,75,206,0.04)', border:'1px solid rgba(37,75,206,0.18)'}}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider" style={{color:'#254BCE'}}>Recommended plan</div>
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">Shown in the application</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {merchantRecommended.phases.map((p, i) => {
+                  const c = presetPhaseColor(p, i, merchantRecommended.phases.length)
+                  return (
+                    <div key={i} className="flex items-baseline justify-between gap-3">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-base font-bold tabular-nums tracking-tight" style={{color: c}}>
+                          {p.amount === 0 ? '$0' : formatCurrencyFull(Math.round(p.amount))}
+                        </span>
+                        <span className="text-[11px] font-semibold text-gray-400">/mo</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 whitespace-nowrap">{p.period}</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Phase chart from the application Step 2 (amounts suppressed — already shown in rows above) */}
+              <div className="mt-3 pt-3 border-t border-blue-100/50">
+                <PhasePaymentChart phases={merchantRecommended.phases} theme="light" hideAmountLabels />
+                <ChartCaption color="#94A3B8" markers={['Now', '6 Mo', 'Yr 5', 'Yr 10']} />
+              </div>
+
+              <div className="text-[10px] text-gray-400 mt-3 pt-2.5 border-t border-blue-100/50">
+                Configured by merchant in the prescreen flow.
               </div>
             </div>
           </div>
@@ -457,10 +740,24 @@ function LeadDrawer({ lead, onClose }) {
           <div className="px-6 py-5 border-b border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Contact Info</div>
-              <button className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export
-              </button>
+              <div className="flex items-center gap-2">
+                <button className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export
+                </button>
+                <button
+                  onClick={() => {
+                    if (!onDelete) return
+                    if (window.confirm(`Remove ${lead.name} from your pipeline?`)) onDelete(lead)
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium border rounded-lg transition-colors"
+                  style={{ color: '#B91C1C', borderColor: 'rgba(185,28,28,0.25)', background: 'transparent' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'rgba(185,28,28,0.06)'}
+                  onMouseOut={e  => e.currentTarget.style.background = 'transparent'}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                  Delete
+                </button>
+              </div>
             </div>
             <div className="flex flex-col gap-2.5">
               <div className="flex items-center gap-3">
@@ -506,13 +803,19 @@ function LeadDrawer({ lead, onClose }) {
             <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Outreach History</div>
             <div className="flex flex-col gap-2">
               {[
-                { label: 'Email sent', value: lead.emailSent, action: 'Resend' },
+                { label: 'Email sent', value: emailSent ? 'Just now' : lead.emailSent, action: emailSent ? null : 'Resend', justSent: emailSent },
                 { label: 'Postcard sent', value: lead.postcardSent, action: 'Resend' },
-                { label: 'Last contact', value: lead.lastContact },
-              ].map(({ label, value, action }) => (
+                { label: 'Last contact', value: emailSent ? 'Just now' : lead.lastContact },
+              ].map(({ label, value, action, justSent }) => (
                 <div key={label} className="flex items-center justify-between py-1.5">
                   <span className="text-xs text-gray-500">{label}</span>
                   <div className="flex items-center gap-2">
+                    {justSent && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ background:'rgba(1,97,99,0.12)', color:'#047857' }}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Sent
+                      </span>
+                    )}
                     <span className={`text-xs font-medium ${value ? 'text-gray-800' : 'text-gray-300'}`}>{value || '—'}</span>
                     {value && action && <button className="text-[11px] text-blue-500 hover:text-blue-700">{action}</button>}
                   </div>
@@ -583,11 +886,20 @@ const ADDRESS_SUGGESTIONS = [
 
 const STAGES       = ['AI Engine / Waiting...', 'Processing Pre-Approval...', 'Finalizing Results...', 'Completed']
 const MOCK_RESULT  = { loanAmount: '$95,000', monthly: '$560/mo', apr: '8.10%' }
-const VERIFICATIONS = ['Address Verified', 'Equity Check Passed', 'Credit / DTI Passed', 'Offer Generated']
+const VERIFICATIONS = ['Address Verified', 'Equity Check Passed', 'Credit check Passed', 'Offer Generated']
 
-function QuickPrescreenModal({ onClose }) {
+// Approved cap (used for the "no cost input" slider's upper bound)
+const APPROVED_LOAN_MAX = 150_000
+const LOAN_MIN          = 20_000
+const LOAN_MID          = Math.round((APPROVED_LOAN_MAX + LOAN_MIN) / 2)
+
+function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
+  const navigate                      = useNavigate()
   const [step, setStep]               = useState('form')
   const [stageIndex, setStageIndex]   = useState(0)
+  const [emailFlow, setEmailFlow]     = useState(null)   // null | 'sending' | 'sent'
+  const [emailSent, setEmailSent]     = useState(false)
+  const [postcardSent, setPostcardSent] = useState(false)
   const [firstName, setFirstName]     = useState('')
   const [lastName, setLastName]       = useState('')
   const [email, setEmail]             = useState('')
@@ -596,16 +908,71 @@ function QuickPrescreenModal({ onClose }) {
   const [confirmed, setConfirmed]     = useState(null)
   const [showUnit, setShowUnit]       = useState(false)
   const [unit, setUnit]               = useState('')
+  // Project-cost mode: 'fixed' (specific $), 'per_watt' (cost-per-watt × system size kW), 'none' (slider)
   const [costMode, setCostMode]         = useState('none')
   const [cost, setCost]                 = useState('')
-  const [costPerArea, setCostPerArea]   = useState('')
+  const [costPerWatt, setCostPerWatt]   = useState('')   // $/W typical 2.50–4.50
+  const [systemKw, setSystemKw]         = useState('')   // system size in kW
+  const [loanSliderAmt, setLoanSliderAmt] = useState(APPROVED_LOAN_MAX) // for 'none' mode
+  // Demo: which verification path to show in results — 'pass' | 'partial' | 'decline'
+  const [verifyMode, setVerifyMode]     = useState('pass')
+  // "More" menu in the result sticky header (Preview email / postcard / Download PDF)
+  const [moreOpen, setMoreOpen]         = useState(false)
+  // Verification strip — which check is expanded (null = none)
+  const [verifyOpenIdx, setVerifyOpenIdx] = useState(null)
+  // Loan-amount slider on the result screen (rep can fine-tune post-prescreen)
+  const [resultLoanAmt, setResultLoanAmt] = useState(LOAN_MID)
+  // Push slider value into the demo session so downstream offer/application pick it up
+  useEffect(() => {
+    if (resultLoanAmt) setDemoSession({ requestedLoanAmount: String(resultLoanAmt) })
+  }, [resultLoanAmt])
   const dropdownRef                     = useRef(null)
+  const moreRef                         = useRef(null)
+
+  // Compute the final project cost from mode (used downstream)
+  const computedProjectCost = (() => {
+    if (costMode === 'fixed') return Number(cost) || 0
+    if (costMode === 'per_watt') return Math.round((Number(costPerWatt) || 0) * (Number(systemKw) || 0) * 1000)
+    return 0
+  })()
+  // Final loan amount — equals project cost in fixed/per-watt modes, slider value otherwise
+  const computedLoanAmount = costMode === 'none' ? loanSliderAmt : computedProjectCost
+
+  // Standard + Recommended plan calculations — use the live loan amount from
+  // whatever the rep entered in the modal so the plan cards (and downstream
+  // Offer / Application screens) all stay consistent.
+  const liveProfile = useMemo(() => ({
+    ...DEMO_PROFILE,
+    // On the result step the slider drives the amount; otherwise fall back to
+    // whatever the cost-mode produced (fixed / per-watt) or the static default.
+    drawAmt: step === 'result'
+      ? (resultLoanAmt || computedLoanAmount || DEMO_PROFILE.drawAmt)
+      : (computedLoanAmount || DEMO_PROFILE.drawAmt),
+  }), [step, resultLoanAmt, computedLoanAmount])
+  const planPreset        = DEFAULT_RECOMMENDED_PRESET
+  const standardResult    = useMemo(() => computePresetCalc(STANDARD_PRESET, liveProfile), [liveProfile])
+  const recommendedResult = useMemo(() => computePresetCalc(planPreset, liveProfile),     [planPreset, liveProfile])
+  const recommendedPhases = useMemo(() => derivePresetPhases(recommendedResult, planPreset), [recommendedResult, planPreset])
+
+  // Build full offer objects (matches the application Step 2 OfferTile shape)
+  const standardOffer = useMemo(() => standardResult
+    ? computeOffer({ C: liveProfile.drawAmt, rate: standardResult.rate, preset: STANDARD_PRESET })
+    : null, [liveProfile, standardResult])
+  const recommendedOffer = useMemo(() => recommendedResult
+    ? computeOffer({ C: liveProfile.drawAmt, rate: recommendedResult.rate, preset: planPreset })
+    : null, [liveProfile, recommendedResult, planPreset])
+  const standardFive  = standardOffer ? computeFiveYearTotal(standardOffer) : 0
+  const offerMaxY = useMemo(() => {
+    if (!standardOffer || !recommendedOffer) return 0
+    return Math.max(...standardOffer.schedule.slice(0, 120), ...recommendedOffer.schedule.slice(0, 120))
+  }, [standardOffer, recommendedOffer])
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const canSubmit  = firstName.trim() && lastName.trim() && emailValid && confirmed
+  const addressValid = !!confirmed || address.trim().length >= 5
+  const canSubmit  = firstName.trim() && lastName.trim() && emailValid && addressValid
   const progress   = ((stageIndex + 1) / STAGES.length) * 100
 
-  // Stage cycling during loading
+  // Stage cycling during loading — also fires the pipeline insertion callback
   useEffect(() => {
     if (step !== 'loading') return
     setStageIndex(0)
@@ -613,14 +980,33 @@ function QuickPrescreenModal({ onClose }) {
       if (i === 0) return null
       return setTimeout(() => setStageIndex(i), i * 800)
     }).filter(Boolean)
-    timers.push(setTimeout(() => setStep('result'), STAGES.length * 800 + 200))
+    timers.push(setTimeout(() => {
+      setStep('result')
+      // Seed the result slider with whatever cost mode produced (or full cap)
+      setResultLoanAmt(computedLoanAmount || LOAN_MID)
+      // Notify parent so the new lead lands at the top of the CRM list
+      if (onPrescreenComplete) {
+        const cityState = confirmed ? `${confirmed.city}, ${confirmed.state}` : (address.split(',').slice(1).join(',').trim() || 'Unknown')
+        const monthlyN  = standardResult ? Math.round(standardResult.calc.B) : 520
+        onPrescreenComplete({
+          name:     `${firstName.trim()} ${lastName.trim()}`,
+          email:    email.trim(),
+          address:  confirmed?.full || address.trim(),
+          location: cityState,
+          amount:   `$${(computedLoanAmount || 0).toLocaleString()}`,
+          monthly:  `$${monthlyN.toLocaleString()}/mo`,
+          fiveYear: `$${Math.round(monthlyN * 60).toLocaleString()}`,
+        })
+      }
+    }, STAGES.length * 800 + 200))
     return () => timers.forEach(clearTimeout)
-  }, [step])
+  }, [step]) // eslint-disable-line
 
   // Close dropdown on outside click
   useEffect(() => {
     function handler(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setSuggestions([])
+      if (moreRef.current     && !moreRef.current.contains(e.target))     setMoreOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -639,19 +1025,65 @@ function QuickPrescreenModal({ onClose }) {
   }
 
   function selectAddress(s) { setAddress(s.full); setConfirmed(s); setSuggestions([]) }
-  function handleSubmit()    { if (canSubmit) setStep('loading') }
+  function handleSubmit() {
+    if (!canSubmit) return
+    // Persist what the merchant entered so every downstream demo screen
+    // (email preview, solar calculator, application) reads the same identity.
+    const addrParts = (confirmed?.full || address).split(',').map(s => s.trim())
+    const street    = confirmed?.street || addrParts[0] || ''
+    const city      = confirmed?.city   || addrParts[1] || ''
+    const stateZip  = (confirmed?.stateZip || addrParts[2] || '').split(/\s+/)
+    const stateAb   = confirmed?.state || stateZip[0] || ''
+    const zip       = confirmed?.zip   || stateZip[1] || ''
+    setDemoSession({
+      firstName: firstName.trim(),
+      lastName:  lastName.trim(),
+      email:     email.trim(),
+      address:   street,
+      city,
+      state:     stateAb,
+      zip,
+      unit:      unit.trim(),
+      // Project cost + final loan amount flow into the application Step 1 form
+      projectCost:         computedProjectCost ? String(computedProjectCost) : '',
+      requestedLoanAmount: String(computedLoanAmount),
+    })
+    setStep('loading')
+  }
   function resetForm() {
     setStep('form'); setStageIndex(0)
     setFirstName(''); setLastName(''); setEmail('')
     setAddress(''); setSuggestions([]); setConfirmed(null)
-    setShowUnit(false); setUnit(''); setCostMode('none'); setCost(''); setCostPerArea('')
+    setShowUnit(false); setUnit('')
+    setCostMode('none'); setCost(''); setCostPerWatt(''); setSystemKw('')
+    setLoanSliderAmt(APPROVED_LOAN_MAX); setVerifyMode('pass')
+    setEmailFlow(null); setEmailSent(false); setPostcardSent(false)
+  }
+
+  // Send-email demo flow: idle → sending (~1.6s) → sent
+  function handleSendEmail() {
+    if (emailFlow === 'sending') return
+    setEmailFlow('sending')
+    setTimeout(() => {
+      setEmailFlow('sent')
+      setEmailSent(true)
+    }, 1600)
+  }
+  function handleViewEmailDemo() {
+    setEmailFlow(null)
+    onClose()
+    navigate('/email')
+  }
+  function handleSendPostcard() {
+    if (postcardSent) return
+    setPostcardSent(true)
   }
 
   return (
     <>
       <div className="fixed inset-0 bg-black/30 z-40" onClick={step === 'loading' ? undefined : onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
+        <div className={`relative bg-white rounded-lg shadow-2xl w-full ${step === 'result' ? 'max-w-4xl' : 'max-w-md'} flex flex-col max-h-[90vh] overflow-hidden`}>
 
           {/* ─── FORM ─── */}
           {step === 'form' && (<>
@@ -665,7 +1097,7 @@ function QuickPrescreenModal({ onClose }) {
 
             <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-6">
               <div className="flex flex-col gap-4">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Who is this person?</div>
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Homeowner</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-gray-600">First Name <span className="text-red-400">*</span></label>
@@ -688,7 +1120,7 @@ function QuickPrescreenModal({ onClose }) {
               </div>
 
               <div className="flex flex-col gap-3">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Where do they live?</div>
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Property Address</div>
                 <div className="flex flex-col gap-1.5 relative" ref={dropdownRef}>
                   <label className="text-xs font-medium text-gray-600">Home Address <span className="text-red-400">*</span></label>
                   <input value={address} onChange={e => handleAddressChange(e.target.value)}
@@ -729,12 +1161,12 @@ function QuickPrescreenModal({ onClose }) {
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">How should project cost be determined?</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Project Cost</label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { key: 'fixed',    label: 'Fixed Amount',  desc: 'Enter total cost' },
-                    { key: 'per_area', label: 'Cost per m²',   desc: 'By renovation area' },
-                    { key: 'none',     label: 'No Cost Input', desc: 'Calculate max loan' },
+                    { key: 'fixed',    label: 'Fixed Amount',  desc: 'Enter total project cost' },
+                    { key: 'per_watt', label: 'Solar — $/W',    desc: '$/W × system size (kW)' },
+                    { key: 'none',     label: 'No Cost Input', desc: 'Pick loan amount on slider' },
                   ].map(opt => {
                     const active = costMode === opt.key
                     return (
@@ -759,17 +1191,31 @@ function QuickPrescreenModal({ onClose }) {
                       <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="e.g. 50,000"
                         className="w-48 border border-gray-200 rounded-md pl-7 pr-3 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
                     </div>
-                    <p className="text-[11px] text-gray-400">Used to determine the right loan amount for this homeowner.</p>
+                    <p className="text-[11px] text-gray-400">Total turnkey cost the installer quoted (panels, inverter, install, permits).</p>
                   </div>
                 )}
-                {costMode === 'per_area' && (
-                  <div className="flex flex-col gap-1">
-                    <div className="relative">
-                      <input type="number" value={costPerArea} onChange={e => setCostPerArea(e.target.value)} placeholder="e.g. 180"
-                        className="w-36 border border-gray-200 rounded-md pl-3 pr-12 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">$/m²</span>
+                {costMode === 'per_watt' && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                        <input type="number" step="0.01" value={costPerWatt} onChange={e => setCostPerWatt(e.target.value)} placeholder="3.20"
+                          className="w-32 border border-gray-200 rounded-md pl-7 pr-12 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">/W</span>
+                      </div>
+                      <span className="text-xs text-gray-400">×</span>
+                      <div className="relative">
+                        <input type="number" step="0.1" value={systemKw} onChange={e => setSystemKw(e.target.value)} placeholder="8.5"
+                          className="w-28 border border-gray-200 rounded-md pl-3 pr-10 py-2 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">kW</span>
+                      </div>
+                      {computedProjectCost > 0 && (
+                        <span className="text-xs text-gray-700 ml-2">
+                          = <span className="font-semibold tabular-nums">${computedProjectCost.toLocaleString()}</span>
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[11px] text-gray-400">Multiplied by the property's estimated renovation area.</p>
+                    <p className="text-[11px] text-gray-400">Industry-standard solar pricing: cost per watt (typically $2.50–$4.50) multiplied by system size in kilowatts.</p>
                   </div>
                 )}
                 {costMode === 'none' && (
@@ -826,83 +1272,489 @@ function QuickPrescreenModal({ onClose }) {
 
           {/* ─── RESULT ─── */}
           {step === 'result' && (<>
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-start justify-between shrink-0">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="text-lg font-semibold text-gray-900">{firstName} {lastName}</h2>
-                  <span className="bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full">Approved</span>
-                </div>
-                <p className="text-sm text-gray-400 mt-0.5 truncate">{address}</p>
+            {/* Email-send overlay (sits on top of the result content) */}
+            {emailFlow && (
+              <div className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center px-8 py-10 gap-5 rounded-lg">
+                {emailFlow === 'sending' && (
+                  <>
+                    <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+                    <div className="text-center">
+                      <div className="text-base font-semibold text-gray-900">Sending email…</div>
+                      <div className="text-sm text-gray-500 mt-1">Delivering the Standard plan offer to <span className="font-medium text-gray-700">{email}</span></div>
+                    </div>
+                  </>
+                )}
+                {emailFlow === 'sent' && (
+                  <>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{background:'rgba(1,97,99,0.12)'}}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-gray-900">Email sent</div>
+                      <div className="text-sm text-gray-500 mt-1">Offer delivered to <span className="font-medium text-gray-700">{email}</span></div>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 mt-1">
+                      <button onClick={() => setEmailFlow(null)}
+                        className="py-2.5 px-6 text-white rounded-md text-sm font-semibold transition-colors"
+                        style={{background:'#254BCE'}}
+                        onMouseEnter={e => e.currentTarget.style.background = '#1e3fa8'}
+                        onMouseLeave={e => e.currentTarget.style.background = '#254BCE'}>
+                        Close
+                      </button>
+                      <button
+                        onClick={handleViewEmailDemo}
+                        className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-4 transition-colors"
+                      >
+                        Demo: view the email the customer received →
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none ml-4 mt-0.5 shrink-0">✕</button>
+            )}
+
+            <div className="border-b border-gray-100 shrink-0">
+              <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-lg font-semibold text-gray-900">{firstName} {lastName}</h2>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(1,97,99,0.1)', color: '#016163' }}>Pre-qualified for HELOC</span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-0.5 truncate">{address}</p>
+                  {/* Verification dots — under the address */}
+                  <div className="mt-2.5">
+                    <VerificationDots mode={verifyMode} openIdx={verifyOpenIdx} setOpenIdx={setVerifyOpenIdx} />
+                  </div>
+                </div>
+                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none shrink-0">✕</button>
+              </div>
+              {/* Expanded detail — full-width below the header row */}
+              <VerificationDetail mode={verifyMode} openIdx={verifyOpenIdx} onClose={() => setVerifyOpenIdx(null)} />
+              <div className="h-2" />
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-6">
-              {/* The Offer */}
-              <div>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">The Offer</div>
-                <div className="text-4xl font-bold text-gray-900 tracking-tight">{MOCK_RESULT.loanAmount}</div>
-                <div className="flex items-center gap-6 mt-3">
-                  <div>
-                    <div className="text-xs text-gray-400">Monthly Payment</div>
-                    <div className="text-base font-semibold text-gray-800 mt-0.5">{MOCK_RESULT.monthly}</div>
-                  </div>
-                  <div className="w-px h-8 bg-gray-200" />
-                  <div>
-                    <div className="text-xs text-gray-400">APR</div>
-                    <div className="text-base font-semibold text-gray-800 mt-0.5">{MOCK_RESULT.apr}</div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              {/* Actions — sticky header. Hidden only while the email-send overlay
+                  is open (sending / sent confirmation) so it doesn't show through. */}
+              {!emailFlow && <>
+              <div className="sticky top-0 z-10 px-6 py-4 flex flex-col gap-2 bg-white border-b border-gray-100">
+              <div className="flex items-center gap-3">
 
-              {/* Verification Breakdown */}
-              <div>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Verification Breakdown</div>
-                <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2.5 border border-gray-100">
-                  {VERIFICATIONS.map(v => (
-                    <div key={v} className="flex items-center gap-2.5">
-                      <span className="text-green-500 text-sm">✅</span>
-                      <span className="text-sm text-gray-700 ">{v}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions — View in CRM + Run Another are primary */}
-              <div className="flex flex-col gap-2">
-                <div className="grid grid-cols-2 gap-2">
+                {/* PRIMARY GROUP: View in CRM (main) + Run Another (secondary) */}
+                <div className="flex gap-1.5 shrink-0">
                   <button onClick={onClose}
-                    className="py-2.5 text-white rounded-md text-sm font-semibold transition-colors hover:opacity-90" style={{background:'#001660'}}>
-                    View in CRM →
+                    className="py-2.5 px-4 text-white rounded-md text-xs font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1.5 shadow-sm"
+                    style={{background:'#254BCE'}}
+                    onMouseEnter={e => e.currentTarget.style.background = '#1e3fa8'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#254BCE'}>
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="15" height="15" className="shrink-0">
+                      <path d="M3 3.75a3 3 0 1 0 6 0 3 3 0 1 0 -6 0Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                      <path d="M9.674 9.75A5.25 5.25 0 0 0 0.75 13.5v2.25H3l0.75 7.5h4.5l0.285 -2.85" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                      <path d="M10.5 15.75a5.25 5.25 0 1 0 10.5 0 5.25 5.25 0 1 0 -10.5 0Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                      <path d="m23.25 23.25 -3.788 -3.788" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                    </svg>
+                    View in CRM
                   </button>
                   <button onClick={resetForm}
-                    className="py-2.5 bg-white border border-gray-200 text-gray-800 rounded-md text-sm font-semibold hover:bg-gray-50 transition-colors">
-                    Run Another →
+                    className="py-2.5 px-4 bg-white border border-gray-200 text-gray-800 rounded-md text-xs font-semibold transition-colors whitespace-nowrap inline-flex items-center gap-1.5 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-0.75 -1.6731 24 24" width="15" height="15" className="shrink-0">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M17.068846153846156 14.920096153846155c-1.0917692307692308 1.7131153846153846 -2.764817307692308 2.975019230769231 -4.712019230769231 3.553875 -1.9472019230769233 0.5789423076923077 -4.037919230769231 0.4359807692307693 -5.88825 -0.40249038461538467 -1.8503307692307693 -0.8384711538461539 -3.3361096153846153 -2.316288461538462 -4.184567307692308 -4.162067307692308 -0.8484576923076923 -1.845778846153846 -1.0026432692307692 -3.935682692307693 -0.43425 -5.886 0.5683932692307693 -1.9503173076923077 1.8212192307692308 -3.6301500000000004 3.5284586538461538 -4.731118269230769C7.085457692307693 2.191335576923077 9.132576923076924 1.7431442307692309 11.143644230769231 2.030010576923077c2.011067307692308 0.28686634615384615 3.8512211538461543 1.289526923076923 5.182528846153846 2.823914423076923 1.3313942307692308 1.5343788461538463 2.064548076923077 3.497503846153846 2.0649807692307696 5.528959615384616v1.9497115384615387" strokeWidth="2"/>
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="m20.98730769230769 9.733846153846153 -2.5961538461538463 2.5961538461538463 -2.5961538461538463 -2.5961538461538463" strokeWidth="2"/>
+                    </svg>
+                    Run Another
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button className="py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-100 rounded-md hover:bg-gray-50 transition-colors">
-                    Send Email
-                  </button>
-                  <button className="py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-100 rounded-md hover:bg-gray-50 transition-colors">
-                    Send Postcard
-                  </button>
+
+                {/* OUTREACH GROUP: Email + Mail Postcard */}
+                <div className="flex gap-1.5 shrink-0">
+                    {/* Email Offer */}
+                    <button
+                      onClick={handleSendEmail}
+                      disabled={emailFlow === 'sending'}
+                      title="Email the Standard plan offer to the customer"
+                      className={`py-2.5 px-4 text-xs font-semibold border rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-1.5 ${
+                        emailSent
+                          ? 'text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+                          : 'bg-white border-gray-200 text-gray-800 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                      } disabled:opacity-60 disabled:cursor-not-allowed`}
+                    >
+                      {emailSent ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="15" height="15" className="shrink-0">
+                          <path d="M2.759 15.629a1.664 1.664 0 0 1 -0.882 -3.075L20.36 1a1.663 1.663 0 0 1 2.516 1.72l-3.6 19.173a1.664 1.664 0 0 1 -2.966 0.691l-5.21 -6.955Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                          <path d="M11.1 15.629H8.6V20.8a1.663 1.663 0 0 0 2.6 1.374l3.178 -2.166Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                          <path d="m11.099 15.629 11.08 -14.59" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                        </svg>
+                      )}
+                      {emailSent ? 'Email Sent' : 'Email Offer'}
+                    </button>
+
+                    {/* Mail Postcard */}
+                    <button
+                      onClick={handleSendPostcard}
+                      title="Mail the Standard plan offer as a postcard"
+                      className={`py-2.5 px-4 text-xs font-semibold border rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-1.5 ${
+                        postcardSent
+                          ? 'text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
+                          : 'bg-white border-gray-200 text-gray-800 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                      }`}
+                    >
+                      {postcardSent ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="15" height="15" className="shrink-0">
+                          <path d="M2.25 4.25h19.5s1.5 0 1.5 1.5v12.5s0 1.5 -1.5 1.5H2.25s-1.5 0 -1.5 -1.5V5.75s0 -1.5 1.5 -1.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                          <path d="m4.5 12.25 3.75 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                          <path d="m4.5 15.75 8.25 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                          <path d="M16 7.75h3s0.75 0 0.75 0.75v3s0 0.75 -0.75 0.75h-3s-0.75 0 -0.75 -0.75v-3s0 -0.75 0.75 -0.75" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+                        </svg>
+                      )}
+                      {postcardSent ? 'Postcard Mailed' : 'Mail Postcard'}
+                    </button>
+                  </div>
+
+                  {/* "More" menu — pinned to the far right of the action row */}
+                  <div ref={moreRef} className="relative ml-auto">
+                    <button
+                      onClick={() => setMoreOpen(o => !o)}
+                      title="More actions"
+                      className="py-2.5 px-3 text-xs font-semibold border rounded-md transition-colors whitespace-nowrap inline-flex items-center gap-1.5 bg-white border-gray-200 text-gray-800 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                    >
+                      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="14" height="14" className="shrink-0" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.4">
+                        <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+                      </svg>
+                      More
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {moreOpen && (
+                      <div className="absolute right-0 top-full mt-1 z-20 rounded-md overflow-hidden"
+                        style={{ minWidth: 200, background:'#fff', border:'1px solid rgba(0,22,96,0.1)', boxShadow:'0 8px 24px rgba(0,22,96,0.14)' }}>
+                        {[
+                          {
+                            label: 'Preview email',
+                            onClick: () => { setMoreOpen(false); handleViewEmailDemo() },
+                            icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>,
+                          },
+                          {
+                            label: 'Preview postcard',
+                            onClick: () => setMoreOpen(false),
+                            icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg>,
+                          },
+                          {
+                            label: 'Download PDF',
+                            onClick: () => setMoreOpen(false),
+                            icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>,
+                          },
+                        ].map(it => (
+                          <button key={it.label} onClick={it.onClick}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-[12.5px] font-medium transition-colors"
+                            style={{ color:'#001660', borderBottom:'1px solid rgba(0,22,96,0.05)' }}
+                            onMouseOver={e => e.currentTarget.style.background = 'rgba(0,22,96,0.04)'}
+                            onMouseOut={e  => e.currentTarget.style.background = 'transparent'}>
+                            <span style={{ color:'rgba(0,22,96,0.55)' }}>{it.icon}</span>
+                            {it.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button className="py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-100 rounded-md hover:bg-gray-50 transition-colors">
-                    Preview Postcard
-                  </button>
-                  <button className="py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-100 rounded-md hover:bg-gray-50 transition-colors">
-                    Download
-                  </button>
+
+              </div>
+              </>}
+
+              {/* Scrollable body — content under the sticky header */}
+              <div className="px-6 py-6 flex flex-col gap-6">
+
+              {/* Pre-qualified loan range — interactive slider, always shown.
+                  Initialized to whatever the rep entered (Fixed / Solar $/W) or the
+                  midpoint when no cost was specified. The rep can adjust during the call. */}
+              {(() => {
+                // Compute Standard-plan monthly at a given draw amount so the
+                // anchors below the slider show the payment range in real time.
+                const stdMonthlyAt = (amt) => {
+                  const r = computePresetCalc(STANDARD_PRESET, { ...DEMO_PROFILE, drawAmt: amt })
+                  return r ? Math.round(r.calc.B) : 0
+                }
+                const minMo = stdMonthlyAt(LOAN_MIN)
+                const maxMo = stdMonthlyAt(APPROVED_LOAN_MAX)
+                const PRESETS = [30000, 75000, 150000]
+                return (
+                  <div className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3">
+                    {/* Header — section name + live amount */}
+                    <div className="flex items-baseline justify-between">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pre-qualified loan amount</div>
+                      <span className="text-2xl font-bold tabular-nums" style={{color:'#001660'}}>${resultLoanAmt.toLocaleString()}</span>
+                    </div>
+
+                    {/* Quick presets — top row, left aligned */}
+                    <div className="flex items-center gap-1.5">
+                      {PRESETS.map(p => {
+                        const active = resultLoanAmt === p
+                        return (
+                          <button key={p} onClick={() => setResultLoanAmt(p)}
+                            className="px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors tabular-nums"
+                            style={{
+                              background: active ? 'rgba(37,75,206,0.08)' : '#fff',
+                              color:      active ? '#254BCE' : 'rgba(0,22,96,0.6)',
+                              border: `1px solid ${active ? 'rgba(37,75,206,0.35)' : 'rgba(0,22,96,0.12)'}`,
+                            }}>
+                            ${(p/1000)}K
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Slider — full width, on its own row */}
+                    <input type="range" min={LOAN_MIN} max={APPROVED_LOAN_MAX} step={1000}
+                      value={resultLoanAmt} onChange={e => setResultLoanAmt(Number(e.target.value))}
+                      className="w-full accent-[#254BCE] block" />
+
+                    {/* Min/max payment anchors — /mo is the headline, total loan is the sub-label */}
+                    <div className="flex items-start justify-between tabular-nums">
+                      <div className="flex flex-col">
+                        <span className="text-base font-bold" style={{color:'#001660'}}>~${minMo.toLocaleString()}<span className="text-gray-400 font-semibold text-xs">/mo</span></span>
+                        <span className="text-[11px] text-gray-400 mt-0.5">${LOAN_MIN.toLocaleString()}<span className="text-gray-300"> min</span></span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-base font-bold" style={{color:'#001660'}}>~${maxMo.toLocaleString()}<span className="text-gray-400 font-semibold text-xs">/mo</span></span>
+                        <span className="text-[11px] text-gray-400 mt-0.5">${APPROVED_LOAN_MAX.toLocaleString()}<span className="text-gray-300"> max approved</span></span>
+                      </div>
+                    </div>
+
+                  </div>
+                )
+              })()}
+
+              {/* Section header for the two-plan area */}
+              <div className="flex items-baseline justify-between -mb-1">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Loan plans</div>
+                <span className="text-[10px] text-gray-400">2 plans generated</span>
+              </div>
+
+              {/* Plan tiles — same shape, content & style as the application Step 2 */}
+              <div className="grid grid-cols-2 gap-3">
+                {standardOffer && (
+                  <OfferTile
+                    kind="baseline"
+                    offer={standardOffer}
+                    isSelected={false}
+                    onSelect={() => {}}
+                    maxY={offerMaxY}
+                    standardMonthly={Math.round(standardOffer.monthly)}
+                    standardFive={standardFive}
+                    hideAction
+                  />
+                )}
+                {recommendedOffer && (
+                  <OfferTile
+                    kind="recommended"
+                    offer={recommendedOffer}
+                    isSelected={false}
+                    onSelect={() => {}}
+                    maxY={offerMaxY}
+                    standardMonthly={standardOffer ? Math.round(standardOffer.monthly) : null}
+                    standardFive={standardFive}
+                    hideAction
+                  />
+                )}
+              </div>
+
+              {/* Inline email offer preview — scrollable iframe-like view of the real email */}
+              <div>
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Email offer preview</div>
+                <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+                  <div style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                    <EmailPreview hideClientChrome loanAmountOverride={resultLoanAmt} />
+                  </div>
                 </div>
               </div>
+
+              </div> {/* /scrollable body */}
             </div>
           </>)}
 
         </div>
       </div>
     </>
+  )
+}
+
+/* ─── Inline email-offer preview shown beneath the plan cards ─────────── */
+function EmailOfferPreview({ firstName, email, loanAmount, monthly, onSendEmail, emailSent, emailFlow }) {
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi there,'
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email offer preview</div>
+        <span className="text-[10px] text-gray-400">What the homeowner will see</span>
+      </div>
+      <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+        {/* Email client chrome */}
+        <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-3 text-xs">
+          <span className="font-semibold text-gray-700 truncate">From: Westhaven Power</span>
+          <span className="text-gray-300">·</span>
+          <span className="text-gray-500 truncate">To: {email || 'homeowner@email.com'}</span>
+          <span className="ml-auto text-gray-400 hidden sm:inline">Today, 9:14 AM</span>
+        </div>
+        <div className="px-5 py-2.5 border-b border-gray-100">
+          <div className="text-sm font-bold text-gray-900">
+            {firstName || 'There'}, you're pre-qualified for a {loanAmount ? `$${loanAmount.toLocaleString()} ` : ''}HELOC
+          </div>
+        </div>
+        {/* Body — compact */}
+        <div className="px-5 py-4 flex flex-col gap-3">
+          <div className="text-sm text-gray-700 leading-relaxed">
+            {greeting} good news — your home qualifies for solar financing through GreenLyne.
+            Here's what your monthly payment looks like:
+          </div>
+          <div className="grid grid-cols-3 gap-3 py-3 px-4 rounded-lg bg-gray-50 border border-gray-100">
+            <div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">You can borrow</div>
+              <div className="text-base font-bold text-gray-900 tabular-nums mt-0.5">${(loanAmount || 0).toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Monthly</div>
+              <div className="text-base font-bold text-gray-900 tabular-nums mt-0.5">${(monthly || 0).toLocaleString()}/mo</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">5-yr total</div>
+              <div className="text-base font-bold text-gray-900 tabular-nums mt-0.5">${((monthly || 0) * 60).toLocaleString()}</div>
+            </div>
+          </div>
+          <div className="text-[12px] text-gray-500 leading-relaxed">
+            Tap below to view your full offer and start your application — soft credit only, no impact on your score.
+          </div>
+        </div>
+        {/* CTA strip */}
+        <div className="px-5 py-3 border-t border-gray-100 bg-white flex items-center justify-between">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold text-white" style={{background:'#254BCE'}}>
+            View my offer →
+          </div>
+          <button
+            onClick={onSendEmail}
+            disabled={emailFlow === 'sending'}
+            className={`text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors ${
+              emailSent ? 'text-emerald-700' : 'text-gray-700 hover:text-blue-700'
+            } disabled:opacity-60 disabled:cursor-not-allowed`}
+          >
+            {emailSent ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Email sent
+              </>
+            ) : (
+              <>Send this email →</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Verification breakdown — pass / partial / decline ───────────────── */
+// Verification rows by demo scenario
+const VERIFICATION_DATA = {
+  pass: [
+    { label: 'Address',     state: 'pass', detail: 'Property record matched on first lookup.' },
+    { label: 'Max CLTV',    state: 'pass', detail: 'Combined loan-to-value 69% — well within 85% cap.' },
+    { label: 'Credit check', state: 'pass', detail: 'FICO 724 · DTI 31% — meets all thresholds.' },
+    { label: 'Loan Offer',  state: 'pass', detail: 'Offer generated successfully.' },
+  ],
+  partial: [
+    { label: 'Address',     state: 'pass', detail: 'Property record matched on first lookup.' },
+    { label: 'Max CLTV',    state: 'warn', detail: 'CLTV 81% — at limit. Loan amount capped to keep you in policy.' },
+    { label: 'Credit check', state: 'warn', detail: 'DTI 41% — borderline. Manual review recommended before close.' },
+    { label: 'Loan Offer',  state: 'pass', detail: 'Conditional offer generated — see notes.' },
+  ],
+  decline: [
+    { label: 'Address',     state: 'pass', detail: 'Property record matched on first lookup.' },
+    { label: 'Max CLTV',    state: 'fail', detail: 'CLTV 92% — above 85% maximum. Insufficient equity.' },
+    { label: 'Credit check', state: 'warn', detail: 'DTI 44% — above target.' },
+    { label: 'Loan Offer',  state: 'fail', detail: 'Could not generate an offer at this time.' },
+  ],
+}
+
+const TONES = {
+  pass: { color:'#016163', bg:'rgba(1,97,99,0.08)',     border:'rgba(1,97,99,0.25)',    label:'Passed'   },
+  warn: { color:'#D97706', bg:'rgba(245,158,11,0.08)',  border:'rgba(245,158,11,0.3)',  label:'Partial'  },
+  fail: { color:'#DC2626', bg:'rgba(220,38,38,0.06)',   border:'rgba(220,38,38,0.28)',  label:'Failed'   },
+}
+
+/** Just the dot+label row — placed in the top-right of the header.
+ *  Open-state is lifted to the parent so the detail card can render in its own slot. */
+function VerificationDots({ mode, openIdx, setOpenIdx }) {
+  const rows = VERIFICATION_DATA[mode] || VERIFICATION_DATA.pass
+  return (
+    <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
+      {rows.map((r, i) => {
+        const t = TONES[r.state]
+        const isOpen = openIdx === i
+        return (
+          <button key={r.label}
+            onClick={() => setOpenIdx(isOpen ? null : i)}
+            className="inline-flex items-center gap-1.5 transition-opacity"
+            style={{
+              background: 'transparent', border: 0, padding: 0,
+              cursor: 'pointer', opacity: isOpen ? 1 : 0.95,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = 1 }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = isOpen ? 1 : 0.95 }}>
+            {r.state === 'pass' ? (
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            ) : (
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.color, flexShrink: 0, boxShadow: isOpen ? `0 0 0 3px ${t.bg}` : 'none', transition: 'box-shadow .15s' }} />
+            )}
+            <span className="text-[11.5px] font-semibold" style={{ color: t.color, textDecoration: isOpen ? 'underline' : 'none', textUnderlineOffset: 3 }}>
+              {r.label}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The expanded detail card — sits below the header, full-width. */
+function VerificationDetail({ mode, openIdx, onClose }) {
+  const rows = VERIFICATION_DATA[mode] || VERIFICATION_DATA.pass
+  const open = openIdx != null ? rows[openIdx] : null
+  if (!open) return null
+  const t = TONES[open.state]
+  return (
+    <div className="mx-6 mt-3 flex items-start gap-2 px-3 py-2.5 rounded-md" style={{ background: t.bg, border: `1px solid ${t.border}` }}>
+      <span className="shrink-0 mt-0.5" style={{ color: t.color }}>
+        {open.state === 'pass' ? (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        ) : open.state === 'warn' ? (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        ) : (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        )}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-3">
+          <div>
+            <span className="text-[12.5px] font-bold" style={{ color: t.color }}>{open.label}</span>
+            <span className="ml-2 text-[10.5px] font-bold uppercase tracking-wider" style={{ color: t.color, opacity: 0.7 }}>{t.label}</span>
+          </div>
+          <button onClick={onClose} className="text-[10px]" style={{ color: t.color, opacity: 0.7, background: 'transparent', border: 0, cursor: 'pointer' }}>Close</button>
+        </div>
+        <div className="text-[12px] mt-1 leading-snug" style={{ color: '#374151' }}>{open.detail}</div>
+      </div>
+    </div>
   )
 }
 
@@ -1003,6 +1855,23 @@ function ImportCSVModal({ onClose, onBatchDone }) {
   const [processed, setProcessed]       = useState(0)
   const [selectedIds, setSelectedIds] = useState(() => new Set(MOCK_CSV_LEADS.map(l => l.id)))
 
+  // Email-send flow state for the Results step
+  const [emailFlow, setEmailFlow]         = useState('idle')   // 'idle' | 'sending' | 'sent'
+  const [emailSentAt, setEmailSentAt]     = useState(null)
+  const [emailSentCount, setEmailSentCount] = useState(0)
+  const [sendProgress, setSendProgress]   = useState(0)
+  const [pendingTotal, setPendingTotal]   = useState(312)
+  const [pendingLabel, setPendingLabel]   = useState('qualified leads')
+  const [sendCount, setSendCount]         = useState(0)        // number of times email batch has been sent
+  const [resendOpen, setResendOpen]       = useState(false)
+
+  function startSend(total, label) {
+    setPendingTotal(total)
+    setPendingLabel(label)
+    setResendOpen(false)
+    setEmailFlow('sending')
+  }
+
   // Pre-fill batch name from filename when file is selected
   useEffect(() => {
     if (file) setBatchName(file.name.replace(/\.csv$/i, '').replace(/[_-]/g, ' '))
@@ -1025,6 +1894,27 @@ function ImportCSVModal({ onClose, onBatchDone }) {
     }, 80)
     return () => clearInterval(interval)
   }, [step])
+
+  // Simulate sending the batch email — animates a progress overlay then lands on a success state.
+  useEffect(() => {
+    if (emailFlow !== 'sending') return
+    setSendProgress(0)
+    const total    = pendingTotal
+    const duration = 3200
+    const start    = Date.now()
+    const interval = setInterval(() => {
+      const pct = Math.min((Date.now() - start) / duration, 1)
+      setSendProgress(Math.round(pct * total))
+      if (pct >= 1) {
+        clearInterval(interval)
+        setEmailSentCount(total)
+        setEmailSentAt(new Date())
+        setSendCount(c => c + 1)
+        setEmailFlow('sent')
+      }
+    }, 60)
+    return () => clearInterval(interval)
+  }, [emailFlow, pendingTotal])
 
   const canContinue  = file && !error
   const hasWarnings  = MOCK_VALIDATION.checks.some(c => c.warn)
@@ -1069,6 +1959,31 @@ function ImportCSVModal({ onClose, onBatchDone }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40" onClick={step === 'upload' ? onClose : undefined} />
         <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-3xl flex flex-col overflow-y-auto max-h-[92vh]">
+
+          {/* Sending overlay — covers the modal while emails go out */}
+          {emailFlow === 'sending' && (
+            <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="flex flex-col items-center gap-5 px-8 py-10 max-w-sm w-full text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{background:'rgba(37,75,206,0.08)', border:'2px solid rgba(37,75,206,0.18)'}}>
+                  <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#254BCE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-base font-semibold" style={{color:'#001660'}}>Sending emails…</div>
+                  <div className="text-sm text-gray-500 mt-1">Delivering personalized offers to your qualified leads.</div>
+                </div>
+                <div className="w-full">
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(0,22,96,0.08)'}}>
+                    <div className="h-full transition-all duration-150" style={{background:'#254BCE', width:`${Math.round((sendProgress/Math.max(pendingTotal,1))*100)}%`}} />
+                  </div>
+                  <div className="mt-2 text-[12px] tabular-nums" style={{color:'#6B7280'}}>
+                    {sendProgress.toLocaleString()} of {pendingTotal.toLocaleString()} sent
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Header */}
           <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-start justify-between shrink-0">
@@ -1281,7 +2196,7 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                   {/* Done CTA */}
                   {stageDone && (
                     <div className="border-t border-gray-200 pt-3 flex justify-center">
-                      <button onClick={() => setStep('results')} className="px-6 py-2 text-white rounded-md text-sm font-semibold hover:opacity-90 transition-colors" style={{background:'#059669'}}>
+                      <button onClick={() => setStep('results')} className="px-6 py-2 text-white rounded-md text-sm font-semibold hover:opacity-90 transition-colors" style={{background:'#016163'}}>
                         See Results →
                       </button>
                     </div>
@@ -1314,10 +2229,76 @@ function ImportCSVModal({ onClose, onBatchDone }) {
             <>
               <div className="px-6 py-6 flex flex-col gap-5 overflow-y-auto">
 
+                {/* Email-sent success banner with smart re-send */}
+                {emailFlow === 'sent' && (
+                  <div className="rounded-md" style={{background:'#ECFDF5', border:'1px solid #A7F3D0'}}>
+                    <div className="px-4 py-3 flex items-center gap-3">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center" style={{background:'#016163'}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[13px] font-semibold" style={{color:'#065F46'}}>
+                          Email sent to {emailSentCount.toLocaleString()} {pendingLabel}
+                          {sendCount > 1 && <span className="ml-1.5 text-[11px] font-medium" style={{color:'#047857'}}>· Send #{sendCount}</span>}
+                        </div>
+                        <div className="text-[11px]" style={{color:'#047857'}}>
+                          {emailSentAt && `Delivered ${emailSentAt.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})} · Tracking opens & clicks`}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setResendOpen(o => !o)}
+                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md transition-colors"
+                        style={{
+                          background: resendOpen ? '#016163' : '#fff',
+                          color:      resendOpen ? '#fff'    : '#065F46',
+                          border: '1px solid #A7F3D0',
+                        }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="23 4 23 10 17 10"/>
+                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Send again
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{transform: resendOpen ? 'rotate(180deg)' : '', transition:'transform 0.15s'}}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+                    </div>
+                    {resendOpen && (
+                      <div className="border-t" style={{borderColor:'#A7F3D0'}}>
+                        <div className="px-4 py-3 flex flex-col gap-1.5">
+                          <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{color:'#047857'}}>Pick a smart segment</div>
+                          {[
+                            { count: 187, label: 'Non-openers',          desc: "Haven't opened the first email yet — try a fresh subject line", segLabel: 'non-openers' },
+                            { count: 245, label: 'Opened, didn\'t click', desc: 'Curious but not converted — nudge with a stronger CTA',         segLabel: 'opened-no-click' },
+                            { count: 312, label: 'All qualified leads',  desc: 'Resend the original email to everyone',                          segLabel: 'qualified leads' },
+                          ].map(({ count, label, desc, segLabel }) => (
+                            <button
+                              key={label}
+                              onClick={() => startSend(count, segLabel)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-all hover:bg-white"
+                              style={{ border:'1px solid transparent' }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#A7F3D0' }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}>
+                              <div className="flex-shrink-0 w-12 text-right tabular-nums text-[15px] font-bold" style={{color:'#065F46'}}>{count.toLocaleString()}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[12.5px] font-semibold" style={{color:'#065F46'}}>{label}</div>
+                                <div className="text-[11px] leading-snug" style={{color:'#047857'}}>{desc}</div>
+                              </div>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#016163" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+                                <polyline points="9 18 15 12 9 6"/>
+                              </svg>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Punchy stat row */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { value: '312', label: 'Qualified',        sub: 'Ready for outreach', color: '#059669', bg: '#ECFDF5', border: '#D1FAE5' },
+                    { value: '312', label: 'Qualified',        sub: 'Ready for outreach', color: '#016163', bg: '#ECFDF5', border: '#D1FAE5' },
                     { value: '156', label: 'Not Qualified',    sub: 'Equity / credit',    color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
                     { value: '4',   label: 'Errors',           sub: "Couldn't process",   color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
                   ].map(({ value, label, sub, color, bg, border }) => (
@@ -1330,54 +2311,77 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                 </div>
 
 
-                {/* Action buttons — icon grid like lead drawer */}
+                {/* Action buttons — primary CTA is whichever channel hasn't been sent yet */}
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Actions</div>
                   <div className="grid grid-cols-4 gap-2">
-                    {[
-                      {
-                        label: 'Send Email',
-                        sub: 'to 312',
-                        primary: true,
-                        icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
-                      },
-                      {
-                        label: 'Send Postcard',
-                        sub: 'to 312',
-                        primary: true,
-                        icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="3,9 12,15 21,9"/></svg>,
-                      },
-                      {
-                        label: 'View in CRM',
-                        sub: 'all leads',
-                        primary: false,
-                        onClick: onClose,
-                        icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-                      },
-                      {
-                        label: 'Download',
-                        sub: 'unqualified',
-                        primary: false,
-                        icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-                      },
-                    ].map(({ label, sub, primary, icon, onClick }) => (
-                      <button
-                        key={label}
-                        onClick={onClick}
-                        className="flex flex-col items-center gap-2 py-3.5 rounded-md border transition-all hover:scale-[1.02]"
-                        style={{
-                          background: primary ? '#254BCE' : '#fff',
-                          borderColor: primary ? '#254BCE' : '#E5E7EB',
-                          color: primary ? '#fff' : '#374151',
-                        }}
-                      >
-                        <span style={{color: primary ? '#fff' : '#6B7280'}}>{icon}</span>
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[11px] font-semibold leading-tight">{label}</span>
-                          <span className="text-[9px] leading-tight" style={{color: primary ? 'rgba(255,255,255,0.65)' : '#9CA3AF'}}>{sub}</span>
-                        </div>
-                      </button>
-                    ))}
+                    {(() => {
+                      const emailDone = emailFlow === 'sent'
+                      const items = [
+                        {
+                          key: 'email',
+                          label: emailDone ? 'Email Sent' : 'Send Email',
+                          sub: emailDone
+                            ? `${emailSentCount.toLocaleString()} delivered`
+                            : 'to 312',
+                          variant: emailDone ? 'done' : 'primary',
+                          disabled: emailDone || emailFlow === 'sending',
+                          onClick: () => { if (!emailDone && emailFlow !== 'sending') startSend(312, 'qualified leads') },
+                          icon: emailDone
+                            ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+                        },
+                        {
+                          key: 'postcard',
+                          label: 'Send Postcard',
+                          sub: 'to 312',
+                          variant: emailDone ? 'primary' : 'secondary',
+                          icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="3,9 12,15 21,9"/></svg>,
+                        },
+                        {
+                          key: 'crm',
+                          label: 'View in CRM',
+                          sub: 'all leads',
+                          variant: 'tertiary',
+                          onClick: onClose,
+                          icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+                        },
+                        {
+                          key: 'download',
+                          label: 'Download',
+                          sub: 'unqualified',
+                          variant: 'tertiary',
+                          icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+                        },
+                      ]
+                      const styleFor = v => {
+                        if (v === 'primary')   return { background:'#254BCE', borderColor:'#254BCE', color:'#fff' }
+                        if (v === 'secondary') return { background:'#fff',    borderColor:'#254BCE', color:'#254BCE' }
+                        if (v === 'done')      return { background:'#ECFDF5', borderColor:'#A7F3D0', color:'#065F46' }
+                        return                        { background:'#fff',    borderColor:'#E5E7EB', color:'#374151' }
+                      }
+                      const subColorFor = v => {
+                        if (v === 'primary')   return 'rgba(255,255,255,0.65)'
+                        if (v === 'secondary') return 'rgba(37,75,206,0.65)'
+                        if (v === 'done')      return '#047857'
+                        return '#9CA3AF'
+                      }
+                      return items.map(({ key, label, sub, variant, icon, onClick, disabled }) => (
+                        <button
+                          key={key}
+                          onClick={onClick}
+                          disabled={disabled}
+                          className="flex flex-col items-center gap-2 py-3.5 rounded-md border transition-all hover:scale-[1.02] disabled:hover:scale-100 disabled:cursor-default"
+                          style={styleFor(variant)}
+                        >
+                          <span>{icon}</span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[11px] font-semibold leading-tight">{label}</span>
+                            <span className="text-[9px] leading-tight" style={{color: subColorFor(variant)}}>{sub}</span>
+                          </div>
+                        </button>
+                      ))
+                    })()}
                   </div>
                 </div>
 
@@ -1389,12 +2393,12 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                     { name: 'Alex Ray',         address: '12 Oak Street, Phoenix, AZ 85009',    result: 'Error',       amount: '',        reason: 'Address not found' },
                     { name: 'Olivia Chen',      address: '998 Canyon Rd, Phoenix, AZ 85016',    result: 'Qualified',   amount: '$68,500', reason: '' },
                     { name: 'James Patel',      address: '334 Saguaro Blvd, Phoenix, AZ 85021', result: 'Qualified',   amount: '$54,000', reason: '' },
-                    { name: 'Maria Gonzalez',   address: '221 Cactus Dr, Phoenix, AZ 85031',    result: 'Unqualified', amount: '',        reason: 'Credit / DTI' },
+                    { name: 'Maria Gonzalez',   address: '221 Cactus Dr, Phoenix, AZ 85031',    result: 'Unqualified', amount: '',        reason: 'Credit check' },
                     { name: 'Robert Kim',       address: '540 Desert Rose Ln, Scottsdale, AZ',  result: 'Qualified',   amount: '$78,000', reason: '' },
                     { name: 'Sandra Ortiz',     address: '8821 W Bell Rd, Glendale, AZ',        result: 'Unqualified', amount: '',        reason: 'Insufficient equity' },
                   ]
                   const badgeStyle = r => r === 'Qualified'
-                    ? { background: '#ECFDF5', color: '#059669' }
+                    ? { background: '#ECFDF5', color: '#016163' }
                     : r === 'Unqualified'
                     ? { background: '#FEF2F2', color: '#DC2626' }
                     : { background: '#FFFBEB', color: '#D97706' }
@@ -1492,7 +2496,7 @@ function ImportCSVModal({ onClose, onBatchDone }) {
 
                   {/* Project cost picker */}
                   <div className="flex flex-col gap-2.5">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">How should project cost be determined?</label>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Project Cost</label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {[
                         { key: 'fixed',    label: 'Fixed Amount',  desc: 'Enter total cost' },
@@ -1759,6 +2763,16 @@ export default function Pipeline() {
   const [activeStatuses, setActiveStatuses] = useState(new Set())
   const [search, setSearch]               = useState('')
   const [selectedLead, setSelectedLead]   = useState(null)
+  // Leads added in-session via Quick Prescreen — prepended to the pipeline list.
+  // Backed by Firestore so adds persist across reloads and sync across browsers.
+  const [extraLeads, setExtraLeads]       = useState([])
+  const [freshlyAddedId, setFreshlyAddedId] = useState(null)
+  // IDs of leads the user removed in-session (LEADS_BASE entries can't be deleted —
+  // we just hide them locally; Firestore-backed leads are deleted from the collection).
+  const [hiddenLeadIds, setHiddenLeadIds] = useState(() => new Set())
+  useEffect(() => subscribeLeads(setExtraLeads), [])
+  // Per-session "just sent" tracking — flips the lead row to "Sent · Just now"
+  const [sentLeadIds, setSentLeadIds]     = useState(() => new Set())
   const [selectedIds, setSelectedIds]     = useState(new Set())
   const [currentPage, setCurrentPage]     = useState(0)
   const [pageSize, setPageSize]           = useState(50)
@@ -1785,6 +2799,37 @@ export default function Pipeline() {
   ])
   const [chatInput, setChatInput]         = useState('')
   const chatEndRef                        = useRef(null)
+
+  // Local LEADS shadows the module constant — includes any in-session prescreen adds at the top
+  // and excludes anything the user removed in-session.
+  const LEADS = useMemo(
+    () => [...extraLeads, ...LEADS_BASE].filter(l => !hiddenLeadIds.has(l.id)),
+    [extraLeads, hiddenLeadIds],
+  )
+
+  // Whenever a lead is opened in the drawer, push its identity to the demo
+  // session so the downstream Email / Solar Calculator / Application screens
+  // all reflect this same person.
+  useEffect(() => {
+    if (!selectedLead) return
+    const [first, ...rest] = String(selectedLead.name || '').split(' ')
+    const addr = String(selectedLead.address || '')
+    const parts = addr.split(',').map(s => s.trim())
+    // address parts: street, city, state+zip
+    const street = parts[0] || ''
+    const city   = parts[1] || ''
+    const stZip  = (parts[2] || '').split(/\s+/)
+    setDemoSession({
+      firstName: first || '',
+      lastName:  rest.join(' ') || '',
+      email:     selectedLead.email || '',
+      address:   street,
+      city,
+      state:     stZip[0] || '',
+      zip:       stZip[1] || '',
+      requestedLoanAmount: String(parseInt(String(selectedLead.amount || '').replace(/[^0-9]/g,'')) || ''),
+    })
+  }, [selectedLead])
 
   // ── Analytics computed values (full pipeline, not filtered) ──────────────
   const bySt = {}
@@ -2062,19 +3107,19 @@ export default function Pipeline() {
                 style={{background:'#fff', border:'1px solid rgba(0,22,96,0.1)', boxShadow:'0 8px 28px rgba(0,22,96,0.14)', minWidth:210}}>
                 {[
                   {
-                    label: 'Add Lead Manually',
+                    label: 'Add Single Lead',
                     desc: 'Enter one lead by hand',
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>,
                     action: () => { setShowQuickAdd(true); setAddLeadsOpen(false) },
                   },
                   {
-                    label: 'Bulk Upload CSV',
+                    label: 'Bulk Upload Leads',
                     desc: 'Import from a spreadsheet',
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>,
                     action: () => { setShowImportCSV(true); setBatchBadge(false); setAddLeadsOpen(false) },
                   },
                   {
-                    label: 'Geo Search',
+                    label: 'Geo-Search Leads',
                     desc: 'Find leads by area',
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
                     action: () => { navigate('/geo-campaigns?view=map'); setAddLeadsOpen(false) },
@@ -2293,7 +3338,7 @@ export default function Pipeline() {
                           </linearGradient>
                         </defs>
                         <path d={`${smoothPath(SPARK_PTS[s.key])} L 100,40 L 0,40 Z`} fill={`url(#gl-${s.key})`} />
-                        <path d={smoothPath(SPARK_PTS[s.key])} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity={dark ? "0.8" : "0.6"} />
+                        <path d={smoothPath(SPARK_PTS[s.key])} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeOpacity={dark ? "0.8" : "0.6"} />
                       </svg>
                     </div>
                   )
@@ -2445,6 +3490,29 @@ export default function Pipeline() {
             <div className="px-5 py-2.5 flex items-center justify-between" style={{background: dark ? 'rgba(37,75,206,0.15)' : 'rgba(37,75,206,0.04)', borderBottom:`1px solid ${tk.innerCardBorder}`}}>
               <span className="text-[13px] font-medium" style={{color: tk.nameColor}}>{selectedIds.size} selected</span>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    const ids = Array.from(selectedIds)
+                    if (ids.length === 0) return
+                    if (!window.confirm(`Delete ${ids.length} ${ids.length === 1 ? 'lead' : 'leads'}? This can't be undone.`)) return
+                    // Firestore docs have string IDs; LEADS_BASE entries use numeric IDs.
+                    const fsIds   = ids.filter(id => typeof id === 'string')
+                    const baseIds = ids.filter(id => typeof id !== 'string')
+                    if (fsIds.length) {
+                      await Promise.all(fsIds.map(id => deleteLead(id).catch(err => console.warn('[firestore] deleteLead failed', err))))
+                    }
+                    if (baseIds.length) {
+                      setHiddenLeadIds(prev => { const next = new Set(prev); baseIds.forEach(id => next.add(id)); return next })
+                    }
+                    setSelectedIds(new Set())
+                  }}
+                  className="inline-flex items-center gap-1.5"
+                  style={{ height: '30px', fontSize: '12px', padding: '0 12px', borderRadius: 8, fontWeight: 600, color: '#B91C1C', background: 'rgba(185,28,28,0.06)', border: '1px solid rgba(185,28,28,0.25)', cursor: 'pointer' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'rgba(185,28,28,0.14)'}
+                  onMouseOut={e  => e.currentTarget.style.background = 'rgba(185,28,28,0.06)'}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                  Delete
+                </button>
                 <button className="pl-btn-secondary" style={{height:'30px', fontSize:'12px', padding:'0 12px'}}>Export ↓</button>
                 <button className="pl-btn-royal" style={{height:'30px', fontSize:'12px', padding:'0 12px'}}>✉ Mail Postcard</button>
                 <button className="pl-btn-royal" style={{height:'30px', fontSize:'12px', padding:'0 12px'}}>📧 Send Email</button>
@@ -2487,14 +3555,20 @@ export default function Pipeline() {
                 {paginated.length === 0 && (
                   <tr><td colSpan={visibleCols.size + 1} className="px-4 py-16 text-center text-[13px]" style={{color: tk.muteText3}}>No leads match this filter</td></tr>
                 )}
-                {paginated.map((lead, i) => (
+                {paginated.map((lead, i) => {
+                  const isFresh = lead.id === freshlyAddedId
+                  return (
                   <tr
                     key={lead.id}
                     onClick={() => setSelectedLead(lead)}
                     className="pl-table-row group"
                     style={{
                       borderBottom:`1px solid ${tk.tableRowBorder}`,
-                      background: selectedLead?.id === lead.id ? tk.tableRowSelected : i % 2 !== 0 ? tk.tableRowAlt : tk.cardBg,
+                      background: isFresh ? 'rgba(1,97,99,0.08)'
+                                : selectedLead?.id === lead.id ? tk.tableRowSelected
+                                : i % 2 !== 0 ? tk.tableRowAlt : tk.cardBg,
+                      boxShadow: isFresh ? 'inset 3px 0 0 #016163' : 'none',
+                      transition: 'background 0.4s ease',
                     }}
                   >
                     {visibleCols.has('status') && (
@@ -2519,7 +3593,18 @@ export default function Pipeline() {
                         </div>
                       </td>
                     )}
-                    {visibleCols.has('name')     && <td className="px-4 py-3 text-[13px] font-semibold" style={{color: tk.nameColor}}>{lead.name}</td>}
+                    {visibleCols.has('name')     && (
+                      <td className="px-4 py-3 text-[13px] font-semibold" style={{color: tk.nameColor}}>
+                        <span className="inline-flex items-center gap-2">
+                          {lead.name}
+                          {isFresh && (
+                            <span className="text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{background:'#016163', color:'#fff'}}>
+                              Just added
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                    )}
                     {visibleCols.has('location') && <td className="px-4 py-3 text-[12px]" style={{color: tk.mutedText}}>{lead.location}</td>}
                     {visibleCols.has('amount')   && <td className="px-4 py-3 text-[13px] font-semibold" style={{color: tk.nameColor}}>{lead.amount}</td>}
                     {visibleCols.has('product')  && <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-md text-[11px] font-semibold" style={{background: tk.innerCardBg, color: tk.mutedText}}>{lead.product}</span></td>}
@@ -2568,7 +3653,8 @@ export default function Pipeline() {
                       </div>
                     </td>}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
 
@@ -2609,10 +3695,57 @@ export default function Pipeline() {
       </div>
 
       {/* Lead detail drawer */}
-      <LeadDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      <LeadDrawer
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onEmailSent={id => setSentLeadIds(s => new Set(s).add(id))}
+        emailSentInSession={selectedLead ? sentLeadIds.has(selectedLead.id) : false}
+        onDelete={async (lead) => {
+          // Firestore docs have string IDs; LEADS_BASE entries use numeric IDs.
+          const isFirestoreLead = typeof lead.id === 'string'
+          if (isFirestoreLead) {
+            try { await deleteLead(lead.id) } catch (err) { console.warn('[firestore] deleteLead failed', err) }
+          } else {
+            setHiddenLeadIds(prev => { const next = new Set(prev); next.add(lead.id); return next })
+          }
+          setSelectedLead(null)
+        }}
+      />
 
       {/* Quick Prescreen modal */}
-      {showQuickAdd && <QuickPrescreenModal onClose={() => setShowQuickAdd(false)} />}
+      {showQuickAdd && (
+        <QuickPrescreenModal
+          onClose={() => setShowQuickAdd(false)}
+          onPrescreenComplete={async (partial) => {
+            const newLead = {
+              status: 'qualified', name: partial.name, location: partial.location,
+              amount: partial.amount, product: 'HELOC', monthly: partial.monthly, fiveYear: partial.fiveYear,
+              portal: false, apply: false, days: 0, lastActivity: 'Just added · prescreened',
+              actions: ['Send Email','Send Postcard'],
+              phone: '(555) 555-0100', email: partial.email, address: partial.address,
+              apr: '8.25%', offerDate: 'Today', offerStatus: 'active',
+              propValue: '—', equity: '—', cltv: '—', fico: '—', dti: '—',
+              portalFirst: null, portalLast: null, pagesViewed: 0, clickedApply: null, daysSince: 0,
+              emailSent: null, postcardSent: null, lastContact: null,
+              source: 'Quick Prescreen', createdBy: 'Demo User', createdDate: 'Today',
+              prescreenChecks: [
+                { check: 'Address Verification', result: 'Pass', reason: null },
+                { check: 'Max CLTV',             result: 'Pass', reason: null },
+                { check: 'Credit check',         result: 'Pass', reason: null },
+                { check: 'Loan Offer',           result: 'Generated', reason: null },
+              ],
+              timeline: [{ date: 'Today', event: 'Lead created via Quick Prescreen' }],
+            }
+            try {
+              const id = await addLead(newLead)
+              setFreshlyAddedId(id)
+              setTimeout(() => setFreshlyAddedId(null), 8000)
+            } catch (err) {
+              console.warn('[firestore] addLead failed', err)
+            }
+          }}
+        />
+      )}
       {/* Import CSV modal */}
       {showImportCSV && <ImportCSVModal onClose={() => setShowImportCSV(false)} onBatchDone={() => { setTimeout(() => setBatchBadge(true), 1500) }} />}
 

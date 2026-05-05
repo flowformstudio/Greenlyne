@@ -58,7 +58,7 @@ export default function EmailPreview({ lead, onContinue, onClose }) {
               </div>
               <div className="text-white/70 text-sm mb-2">Hi {name},</div>
               <div className="text-white text-xl font-bold leading-snug">
-                You've been pre-approved for a<br />
+                You're pre-qualified for a<br />
                 <span style={{ color: '#60A5FA' }}>{amount} {product}</span>
               </div>
             </div>

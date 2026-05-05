@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WesthavenHeader from '../components/WesthavenHeader'
+import { useActivePartners } from '../lib/PartnersContext'
 
 // ── Brand icons ──────────────────────────────────────────────────────────────
 function IconSafe({ size = 20, fill = '#001660' }) {
@@ -94,6 +95,11 @@ function Accordion({ title, children, noBorder }) {
 export default function PreQualified() {
   const navigate = useNavigate()
   const [callRequested, setCallRequested] = useState(false)
+  const { merchant: activeMerchant, lender: activeLender } = useActivePartners()
+  const merchantName = activeMerchant?.name || 'Westhaven Power'
+  const lenderName   = activeLender?.name || 'Owning'
+  const lenderLogo   = activeLender?.logoUrl || '/owning-logo.webp'
+  const lenderNmls   = activeLender?.nmls || '2611'
 
   return (
     <div style={{
@@ -373,7 +379,7 @@ export default function PreQualified() {
       <div style={{ background: C.offwhite, borderTop: `1px solid ${C.border}`, padding: '20px 24px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <p style={{ fontSize: 10, color: C.muted, margin: 0, lineHeight: 1.6, maxWidth: 500 }}>
-            © 2025 Westhaven Power. Financing powered by GreenLyne. Lending by <img src="/owning-logo.webp" alt="Owning" style={{ height: 10, verticalAlign: 'middle', display: 'inline', margin: '0 2px' }} /> (dba Guaranteed Rate, Inc.), NMLS #2611. Equal Housing Lender. Terms are estimates and subject to final verification and approval.
+            © 2025 {merchantName}. Financing powered by GreenLyne. Lending by <img src={lenderLogo} alt={lenderName} style={{ height: 10, verticalAlign: 'middle', display: 'inline', margin: '0 2px' }} />{lenderNmls ? `, NMLS #${lenderNmls}` : ''}. Equal Housing Lender. Terms are estimates and subject to final verification and approval.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             {['Privacy Policy', 'Terms', 'Help'].map(link => (

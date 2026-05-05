@@ -169,8 +169,8 @@ Context: ${ctx.description}`
     <>
       {/* ── Chat panel ── */}
       {open && (
-        <div style={{
-          position: 'fixed', bottom: 88, right: 24, zIndex: 9999,
+        <div className="aichat-fixed" style={{
+          position: 'fixed', bottom: 168, right: 24, zIndex: 9999,
           width: 340, height: 480,
           background: C.white,
           borderRadius: 20,
@@ -329,9 +329,10 @@ Context: ${ctx.description}`
 
       {/* ── Floating button ── */}
       <button
+        className="aichat-fixed"
         onClick={() => setOpen(o => !o)}
         style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          position: 'fixed', bottom: 104, right: 24, zIndex: 9999,
           width: 52, height: 52, borderRadius: '50%',
           background: open ? C.teal : C.navy,
           border: 'none', cursor: 'pointer',

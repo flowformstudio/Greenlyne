@@ -11,8 +11,22 @@ import ChangePassword from './pages/settings/ChangePassword'
 import POSDemo from './pages/POSDemo'
 import EmailPreview from './pages/EmailPreview'
 import OfferLanding from './pages/OfferLanding'
+import V2Index from './v2/V2Index'
+import OfferLandingV2 from './v2/OfferLandingV2'
+import POSDemoV2 from './v2/POSDemoV2'
+import { PartnersProvider } from './lib/PartnersContext'
+import ManageDemoModal from './components/ManageDemoModal'
 
 export default function App() {
+  return (
+    <PartnersProvider>
+      <ManageDemoModal />
+      <AppRoutes />
+    </PartnersProvider>
+  )
+}
+
+function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
@@ -23,6 +37,11 @@ export default function App() {
         <Route path="/offer" element={<OfferLanding />} />
         <Route path="/pos-demo" element={<POSDemo />} />
       </Route>
+
+      {/* v2 — parallel design-system pass, no shared layout */}
+      <Route path="/v2"          element={<V2Index />} />
+      <Route path="/v2/offer"    element={<OfferLandingV2 />} />
+      <Route path="/v2/pos-demo" element={<POSDemoV2 />} />
 
       <Route element={<AppLayout />}>
         <Route path="/pipeline" element={<Pipeline />} />

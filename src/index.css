@@ -13,6 +13,9 @@
   from { opacity: 1; transform: translateY(0); }
   to   { opacity: 0; transform: translateY(-8px); }
 }
+/* Hide AI chat (panel + floating button) when a screen sets the body flag */
+body.hide-aichat .aichat-fixed { display: none !important; }
+
 @keyframes solar-tile-toss {
   0%   { opacity: 1; transform: scale(1) translate(0, 0) rotate(0deg); }
   18%  { opacity: 1; transform: scale(1.04) translate(-2px, -6px) rotate(-2deg); }

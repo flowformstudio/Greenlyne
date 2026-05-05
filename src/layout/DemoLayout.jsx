@@ -1,10 +1,12 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import AIChat from '../components/AIChat'
+import DemoSwitcher from '../components/DemoSwitcher'
 
 const STEPS = [
-  { label: 'Email',       path: '/email',    subtitle: 'Westhaven Power • Your Solar Plan' },
-  { label: 'Solar Calculator', path: '/offer',    subtitle: 'Westhaven Power • Your Solar Plan' },
-  { label: 'Application', path: '/pos-demo', subtitle: 'GreenLyne • Secure Application' },
+  { label: 'PMPro',            path: '/pipeline', subtitle: 'GreenLyne • Back-office pipeline' },
+  { label: 'Email',            path: '/email',    subtitle: 'Westhaven Power • Your Solar Plan' },
+  { label: 'Welcome Screen',   path: '/offer',    subtitle: 'GreenLyne • Pre-qualified for a HELOC' },
+  { label: 'Application',      path: '/pos-demo', subtitle: 'GreenLyne • Secure Application' },
 ]
 
 export default function DemoLayout() {
@@ -29,6 +31,11 @@ export default function DemoLayout() {
         zIndex: 1000,
         flexShrink: 0,
       }}>
+        {/* Demo switcher — pinned to the left */}
+        <div style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)' }}>
+          <DemoSwitcher currentLabel="Smart POS" theme="dark" />
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {STEPS.map((step, i) => {
             const isActive = i === activeIndex

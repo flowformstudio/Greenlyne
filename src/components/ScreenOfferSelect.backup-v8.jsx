@@ -15,7 +15,6 @@ import {
   formatCurrencyFull,
   AMORT_TERM_MO, ORIGINATION_FEE,
 } from '../lib/loanCalc'
-import { PrimaryButton, SecondaryButton } from './PrimaryButton'
 
 // ─── Borrower fixtures ────────────────────────────────────────────────────────
 const DEMO_FICO      = 740
@@ -56,7 +55,7 @@ const T = {
   blue:   '#254BCE',
   blueHi: '#1E3FA8',
   teal:   '#016163',
-  green:  '#016163',
+  green:  '#10B981',
   red:    '#DC2626',
   amber:  '#B45309',
   text:   '#0F172A',
@@ -110,7 +109,7 @@ function buildSchedule(calc, preset) {
 }
 
 // Compute all metrics for a given offer preset
-export function computeOffer({ C, rate, preset }) {
+function computeOffer({ C, rate, preset }) {
   const n1    = preset.zeroStart ? 6 : 0
   const redMo = (preset.reductionYrs ?? preset.ioYrs) * 12
   const s     = preset.s ?? 0
@@ -302,23 +301,36 @@ function DecCard({ step, title, summary, onEdit, onClose, editing, modified, chi
 }
 
 // ─── Picker bodies ────────────────────────────────────────────────────────────
-function CreditAndDraw({ creditLim, setCreditLim, drawAmt, setDrawAmt, programCap, minDraw, safeDraw, requestedAmount, rateDisplay, onDone }) {
-  // Custom-only initial draw — sits between 80% and 100% of the master credit line.
-  // The total credit line slider above drives ALL plans; this one tunes only the Custom plan.
-  const sliderMin = Math.max(1, Math.ceil(creditLim * 0.8))
-  const sliderMax = creditLim
-  const value = Math.min(Math.max(drawAmt, sliderMin), sliderMax)
+function CreditAndDraw({ creditLim, setCreditLim, drawAmt, setDrawAmt, programCap, minDraw, safeDraw, rateDisplay, onDone }) {
   return (
     <div style={{ maxWidth: 640 }}>
+      {/* Total credit line — in its own card */}
+      <div style={{ padding: '14px 16px', background: T.panel, border: `1px solid ${T.border}`, borderRadius: 11, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>Total credit line</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: T.navy, ...NUM }}>{formatCurrencyFull(creditLim)}</div>
+        </div>
+        <div style={{ fontSize: 11, color: T.muted, marginBottom: 10 }}>
+          Up to {formatCurrencyFull(programCap)} · Interest only on what you draw.
+        </div>
+        <RangeSlider value={creditLim} min={SEED.minCredit} max={programCap} step={5000}
+          onChange={v => { setCreditLim(v); if (drawAmt > v) setDrawAmt(v) }}
+          formatLabel={v => formatCurrencyFull(v)} />
+      </div>
+
+      {/* Initial draw at closing — in its own card; bar moved ABOVE slider */}
       <div style={{ padding: '14px 16px', background: T.panel, border: `1px solid ${T.border}`, borderRadius: 11, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>Initial draw at closing</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: T.blue, ...NUM }}>{formatCurrencyFull(value)}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: T.blue, ...NUM }}>{formatCurrencyFull(safeDraw)}</div>
         </div>
         <div style={{ fontSize: 11, color: T.muted, marginBottom: 10 }}>Min 80% of credit line. Remainder stays available to draw later.</div>
-        <RangeSlider value={value} min={sliderMin} max={sliderMax} step={1000}
-          onChange={v => setDrawAmt(v)}
-          formatLabel={v => formatCurrencyFull(v)} />
+        <CreditBar withdrawNow={safeDraw} creditLimit={creditLim} />
+        <div style={{ marginTop: 12 }}>
+          <RangeSlider value={Math.max(drawAmt, minDraw)} min={minDraw} max={creditLim} step={5000}
+            onChange={v => setDrawAmt(v)}
+            formatLabel={v => formatCurrencyFull(v)} />
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 12px', background: 'rgba(37,75,206,0.05)', borderRadius: 8 }}>
@@ -473,7 +485,7 @@ function ReductionPicker({ tierId, setTierId, reductionYrs, setReductionYrs, ioY
 // ─── Plan Selected badge ──────────────────────────────────────────────────────
 function PlanSelectedBadge({ dark = false }) {
   const fg = dark ? T.white : T.white
-  const bg = dark ? 'rgba(1,97,99,0.9)' : 'rgba(1,97,99,0.95)'
+  const bg = dark ? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.95)'
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -522,33 +534,25 @@ function PaymentChart({ schedule, maxY, lineColor, fillColor, axisColor, monthsT
     label: phaseLabels[i] ?? null,
   }))
 
-  // Float label is rendered as an HTML overlay so the font doesn't stretch
-  // when the SVG container is wider than the viewBox (preserveAspectRatio="none").
-  const floatY = floatLabel && schedule.length > 0
-    ? H - (Math.min(schedule[0] || 0, maxY) / maxY) * (H - 6) - 3 - 4
-    : null
   return (
-    <div style={{ position: 'relative', width: '100%', height: H }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
-        {/* baseline */}
-        <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke={axisColor} strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
-        {/* area fill */}
-        <path d={areaPath} fill={fillColor} />
-        {/* line */}
-        <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="miter" strokeLinecap="square" />
-      </svg>
-      {floatLabel && floatY != null && (
-        <div style={{
-          position: 'absolute', left: `${(5/W)*100}%`, top: floatY,
-          transform: 'translateY(-100%)',
-          color: lineColor, fontSize: 12, fontWeight: 700, lineHeight: 1,
-          fontFamily: 'system-ui,-apple-system,sans-serif',
-          pointerEvents: 'none', whiteSpace: 'nowrap',
-        }}>
-          {floatLabel}<span style={{ fontSize: 10, fontWeight: 500 }}>/mo</span>
-        </div>
-      )}
-    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
+      {/* baseline */}
+      <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke={axisColor} strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
+      {/* area fill */}
+      <path d={areaPath} fill={fillColor} />
+      {/* line */}
+      <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="miter" strokeLinecap="square" />
+      {/* floating amount label — left-aligned above flat line */}
+      {floatLabel && schedule.length > 0 && (() => {
+        const v = schedule[0] || 0
+        const y = H - (Math.min(v, maxY) / maxY) * (H - 6) - 3 - 7
+        return (
+          <text x={5} y={y} textAnchor="start" fill={lineColor} fontSize="12" fontWeight="700" fontFamily="system-ui,-apple-system,sans-serif">
+            {floatLabel}<tspan fontSize="10" fontWeight="500">/mo</tspan>
+          </text>
+        )
+      })()}
+    </svg>
   )
 }
 
@@ -564,7 +568,7 @@ export function ChartCaption({ color, markers = ['Now', '6 Mo', 'Yr 5', 'Yr 10']
 }
 
 // Sum the first 60 months of a payment schedule → "Paid in first 5 years"
-export function computeFiveYearTotal(offer) {
+function computeFiveYearTotal(offer) {
   if (!offer || !offer.schedule) return 0
   const N = Math.min(60, offer.schedule.length)
   let total = 0
@@ -575,7 +579,7 @@ export function computeFiveYearTotal(offer) {
 // ─── Per-phase color (matches PhasePaymentChart segments) ────────────────────
 function phaseColor(phase, idx, total, theme = 'light') {
   const light = theme === 'light'
-  if (phase.amount === 0) return light ? '#016163' : '#34D399'  // green
+  if (phase.amount === 0) return light ? '#10B981' : '#34D399'  // green
   if (idx === total - 1 && total > 1) return light ? '#5B5FC7' : '#A5B4FC'  // purple (final, higher)
   return light ? '#254BCE' : '#7BB6FF'  // blue
 }
@@ -687,134 +691,54 @@ export function PhasePaymentChart({ phases, theme = 'light', hideAmountLabels = 
   })
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: H }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}
-           preserveAspectRatio="none"
-           style={{ display: 'block', overflow: 'visible' }}>
-        {/* baseline */}
-        <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke={axisColor} strokeWidth="0.7" vectorEffect="non-scaling-stroke" />
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}
+         preserveAspectRatio="none"
+         style={{ display: 'block', overflow: 'visible' }}>
+      {/* baseline */}
+      <line x1="0" y1={H - 0.5} x2={W} y2={H - 0.5} stroke={axisColor} strokeWidth="0.7" vectorEffect="non-scaling-stroke" />
 
-        {/* fills */}
-        {segments.map(s => (
-          <path key={`f${s.idx}`} d={`M ${s.x1} ${s.y} L ${s.x2} ${s.y} L ${s.x2} ${H} L ${s.x1} ${H} Z`} fill={hexToRgba(s.c, fillAlpha)} />
-        ))}
+      {/* fills */}
+      {segments.map(s => (
+        <path key={`f${s.idx}`} d={`M ${s.x1} ${s.y} L ${s.x2} ${s.y} L ${s.x2} ${H} L ${s.x1} ${H} Z`} fill={hexToRgba(s.c, fillAlpha)} />
+      ))}
 
-        {/* phase horizontal lines */}
-        {segments.map(s => (
-          <line key={`l${s.idx}`} x1={s.x1} y1={s.y} x2={s.x2} y2={s.y}
-                stroke={s.c} strokeWidth="1.6" strokeLinecap="square" vectorEffect="non-scaling-stroke" />
-        ))}
+      {/* phase horizontal lines */}
+      {segments.map(s => (
+        <line key={`l${s.idx}`} x1={s.x1} y1={s.y} x2={s.x2} y2={s.y}
+              stroke={s.c} strokeWidth="1.6" strokeLinecap="square" vectorEffect="non-scaling-stroke" />
+      ))}
 
-        {/* vertical step connectors */}
-        {segments.slice(0, -1).map((s, i) => {
-          const next = segments[i + 1]
-          return (
-            <line key={`v${i}`} x1={s.x2} y1={s.y} x2={next.x1} y2={next.y}
-                  stroke={next.c} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
-          )
-        })}
-      </svg>
+      {/* vertical step connectors */}
+      {segments.slice(0, -1).map((s, i) => {
+        const next = segments[i + 1]
+        return (
+          <line key={`v${i}`} x1={s.x2} y1={s.y} x2={next.x1} y2={next.y}
+                stroke={next.c} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+        )
+      })}
 
-      {/* HTML overlay labels — kept outside the stretched SVG so font ratio stays correct */}
+      {/* in-chart payment labels (suppressed when hideAmountLabels is true) */}
       {!hideAmountLabels && segments.map(s => {
         const text = s.p.amount === 0 ? '$0' : formatCurrencyFull(Math.round(s.p.amount))
         const isFirstOfMany = s.idx === 0 && N > 1
-        const xPct = isFirstOfMany
-          ? ((s.x1 + 5) / W) * 100
-          : (((s.x1 + s.x2) / 2) / W) * 100
         return (
-          <div key={`t${s.idx}`} style={{
-            position: 'absolute',
-            left: `${xPct}%`,
-            top: s.y - 4,
-            transform: `translateY(-100%) ${isFirstOfMany ? '' : 'translateX(-50%)'}`,
-            color: s.c, fontSize: 12, fontWeight: 700, lineHeight: 1,
-            fontFamily: 'system-ui,-apple-system,sans-serif',
-            pointerEvents: 'none', whiteSpace: 'nowrap',
-          }}>
-            {text}<span style={{ fontSize: 10, fontWeight: 500 }}>/mo</span>
-          </div>
+          <text key={`t${s.idx}`}
+            x={isFirstOfMany ? s.x1 + 5 : (s.x1 + s.x2) / 2}
+            y={s.y - 7}
+            textAnchor={isFirstOfMany ? 'start' : 'middle'}
+            fill={s.c}
+            fontSize="12" fontWeight="700"
+            fontFamily="system-ui,-apple-system,sans-serif">
+            {text}<tspan fontSize="10" fontWeight="500">/mo</tspan>
+          </text>
         )
       })}
-    </div>
-  )
-}
-
-// ─── Plan highlights panel — mirrors the email's numeric summary, sits below each tile ──
-function PlanHighlightsPanel({ kind, offer, standardOffer }) {
-  if (!offer) return null
-  const isRecommended = kind === 'recommended'
-  const isCustom      = kind === 'custom'
-  const isBaseline    = kind === 'baseline'
-
-  const myFive   = computeFiveYearTotal(offer)
-  const stdFive  = standardOffer ? computeFiveYearTotal(standardOffer) : 0
-  const savings  = !isBaseline && stdFive ? Math.max(0, stdFive - myFive) : 0
-  const showSavings = !isBaseline && savings > 100
-
-  const accent = isRecommended ? T.blue : isCustom ? T.navy : T.text
-  const accentBg = isRecommended ? 'rgba(37,75,206,0.06)' : isCustom ? 'rgba(0,22,96,0.05)' : T.panel
-  const accentBorder = isRecommended ? 'rgba(37,75,206,0.22)' : isCustom ? 'rgba(0,22,96,0.16)' : T.border
-
-  const monthlyLabel = isBaseline ? 'Monthly payment' : 'First 6 months'
-  const monthlyValue = isBaseline
-    ? `${formatCurrencyFull(Math.round(offer.monthly))}/mo`
-    : '$0/mo'
-  const monthlySub = isBaseline
-    ? 'Same payment, every month'
-    : `Then ~${formatCurrencyFull(Math.round(offer.monthly))}/mo`
-
-  return (
-    <div style={{
-      background: T.white, border: `1px solid ${accentBorder}`,
-      borderRadius: 14, overflow: 'hidden',
-      boxShadow: showSavings ? '0 4px 12px -6px rgba(37,75,206,0.18)' : '0 1px 2px rgba(15,23,42,0.04)',
-    }}>
-      {/* Header strip */}
-      <div style={{
-        background: accentBg, padding: '10px 16px',
-        borderBottom: `1px solid ${accentBorder}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: accent, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1.2 }}>
-          {isRecommended ? <>Optimum<br/>HELOC</> : isCustom ? <>Custom<br/>HELOC</> : <>Standard<br/>HELOC</>}
-        </div>
-        {showSavings && (
-          <span style={{
-            background: accent, color: T.white,
-            fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
-            padding: '2px 7px', borderRadius: 99, textTransform: 'uppercase', whiteSpace: 'nowrap',
-          }}>
-            Saves {formatCurrencyFull(Math.round(savings))} / 5 yrs
-          </span>
-        )}
-      </div>
-
-      {/* Hero monthly */}
-      <div style={{ padding: '14px 16px 0', minHeight: 96 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: T.faint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-          {monthlyLabel}
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: accent, letterSpacing: '-0.5px', lineHeight: 1, ...NUM }}>
-          {monthlyValue}
-        </div>
-        <div style={{ fontSize: 11, color: T.muted, marginTop: 4, lineHeight: 1.4 }}>{monthlySub}</div>
-      </div>
-
-      {/* Footer numbers — 5-yr total + APR */}
-      <div style={{
-        padding: '10px 16px 14px', display: 'flex',
-        justifyContent: 'space-between', fontSize: 11.5, color: T.muted,
-      }}>
-        <span>5-yr total <strong style={{ color: T.text, fontWeight: 700, ...NUM }}>{formatCurrencyFull(Math.round(myFive))}</strong></span>
-        <span>APR <strong style={{ color: T.text, fontWeight: 700, ...NUM }}>{(offer.apr * 100).toFixed(2)}%</strong></span>
-      </div>
-    </div>
+    </svg>
   )
 }
 
 // ─── Offer tile (baseline / recommended) ──────────────────────────────────────
-export function OfferTile({ kind, offer, isSelected, onSelect, maxY, standardMonthly, standardFive, hideAction = false }) {
+function OfferTile({ kind, offer, isSelected, onSelect, maxY, standardMonthly, standardFive }) {
   if (!offer) return null
   const isRecommended = kind === 'recommended'
 
@@ -831,13 +755,13 @@ export function OfferTile({ kind, offer, isSelected, onSelect, maxY, standardMon
   return (
     <div
       onMouseEnter={e => {
-        if (hideAction || isSelected) return
+        if (isSelected) return
         e.currentTarget.style.transform = 'translateY(-3px)'
         e.currentTarget.style.boxShadow = '0 12px 28px -14px rgba(15,23,42,0.18), 0 4px 10px -6px rgba(15,23,42,0.08)'
         e.currentTarget.style.borderColor = 'rgba(37,75,206,0.18)'
       }}
       onMouseLeave={e => {
-        if (hideAction || isSelected) return
+        if (isSelected) return
         e.currentTarget.style.transform = ''
         e.currentTarget.style.boxShadow = '0 1px 2px rgba(15,23,42,0.04)'
         e.currentTarget.style.borderColor = T.border
@@ -860,7 +784,7 @@ export function OfferTile({ kind, offer, isSelected, onSelect, maxY, standardMon
         background: isRecommended ? T.blue : 'transparent', flexShrink: 0,
       }}>
         <span style={{ fontSize: 11, fontWeight: 800, color: isRecommended ? T.white : T.muted, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-          {isRecommended ? 'Optimum HELOC' : 'Standard HELOC'}
+          {isRecommended ? 'Recommended' : 'Basic'}
         </span>
         {isSelected && <PlanSelectedBadge />}
       </div>
@@ -896,7 +820,7 @@ export function OfferTile({ kind, offer, isSelected, onSelect, maxY, standardMon
             {showSavings && (
               <span className="plan-savings-pill" style={{
                 fontSize: 11, fontWeight: 800, letterSpacing: '0.01em',
-                color: '#047857', background: 'rgba(1,97,99,0.12)',
+                color: '#047857', background: 'rgba(16,185,129,0.12)',
                 padding: '3px 9px', borderRadius: 100,
                 whiteSpace: 'nowrap',
                 ...NUM,
@@ -972,27 +896,25 @@ export function OfferTile({ kind, offer, isSelected, onSelect, maxY, standardMon
           </div>
         </div>
 
-        {/* Select button — hidden in preview-only contexts (e.g. prescreen result) */}
-        {!hideAction && (
-          <button onClick={onSelect}
-            style={{
-              width: '100%',
-              padding: '13px 16px', borderRadius: 12,
-              fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
-              cursor: 'pointer', fontFamily: 'inherit',
-              transition: 'background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s',
-              ...(isSelected ? {
-                background: T.blue, color: T.white,
-                border: '1.5px solid transparent',
-                boxShadow: '0 4px 14px rgba(37,75,206,0.3)',
-              } : {
-                background: T.white, color: T.text,
-                border: `1.5px solid ${T.border}`,
-              }),
-            }}>
-            {isSelected ? '✓ Selected' : 'Select'}
-          </button>
-        )}
+        {/* Select button */}
+        <button onClick={onSelect}
+          style={{
+            width: '100%',
+            padding: '13px 16px', borderRadius: 12,
+            fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em',
+            cursor: 'pointer', fontFamily: 'inherit',
+            transition: 'background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s',
+            ...(isSelected ? {
+              background: T.blue, color: T.white,
+              border: '1.5px solid transparent',
+              boxShadow: '0 4px 14px rgba(37,75,206,0.3)',
+            } : {
+              background: T.white, color: T.text,
+              border: `1.5px solid ${T.border}`,
+            }),
+          }}>
+          {isSelected ? '✓ Selected' : 'Select'}
+        </button>
       </div>
     </div>
   )
@@ -1252,8 +1174,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     setIsRemovingCustom(true)
     if (selected === 'custom') setSelected('recommended')
     setTimeout(() => {
-      setCreditLim(requestedAmount)
-      setDrawAmt(requestedAmount)
+      setCreditLim(SEED.defaultCredit)
+      setDrawAmt(SEED.defaultWithdraw)
       setZeroStart(false)
       setIoYrsId('pi')
       setTierId('none')
@@ -1264,17 +1186,9 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     }, 450)
   }
 
-  // Requested amount from step 1 — drives Baseline/Recommended/Custom defaults
-  // so all three plans show totals for what the borrower actually asked for.
-  const requestedAmount = Number(step1?.loanAmount) || SEED.defaultWithdraw
-  // GreenLyne + lender pre-qualified the borrower for ~10% more headroom than
-  // what the merchant agent originally requested. The slider still defaults to
-  // `requestedAmount` but can climb up to this ceiling.
-  const prequalifiedMax = Math.round(requestedAmount * 1.10 / 1000) * 1000
-
   // Custom config state (dials)
-  const [creditLim,    setCreditLim]    = useState(savedConfig?.creditLim    ?? requestedAmount)
-  const [drawAmt,      setDrawAmt]      = useState(savedConfig?.drawAmt      ?? requestedAmount)
+  const [creditLim,    setCreditLim]    = useState(savedConfig?.creditLim    ?? SEED.defaultCredit)
+  const [drawAmt,      setDrawAmt]      = useState(savedConfig?.drawAmt      ?? SEED.defaultWithdraw)
   const [zeroStart,    setZeroStart]    = useState(savedConfig?.zeroStart    ?? false)
   const [ioYrsId,      setIoYrsId]      = useState(savedConfig?.ioYrsId      ?? 'pi')
   const [tierId,       setTierId]       = useState(savedConfig?.tierId       ?? 'none')
@@ -1303,19 +1217,17 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
   const tier  = REDUCTION_TIERS.find(t => t.id === tierId)
   const s     = tier?.s ?? 0
 
-  // Baseline + Recommended track the master credit-line slider above. The
-  // Custom plan's initial-draw slider dials down within 80–100% of the line,
-  // and is the only one that uses safeDraw.
+  // Baseline + Recommended use fixed C=defaultWithdraw, creditLim=defaultCredit (stable regardless of advanced dials)
   const baselineRate = useMemo(() => {
-    const cltv0 = (MORTGAGE_BAL + creditLim) / PROP_VALUE
+    const cltv0 = (MORTGAGE_BAL + SEED.defaultCredit) / PROP_VALUE
     return calcRate(DEMO_FICO, cltv0) ?? 0.0825
-  }, [creditLim])
+  }, [])
 
   const baselineOffer = useMemo(() =>
     computeOffer({
-      C: creditLim, rate: baselineRate,
+      C: SEED.defaultWithdraw, rate: baselineRate,
       preset: { zeroStart: false, ioYrs: 0, s: 0, reductionYrs: null },
-    }), [baselineRate, creditLim])
+    }), [baselineRate])
 
   // Pick up merchant-set Recommended plan from PMPro Pipeline (Step 2 result page)
   const merchantRecommended = useMemo(() => {
@@ -1334,9 +1246,9 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
   const recommendedOffer = useMemo(() =>
     computeOffer({
-      C: creditLim, rate: baselineRate,
+      C: SEED.defaultWithdraw, rate: baselineRate,
       preset: merchantRecommended ?? { zeroStart: true, ioYrs: 5, s: 0.30, reductionYrs: 5 },
-    }), [baselineRate, merchantRecommended, creditLim])
+    }), [baselineRate, merchantRecommended])
 
   const customOffer = useMemo(() =>
     computeOffer({
@@ -1386,7 +1298,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                      : null
 
   // Card summaries
-  const card1Summary = `${formatCurrencyFull(safeDraw)} drawn at closing`
+  const card1Summary = `${formatCurrencyFull(creditLim)} credit line · ${formatCurrencyFull(safeDraw)} drawn at closing`
   const card2Summary = zeroStart
     ? 'Yes — escrow covers the first 6 months'
     : 'No — standard start (base loan)'
@@ -1449,52 +1361,13 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Step 2 of 7 · Application #{APPLICATION_ID}</span>
         </div>
         <h1 style={{
-          fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
-          fontSize: 38, fontWeight: 700,
-          letterSpacing: '-0.025em', lineHeight: 1.2,
-          color: '#001660', margin: 0, maxWidth: '80%',
+          fontSize: 32, fontWeight: 700, color: T.text,
+          margin: 0, letterSpacing: '-0.02em', lineHeight: 1.15,
+          fontFamily: "'PostGrotesk', sans-serif", maxWidth: '80%',
         }}>
-          Congratulations, {firstName}! You're pre-qualified for a HELOC up to{' '}
-          <span style={{ color: T.green, ...NUM }}>{formatCurrencyFull(prequalifiedMax)}</span>
+          Congratulations, {firstName}! You're approved to borrow up to{' '}
+          <span style={{ color: T.green, ...NUM }}>{formatCurrencyFull(LOAN_CAP_LOW_LTV)}</span>
         </h1>
-      </div>
-
-      {/* Total credit line — master slider, drives all three plans (Baseline / Recommended / Custom).
-          The Custom plan's Initial-draw slider can dial down within 80–100% of this credit line. */}
-      <div style={{
-        marginBottom: 24, padding: '18px 22px',
-        background: T.white, border: `1px solid ${T.border}`,
-        borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 12,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total credit line</div>
-            <div style={{ fontSize: 12, color: T.faint, marginTop: 3 }}>Up to {formatCurrencyFull(Math.max(LOAN_MIN, prequalifiedMax))} · Interest only on what you draw.</div>
-          </div>
-          <span style={{
-            fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
-            fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: T.text,
-            ...NUM,
-          }}>{formatCurrencyFull(creditLim)}</span>
-        </div>
-        {(() => {
-          const sliderMax = Math.max(LOAN_MIN, prequalifiedMax)
-          const sliderVal = Math.min(Math.max(creditLim, LOAN_MIN), sliderMax)
-          return (
-            <RangeSlider
-              value={sliderVal}
-              min={LOAN_MIN}
-              max={sliderMax}
-              step={1000}
-              onChange={v => {
-                setCreditLim(v)
-                // If the previous initial-draw exceeded the new credit line, clamp it down.
-                if (drawAmt > v) setDrawAmt(v)
-              }}
-              formatLabel={v => formatCurrencyFull(v)}
-            />
-          )
-        })()}
       </div>
 
       {/* Select your term */}
@@ -1504,7 +1377,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           margin: 0, letterSpacing: '-0.01em',
           fontFamily: "'PostGrotesk', sans-serif",
         }}>
-          Select your loan type
+          Select your term
         </h2>
       </div>
 
@@ -1554,25 +1427,8 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <button
             onClick={() => {
-              // Seed the custom dials from the currently-selected non-custom plan
-              // (or the Recommended preset if nothing is selected yet) so the user
-              // can build up from there instead of starting from blank defaults.
-              const sourcePreset = selected === 'baseline'
-                ? { zeroStart: false, ioYrs: 0, s: 0, reductionYrs: null }
-                : (merchantRecommended ?? { zeroStart: true, ioYrs: 5, s: 0.30, reductionYrs: 5 })
-
-              const ioMatch   = IO_OPTIONS.find(o => o.years === sourcePreset.ioYrs)
-              const tierMatch = REDUCTION_TIERS.find(t => t.s === sourcePreset.s)
-
-              setCreditLim(requestedAmount)
-              // Custom Initial Draw defaults to the minimum (80% of credit line) so
-              // the slider sits all the way to the left when the user opens custom.
-              setDrawAmt(Math.ceil(requestedAmount * 0.8))
-              setZeroStart(!!sourcePreset.zeroStart)
-              setIoYrsId(ioMatch?.id ?? 'pi')
-              setTierId(tierMatch?.id ?? 'none')
-              setReductionYrs(sourcePreset.reductionYrs ?? null)
-
+              // Always: ensure the Custom tile exists and is selected.
+              // The only way to remove the Custom tile is the X button on the card itself.
               if (!showAdvanced) setShowAdvanced(true)
               setSelected('custom')
             }}
@@ -1639,7 +1495,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <DecCard
               step={1}
-              title="Initial draw"
+              title="Credit line & initial draw"
               summary={card1Summary}
               modified={creditLim !== SEED.defaultCredit || drawAmt !== SEED.defaultWithdraw}
               editing={editingCard === 0}
@@ -1650,7 +1506,6 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 creditLim={creditLim} setCreditLim={setCreditLim}
                 drawAmt={drawAmt} setDrawAmt={setDrawAmt}
                 programCap={programCap} minDraw={minDraw} safeDraw={safeDraw}
-                requestedAmount={requestedAmount}
                 rateDisplay={rateDisplay}
                 onDone={() => setEditingCard(null)}
               />
@@ -1722,7 +1577,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         <div style={{
           position: 'fixed',
           bottom: 20,
-          left: 250, /* clears the 250px StepSidebar on the left so it never floats over it */
+          left: 224, /* clears the 224px (w-56) StepSidebar on the left */
           right: 0,
           zIndex: 100,
           pointerEvents: 'none',
@@ -1745,7 +1600,10 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             gap: 20,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <SecondaryButton onClick={() => dispatch({ type: 'BACK' })} back>Back</SecondaryButton>
+              <button onClick={() => dispatch({ type: 'BACK' })}
+                style={{ padding: '12px 18px', fontSize: 13, fontWeight: 600, borderRadius: 10, border: `1px solid ${T.border}`, background: 'transparent', color: T.muted, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                ← Back
+              </button>
               <div style={{ width: 1, height: 32, background: T.border }} />
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
@@ -1756,9 +1614,34 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
                 </div>
               </div>
             </div>
-            <PrimaryButton onClick={handleConfirm} size="lg" style={{ flexShrink: 0 }}>
+            <button
+              onClick={handleConfirm}
+              style={{
+                flexShrink: 0,
+                padding: '16px 22px',
+                borderRadius: 12,
+                background: T.blue,
+                color: T.white,
+                border: 'none',
+                fontSize: 15,
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                boxShadow: '0 6px 20px rgba(37,75,206,0.35)',
+                transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex', alignItems: 'center', gap: 12,
+              }}
+              onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(37,75,206,0.4)'; e.currentTarget.style.background = T.blueHi }}
+              onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 20px rgba(37,75,206,0.35)'; e.currentTarget.style.background = T.blue }}
+            >
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20" style={{ flexShrink: 0 }}>
+                <path d="m6.75 9 3.294 4.611a1.526 1.526 0 0 0 2.414 0.09L23.25 0.749" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                <path d="M16.783 3.824A10.487 10.487 0 1 0 20.8 8.377" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
               Confirm your plan
-            </PrimaryButton>
+            </button>
           </div>
         </div>
       )}
