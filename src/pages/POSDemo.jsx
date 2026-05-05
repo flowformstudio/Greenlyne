@@ -12,6 +12,7 @@ import { DEMO_PERSONA } from '../lib/persona'
 import { getDemoSession } from '../lib/demoSession'
 import { getDemoScenario, simForScenario, personaOverridesForScenario } from '../lib/demoScenario'
 import { useActivePartners } from '../lib/PartnersContext'
+import { useIsMobile } from '../lib/useIsMobile'
 
 // ─── State constants ───────────────────────────────────────────────────────────
 const S = {
@@ -404,6 +405,32 @@ function CreditBar({ withdrawNow, creditLimit }) {
 // ─── Brand bar ─────────────────────────────────────────────────────────────────
 function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
   const { merchant, lender } = useActivePartners()
+  const isMobile = useIsMobile(768)
+
+  if (isMobile) {
+    // Compact mobile bar: GreenLyne · merchant · lender — logos only, no labels
+    return (
+      <div className="border-b shrink-0" style={{
+        background: '#fff', borderColor: 'rgba(0,22,96,0.08)',
+        height: 48, padding: '0 14px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      }}>
+        <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 18, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {merchant?.logoUrl && (
+            <img src={merchant.logoUrl} alt={merchant.name} style={{ height: 18, maxWidth: 80, width: 'auto', objectFit: 'contain' }} />
+          )}
+          {merchant?.logoUrl && lender?.logoUrl && (
+            <span style={{ width: 1, height: 16, background: 'rgba(0,22,96,0.12)', flexShrink: 0 }} />
+          )}
+          {lender?.logoUrl && (
+            <img src={lender.logoUrl} alt={lender.name} style={{ height: 14, maxWidth: 64, width: 'auto', objectFit: 'contain' }} />
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="border-b px-6 shrink-0" style={{ background: '#fff', borderColor: 'rgba(0,22,96,0.08)', height: 56, display: 'flex', alignItems: 'center' }}>
       {/* LEFT — GreenLyne primary */}
@@ -513,6 +540,81 @@ function StepSidebar({ appState, dispatch }) {
         })}
       </div>
     </aside>
+  )
+}
+
+// ─── Mobile step strip — replaces the sidebar on narrow viewports ──────────────
+function MobileStepStrip({ appState, dispatch }) {
+  const current = SIDEBAR_STEPS.find(s => s.states.includes(appState))?.n ?? 1
+  if (appState === S.FUNDED) return null
+  const total = SIDEBAR_STEPS.length
+  const currentLabel = SIDEBAR_STEPS.find(s => s.n === current)?.label ?? ''
+  const pct = Math.round((current / total) * 100)
+  return (
+    <div style={{
+      position: 'sticky', top: 0, zIndex: 5,
+      background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)',
+      padding: '10px 16px 12px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{
+          fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: 'rgba(0,22,96,0.55)',
+        }}>
+          Step {current} of {total}
+        </span>
+        <span style={{
+          fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
+          fontSize: 14, fontWeight: 700, color: '#001660',
+          maxWidth: '60%', textAlign: 'right',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {currentLabel}
+        </span>
+      </div>
+      <div style={{ height: 4, borderRadius: 999, background: 'rgba(0,22,96,0.08)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: 'linear-gradient(90deg, #016163 0%, #001660 100%)',
+          transition: 'width 0.4s ease',
+        }} />
+      </div>
+      {/* Compact step dots — tappable to jump (mirrors desktop sidebar behavior) */}
+      <div style={{
+        marginTop: 10, display: 'flex', alignItems: 'center', gap: 6,
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+      }}
+        onTouchStart={() => {}} // hint for iOS Safari momentum scroll
+      >
+        {SIDEBAR_STEPS.map(s => {
+          const done   = s.n < current
+          const active = s.n === current
+          const bg     = done ? '#016163' : active ? '#001660' : 'transparent'
+          const color  = done || active ? '#fff' : 'rgba(0,22,96,0.4)'
+          const border = (!done && !active) ? '1.5px solid rgba(0,22,96,0.15)' : '0'
+          return (
+            <button
+              key={s.n}
+              onClick={() => !active && dispatch({ type: 'JUMP_TO', state: STEP_JUMP[s.n] })}
+              aria-label={`Step ${s.n}: ${s.label}`}
+              disabled={active}
+              style={{
+                flexShrink: 0, width: 28, height: 28, borderRadius: '50%',
+                background: bg, color, border,
+                display: 'grid', placeItems: 'center',
+                fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+                fontWeight: 700, fontSize: 12, padding: 0,
+                cursor: active ? 'default' : 'pointer',
+              }}
+            >
+              {done ? '✓' : s.n}
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -5039,6 +5141,7 @@ function ScreenFunded({ loan, step2, dispatch }) {
 // Root component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function POSDemo() {
+  const isMobile = useIsMobile(768)
   // Lazy init so the latest demo-session values (set in PMPro's Quick Prescreen)
   // are read at mount time, not at module load.
   const [state, dispatch] = useReducer(appReducer, undefined, () => {
@@ -5099,15 +5202,19 @@ export default function POSDemo() {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F1EE', fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif" }}>
       <BrandBar onRestart={() => dispatch({ type: 'RESTART' })} onToggleSim={() => dispatch({ type: 'TOGGLE_SIM' })} onViewEmail={() => navigate('/email')} />
-      <div className="flex flex-1 overflow-hidden">
-        <StepSidebar appState={app} dispatch={dispatch} />
+      <div className={isMobile ? 'flex flex-1 overflow-hidden flex-col' : 'flex flex-1 overflow-hidden'}>
+        {!isMobile && <StepSidebar appState={app} dispatch={dispatch} />}
         <main className={isFlexScreen ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
+          {isMobile && !isFlexScreen && <MobileStepStrip appState={app} dispatch={dispatch} />}
           {isFlexScreen ? renderScreen() : (
-            <div style={{ maxWidth: 1240, width: '100%', margin: '0 auto', padding: '32px 32px 144px', display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={isMobile
+              ? { width: '100%', padding: '20px 16px calc(120px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 20 }
+              : { maxWidth: 1240, width: '100%', margin: '0 auto', padding: '32px 32px 144px', display: 'flex', gap: 24, alignItems: 'flex-start' }
+            }>
+              <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
                 {renderScreen()}
               </div>
-              {showOfferSidebar && (
+              {showOfferSidebar && !isMobile && (
                 <div style={{ paddingTop: 116, flexShrink: 0 }}>
                   <OfferSidebar loan={loan} step2={step2} />
                 </div>
