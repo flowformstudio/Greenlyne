@@ -483,33 +483,27 @@ function BrandBar({ onRestart, onToggleSim, onViewEmail }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
 
         {/* Block 1 — Project by [merchant] */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 20, marginRight: 20, borderRight: '1px solid rgba(0,22,96,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, whiteSpace: 'nowrap', lineHeight: 1.3 }}>
             Project by
           </span>
           {merchant?.logoUrl ? (
-            <img src={merchant.logoUrl} alt={merchant.name} style={{ height: 24, maxWidth: 130, width: 'auto', objectFit: 'contain', display: 'block' }} />
+            <img src={merchant.logoUrl} alt={merchant.name} style={{ height: 29, maxWidth: 156, width: 'auto', objectFit: 'contain', display: 'block' }} />
           ) : (
             <span style={{ fontSize: 13, fontWeight: 700, color: '#0d0d0d' }}>{merchant?.name || ''}</span>
           )}
         </div>
 
-        {/* Block 2 — Financing services by [lender] */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, whiteSpace: 'nowrap', lineHeight: 1.3, textAlign: 'right' }}>
-            Financing services<br/>powered by
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-            {lender?.logoUrl ? (
-              <img src={lender.logoUrl} alt={lender.name} style={{ height: 16, maxWidth: 76, width: 'auto', objectFit: 'contain', display: 'block' }} />
-            ) : (
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#001660' }}>{lender?.name || ''}</span>
-            )}
-            {lender?.nmls && (
-              <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, letterSpacing: '0.01em' }}>NMLS #{lender.nmls}</span>
-            )}
-          </div>
-        </div>
+        {/* Block 2 — combined lender lockup (single uploaded image) */}
+        {lender?.logoUrl ? (
+          <img
+            src={lender.logoUrl}
+            alt={lender.name}
+            style={{ maxHeight: 32, maxWidth: 220, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+          />
+        ) : (
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#001660' }}>{lender?.name || ''}</span>
+        )}
 
       </div>
     </div>

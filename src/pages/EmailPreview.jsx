@@ -100,7 +100,7 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
         <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
             <div style={{
-              width: 44, height: 44, borderRadius: '50%', background: C.navy,
+              width: 44, height: 44, borderRadius: '50%', background: '#F3F4F6',
               overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               padding: 6,
             }}>
@@ -125,7 +125,7 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
       <div style={{ maxWidth: 680, margin: '28px auto', padding: '0 20px 60px', boxSizing: 'border-box', width: '100%' }}>
         <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 24px rgba(0,0,0,0.08)' }}>
 
-          {/* HEADER — desktop: side-by-side merchant + meta. Mobile: centered stacked rows. */}
+          {/* HEADER — merchant logo on one side, combined financing/lending lockup (uploaded as the lender logo image) on the other. */}
           {isMobile ? (
             <div style={{ borderBottom: `1px solid ${C.gray100}` }}>
               {/* Row 1 — merchant logo, centered */}
@@ -133,44 +133,34 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
                 <img
                   src={merchantLogo}
                   alt={merchantName}
-                  style={{ maxHeight: 42, maxWidth: 220, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+                  style={{ maxHeight: 48, maxWidth: 253, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
                 />
               </div>
               <div style={{ height: 1, background: C.gray100 }} />
-              {/* Row 2 — financing + lending, centered, compact */}
-              <div style={{
-                padding: '12px 24px 14px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                textAlign: 'center',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>Financing powered by</span>
-                  <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto', display: 'block' }} />
+              {/* Row 2 — combined financing/lending lockup (single image), right-aligned */}
+              {lenderLogo && (
+                <div style={{ padding: '14px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                  <img
+                    src={lenderLogo}
+                    alt={lenderName}
+                    style={{ maxHeight: 36, maxWidth: 240, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+                  />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
-                  <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 11, maxWidth: 80, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
-                  {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
-                </div>
-              </div>
+              )}
             </div>
           ) : (
             <div style={{
               padding: '20px 32px', display: 'flex', alignItems: 'center',
               justifyContent: 'space-between', borderBottom: `1px solid ${C.gray100}`, gap: 16,
             }}>
-              <img src={merchantLogo} alt={merchantName} style={{ maxHeight: 33, maxWidth: 184, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: '#001660' }}>Financing powered by</span>
-                  <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto' }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
-                  <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 12, maxWidth: 77, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
-                  {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
-                </div>
-              </div>
+              <img src={merchantLogo} alt={merchantName} style={{ maxHeight: 41, maxWidth: 230, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+              {lenderLogo && (
+                <img
+                  src={lenderLogo}
+                  alt={lenderName}
+                  style={{ maxHeight: 40, maxWidth: 240, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+                />
+              )}
             </div>
           )}
 
@@ -407,15 +397,15 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               {[
                 {
-                  icon: <SolarIcon />,
+                  icon: <SolarIcon color={brandRed} />,
                   label: 'Better Solar Performance',
                 },
                 {
-                  icon: <DowntimeIcon />,
+                  icon: <DowntimeIcon color={brandRed} />,
                   label: 'Minimized Downtime',
                 },
                 {
-                  icon: <SavingsIcon />,
+                  icon: <SavingsIcon color={brandRed} />,
                   label: 'More Energy Savings',
                 },
               ].map((item, i) => (
@@ -482,38 +472,38 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
   )
 }
 
-function SolarIcon() {
+function SolarIcon({ color = '#D82020' }) {
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-      <circle cx="18" cy="18" r="6" stroke="#D82020" strokeWidth="2"/>
-      <line x1="18" y1="4" x2="18" y2="8" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="18" y1="28" x2="18" y2="32" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="4" y1="18" x2="8" y2="18" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="28" y1="18" x2="32" y2="18" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="8.69" y1="8.69" x2="11.52" y2="11.52" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="24.48" y1="24.48" x2="27.31" y2="27.31" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="27.31" y1="8.69" x2="24.48" y2="11.52" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="11.52" y1="24.48" x2="8.69" y2="27.31" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="18" cy="18" r="6" stroke={color} strokeWidth="2"/>
+      <line x1="18" y1="4" x2="18" y2="8" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="18" y1="28" x2="18" y2="32" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="4" y1="18" x2="8" y2="18" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="28" y1="18" x2="32" y2="18" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="8.69" y1="8.69" x2="11.52" y2="11.52" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="24.48" y1="24.48" x2="27.31" y2="27.31" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="27.31" y1="8.69" x2="24.48" y2="11.52" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="11.52" y1="24.48" x2="8.69" y2="27.31" stroke={color} strokeWidth="2" strokeLinecap="round"/>
     </svg>
   )
 }
 
-function DowntimeIcon() {
+function DowntimeIcon({ color = '#D82020' }) {
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-      <circle cx="18" cy="18" r="13" stroke="#D82020" strokeWidth="2"/>
-      <polyline points="18,10 18,18 23,23" stroke="#D82020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="18" cy="18" r="13" stroke={color} strokeWidth="2"/>
+      <polyline points="18,10 18,18 23,23" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
-function SavingsIcon() {
+function SavingsIcon({ color = '#D82020' }) {
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-      <path d="M6 26 C6 26 10 14 18 14 C26 14 30 26 30 26" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M18 14 L18 6" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M14 10 L18 6 L22 10" stroke="#D82020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M10 26 L26 26" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M6 26 C6 26 10 14 18 14 C26 14 30 26 30 26" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <path d="M18 14 L18 6" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <path d="M14 10 L18 6 L22 10" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10 26 L26 26" stroke={color} strokeWidth="2" strokeLinecap="round"/>
     </svg>
   )
 }

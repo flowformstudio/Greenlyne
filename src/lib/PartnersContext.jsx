@@ -6,11 +6,37 @@ import {
 
 const Ctx = createContext(null)
 
+// localStorage cache for the active merchant + lender so that on subsequent
+// page loads we can render the *correct* logos / cover synchronously, before
+// Firestore subscriptions resolve. Without this, the demo flashes the seed
+// defaults (Westhaven) for a split second after every reload.
+const CACHE_KEY = 'greenlyne_active_partners_v1'
+
+function readPartnersCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(CACHE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function writePartnersCache(payload) {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(CACHE_KEY, JSON.stringify(payload)) }
+  catch {} // localStorage can throw on quota / privacy mode
+}
+
 export function PartnersProvider({ children }) {
-  const [merchants,  setMerchants]  = useState([])
-  const [lenders,    setLenders]    = useState([])
-  const [active,     setActive]     = useState({ merchantId: null, lenderId: null })
-  const [loading,    setLoading]    = useState(true)
+  // Hydrate from cache synchronously so the first render shows the correct
+  // active merchant + lender (no Westhaven flash on reload).
+  const cached = readPartnersCache()
+  const [merchants,  setMerchants]  = useState(() => cached?.merchant ? [cached.merchant] : [])
+  const [lenders,    setLenders]    = useState(() => cached?.lender   ? [cached.lender]   : [])
+  const [active,     setActive]     = useState(() => ({
+    merchantId: cached?.merchant?.id ?? null,
+    lenderId:   cached?.lender?.id   ?? null,
+  }))
+  const [loading,    setLoading]    = useState(!cached)
   const [manageOpen, setManageOpen] = useState(false)
   const [manageTab,  setManageTab]  = useState('merchant') // 'merchant' | 'lender'
 
@@ -32,6 +58,16 @@ export function PartnersProvider({ children }) {
     () => lenders.find(l => l.id === active.lenderId) || lenders[0] || FALLBACK_LENDER,
     [lenders, active.lenderId],
   )
+
+  // Persist the resolved active pair so the next page load hydrates instantly.
+  // Only cache real Firestore-backed entries — never the static fallbacks,
+  // and only once Firestore has actually responded.
+  useEffect(() => {
+    if (loading) return
+    if (!merchant || !lender) return
+    if (merchant.id?.startsWith('__fallback') || lender.id?.startsWith('__fallback')) return
+    writePartnersCache({ merchant, lender })
+  }, [merchant, lender, loading])
 
   const openManage = useCallback((tab = 'merchant') => {
     setManageTab(tab)

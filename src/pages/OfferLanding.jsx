@@ -47,6 +47,7 @@ export default function OfferLanding() {
   const merchantLogo   = activeMerchant?.logoUrl || '/westhaven-logo-new.avif'
   const merchantSymbol = activeMerchant?.symbolLogoUrl || activeMerchant?.logoUrl || '/westhaven-icon.svg'
   const lenderName     = activeLender?.name || 'Grand Bank'
+  const lenderLogo     = activeLender?.logoUrl || ''
   const lenderNmls     = activeLender?.nmls || '2611'
 
   // Live offer figures — same compute path as the email + prescreen result
@@ -195,12 +196,15 @@ export default function OfferLanding() {
         transition: 'opacity .55s ease',
         pointerEvents: exiting ? 'none' : 'auto',
       }}>
-        <img src={merchantLogo} alt={merchant} style={{ maxHeight: 25, maxWidth: 125, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+        <img src={merchantLogo} alt={merchant} style={{ maxHeight: 48, maxWidth: 235, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 11, color: T.ink60 }}>
-          <span>Financing by</span>
-          <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 20, objectFit: 'contain', display: 'block' }} />
-          <span style={{ color: T.ink40 }}>·</span>
-          <span style={{ fontFamily: MONO, color: T.ink40 }}>NMLS #2611</span>
+          {lenderLogo && (
+            <img
+              src={lenderLogo}
+              alt={lenderName}
+              style={{ maxHeight: 36, maxWidth: 220, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+            />
+          )}
           {/* Subtle replay-animation button */}
           <button onClick={() => setReplayKey(k => k + 1)}
             title="Replay welcome animation"
