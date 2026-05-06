@@ -41,57 +41,53 @@ export default function DemoStepsDropdown({ steps, theme = 'dark' }) {
   const doneTag      = '#3fc9b1'
 
   return (
-    <div ref={ref} style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-      <span style={{
-        fontSize: 11, fontWeight: 600, color: labelColor,
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-        fontFamily: "'PostGrotesk', system-ui, sans-serif",
-        whiteSpace: 'nowrap',
-      }}>
-        Demo Steps
-      </span>
+    <div ref={ref} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           background: open ? btnBgOpen : btnBgIdle,
           border: btnBorder,
           borderRadius: 7,
-          padding: '6px 11px',
+          padding: '4px 10px 5px',
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
           gap: 8,
           color: btnText,
-          fontSize: 12,
-          fontWeight: 600,
           fontFamily: "'PostGrotesk', system-ui, sans-serif",
           transition: 'background 0.15s',
           whiteSpace: 'nowrap',
-          minWidth: 150,
+          minWidth: 140,
           justifyContent: 'space-between',
         }}
         onMouseEnter={e => { if (!open) e.currentTarget.style.background = btnBgHover }}
         onMouseLeave={e => { if (!open) e.currentTarget.style.background = btnBgIdle }}
       >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
           <span style={{
-            width: 18, height: 18, borderRadius: '50%',
-            background: '#254BCE',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0,
-          }}>{activeIndex + 1}</span>
-          {current?.label ?? 'Steps'}
+            fontSize: 8, fontWeight: 700, color: labelColor,
+            textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1,
+          }}>Demo Steps</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, lineHeight: 1.1 }}>
+            <span style={{
+              width: 16, height: 16, borderRadius: '50%',
+              background: '#254BCE',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0,
+            }}>{activeIndex + 1}</span>
+            {current?.label ?? 'Steps'}
+          </span>
         </span>
-        <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+        <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
           <path d="M1 1L4.5 5L8 1" stroke={chevColor} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
 
       {open && (
-        <div style={{
+        <div className="demo-dropdown-menu" style={{
           position: 'absolute',
           top: 'calc(100% + 6px)',
-          left: 'calc(78px + 8px)',
+          left: 0,
           minWidth: 240,
           background: menuBg,
           border: menuBorder,

@@ -14,14 +14,30 @@ export default function DemoLayout() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Demo nav */}
-      <div style={{
+      <style>{`
+        @media (max-width: 768px) {
+          /* Each dropdown button shares the bar 50/50 on mobile */
+          .demo-nav-bar > div { flex: 1 1 0; min-width: 0; }
+          .demo-nav-bar > div > button { width: 100% !important; min-width: 0 !important; }
+          /* Popovers: edge-to-edge sheet centered just below the nav bar */
+          .demo-dropdown-menu {
+            position: fixed !important;
+            top: calc(var(--demo-nav-h, 56px) + 6px) !important;
+            left: 8px !important; right: 8px !important;
+            min-width: 0 !important;
+            max-height: calc(100vh - var(--demo-nav-h, 56px) - 24px);
+            overflow-y: auto;
+          }
+        }
+      `}</style>
+      <div className="demo-nav-bar" style={{
         background: '#0d0d0d',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        padding: '0 20px',
+        padding: '8px 14px',
         display: 'flex',
         alignItems: 'center',
-        gap: 16,
-        height: 54,
+        gap: 8,
+        flexWrap: 'wrap',
         position: 'sticky',
         top: 0,
         zIndex: 1000,
