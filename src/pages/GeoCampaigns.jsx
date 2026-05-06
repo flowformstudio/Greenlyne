@@ -977,6 +977,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 })
   const [campaignQuery, setCampaignQuery] = useState('')
   const [campaignSort, setCampaignSort] = useState('date') // 'date' | 'props' | 'name'
+  const [heatmapMode, setHeatmapMode] = useState(false)
   // Cache of fetched campaign details so we don't re-hit the API.
   const campaignDetailCache = useRef(new Map())
 
@@ -991,6 +992,18 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
     return () => { cancelled = true }
   }, [])
 
+  // When heatmap mode flips, recolor every active overlay in place — no refetch.
+  useEffect(() => {
+    if (activeOverlays.length === 0) return
+    setActiveOverlays(prev => prev.map(o => {
+      const id = Number(String(o.id).replace('camp-', ''))
+      const camp = savedCampaigns.find(c => c.id === id)
+      const count = camp?.total_property_count ?? 0
+      return { ...o, color: heatmapMode ? colorByCount(count) : COLORS_FOR_CAMPAIGN[id % COLORS_FOR_CAMPAIGN.length], fitBounds: false }
+    }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heatmapMode])
+
   async function fetchCampaignDetail(campaign) {
     if (campaignDetailCache.current.has(campaign.id)) {
       return campaignDetailCache.current.get(campaign.id)
@@ -1003,7 +1016,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
 
   function buildOverlayFromDetail(campaign, r, fitBounds) {
     if (!r?.polygon_coordinates || r.polygon_coordinates.length < 3) return null
-    const color = COLORS_FOR_CAMPAIGN[campaign.id % COLORS_FOR_CAMPAIGN.length]
+    const color = colorForCampaignId(campaign.id, campaign.total_property_count)
     const popupHtml = `
       <div class="glp-card">
         <div class="glp-eyebrow">Saved Campaign</div>
@@ -1091,7 +1104,34 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
     '#254BCE', '#016163', '#7C3AED', '#DC2626', '#D97706', '#0891B2',
     '#059669', '#BE185D', '#475569', '#9333EA', '#0F766E', '#1F2937',
   ]
-  const colorForCampaignId = (id) => COLORS_FOR_CAMPAIGN[id % COLORS_FOR_CAMPAIGN.length]
+  // 6-step sequential heatmap (light → dark navy). Lower index = colder = less.
+  const HEATMAP_PALETTE = [
+    '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#1e3a8a',
+  ]
+
+  /** Min/max property counts across the tenant — used to scale heatmap. */
+  const propsRange = (() => {
+    if (savedCampaigns.length === 0) return { min: 0, max: 1 }
+    let min = Infinity, max = -Infinity
+    for (const c of savedCampaigns) {
+      const n = c.total_property_count ?? 0
+      if (n < min) min = n
+      if (n > max) max = n
+    }
+    return { min: min === Infinity ? 0 : min, max: max < 1 ? 1 : max }
+  })()
+
+  function colorByCount(count) {
+    const n = Math.max(0, Number(count) || 0)
+    const { min, max } = propsRange
+    if (max === min) return HEATMAP_PALETTE[Math.floor(HEATMAP_PALETTE.length / 2)]
+    const t = (n - min) / (max - min)              // 0..1
+    const idx = Math.min(HEATMAP_PALETTE.length - 1, Math.max(0, Math.round(t * (HEATMAP_PALETTE.length - 1))))
+    return HEATMAP_PALETTE[idx]
+  }
+
+  const colorForCampaignId = (id, count) =>
+    heatmapMode ? colorByCount(count) : COLORS_FOR_CAMPAIGN[id % COLORS_FOR_CAMPAIGN.length]
 
   /** Apply search query + sort to saved campaigns. */
   const filteredCampaigns = (() => {
@@ -1614,6 +1654,29 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                   )
                 })}
               </div>
+              {/* Heatmap toggle + legend */}
+              <div className="flex items-center justify-between mt-2">
+                <button onClick={() => setHeatmapMode(m => !m)}
+                  className="text-[10px] font-semibold transition-colors flex items-center gap-1.5"
+                  style={{color: heatmapMode ? '#1e3a8a' : (dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)')}}>
+                  <span className="inline-block w-3 h-3 rounded" style={{
+                    background: heatmapMode
+                      ? `linear-gradient(90deg, ${HEATMAP_PALETTE.join(',')})`
+                      : (dark ? 'rgba(232,238,248,0.15)' : 'rgba(0,22,96,0.15)'),
+                  }} />
+                  Heatmap by props {heatmapMode ? 'on' : 'off'}
+                </button>
+                {heatmapMode && (
+                  <span className="text-[9px] tabular-nums" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                    {propsRange.min}–{propsRange.max}
+                  </span>
+                )}
+              </div>
+              {heatmapMode && (
+                <div className="flex h-1.5 rounded overflow-hidden mt-1.5">
+                  {HEATMAP_PALETTE.map(c => <div key={c} className="flex-1" style={{background:c}} />)}
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto">
               {savedCampaignsLoading && savedCampaigns.length === 0 && (
@@ -1633,7 +1696,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
               )}
               {filteredCampaigns.map(c => {
                 const isActive = activeOverlays.some(o => o.id === `camp-${c.id}`)
-                const dotColor = colorForCampaignId(c.id)
+                const dotColor = colorForCampaignId(c.id, c.total_property_count)
                 return (
                   <button key={c.id}
                     onClick={() => isActive ? focusSavedCampaign(c) : handleLoadSavedCampaign(c)}
