@@ -2068,6 +2068,8 @@ function ImportCSVModal({ onClose, onBatchDone }) {
   const [imports, setImports] = useState([])
   const [savedImportId, setSavedImportId] = useState(null)
   const [viewingImport, setViewingImport] = useState(null)
+  // Per-lead email preview shown on Step 5 results.
+  const [previewRow, setPreviewRow] = useState(null) // { name, email, address, amount, ... }
   useEffect(() => {
     // Sweep out historical entries that have no row data attached — those
     // were seed/legacy docs from before file-content storage existed.
@@ -2740,6 +2742,7 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                               <th className="px-4 py-2 font-medium">Result</th>
                               <th className="px-4 py-2 font-medium">Loan Amount</th>
                               <th className="px-4 py-2 font-medium">Reason</th>
+                              <th className="px-4 py-2 font-medium" style={{width: 56}}></th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2769,6 +2772,24 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                                   </td>
                                   <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{row.amount || <span className="text-gray-300">—</span>}</td>
                                   <td className="px-4 py-2.5 text-gray-400">{row.reason || <span className="text-gray-300">—</span>}</td>
+                                  <td className="px-4 py-2.5" onClick={e => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => setPreviewRow(row)}
+                                      title="Preview email"
+                                      className="inline-flex items-center justify-center w-7 h-7 rounded-md transition-colors"
+                                      style={{ background: 'rgba(37,75,206,0.08)', color: '#254BCE', border: 'none', cursor: 'pointer' }}
+                                      onMouseOver={e => e.currentTarget.style.background = 'rgba(37,75,206,0.16)'}
+                                      onMouseOut={e  => e.currentTarget.style.background = 'rgba(37,75,206,0.08)'}
+                                    >
+                                      {/* Email Action Image — Streamline (envelope with image/photo inside) */}
+                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M6.75 5.25a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0"/>
+                                        <path d="m9.5 12.75 2.55 -4.4a1.5 1.5 0 0 1 2.4 0l2.55 4.4Z"/>
+                                        <path d="M20.25 12.75V2.25a1.5 1.5 0 0 0 -1.5 -1.5H5.25a1.5 1.5 0 0 0 -1.5 1.5v10.5"/>
+                                        <path d="M22 11.46a0.77 0.77 0 0 1 0.8 -0.08 0.73 0.73 0 0 1 0.42 0.67v9.7a1.5 1.5 0 0 1 -1.5 1.5H2.25a1.5 1.5 0 0 1 -1.5 -1.5v-9.7a0.73 0.73 0 0 1 0.42 -0.67 0.77 0.77 0 0 1 0.8 0.08l8.18 5.9a3 3 0 0 0 3.7 0Z"/>
+                                      </svg>
+                                    </button>
+                                  </td>
                                 </tr>
                               )
                             })}
@@ -2989,7 +3010,79 @@ function ImportCSVModal({ onClose, onBatchDone }) {
 
         </div>
       </div>
+      {previewRow && <LeadEmailPreviewModal row={previewRow} onClose={() => setPreviewRow(null)} />}
     </>
+  )
+}
+
+// Per-lead email preview shown from Step 5 results — overlays the modal.
+function LeadEmailPreviewModal({ row, onClose }) {
+  // Briefly seed the demo session with this lead's identity so the EmailPreview
+  // (which reads getDemoSession()) shows the right name + address. We don't
+  // restore on close; the next user action overwrites the session anyway.
+  useEffect(() => {
+    if (!row) return
+    const parts = (row.name || '').split(' ')
+    const firstName = parts[0] || ''
+    const lastName  = parts.slice(1).join(' ') || ''
+    const m = (row.address || '').match(/^(.+?),\s*([^,]+),\s*([A-Z]{2})\s*(\d{5})?$/)
+    const street = m ? m[1].trim() : (row.address || '')
+    const city   = m ? m[2].trim() : ''
+    const state  = m ? m[3] : ''
+    setDemoSession({ firstName, lastName, address: street, city, state })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row?.name, row?.address])
+
+  // Parse the loan amount (e.g. "$92,000") so EmailPreview shows it.
+  const loanAmt = parseInt(String(row?.amount || '').replace(/[^0-9]/g, '')) || undefined
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 70,
+        background: 'rgba(7,9,14,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20, backdropFilter: 'blur(3px)',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 'min(720px, 100%)', maxHeight: 'calc(100vh - 40px)',
+          background: '#fff', borderRadius: 14,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
+        }}
+      >
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,22,96,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Email preview</div>
+            <h3 className="text-sm font-semibold text-gray-900 mt-0.5 truncate">{row?.name}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{row?.address}{row?.amount ? ` · ${row.amount}` : ''}</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'transparent', border: '1px solid rgba(0,22,96,0.12)',
+              color: 'rgba(0,22,96,0.6)', cursor: 'pointer', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto', background: '#EDEAE6' }}>
+          <div style={{ pointerEvents: 'none', userSelect: 'none' }}>
+            <EmailPreview hideClientChrome loanAmountOverride={loanAmt} />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
