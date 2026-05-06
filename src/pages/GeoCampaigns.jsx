@@ -285,8 +285,23 @@ function FiltersPanel({ onCoreChange, floatMode = false }) {
   const [kwhMonthMax, setKwhMonthMax]  = useState(20000)
 
   useEffect(() => {
-    onCoreChange?.({ equity, fico, monthsOwned, income, poolFilter })
-  }, [equity, fico, monthsOwned, income, poolFilter]) // eslint-disable-line
+    onCoreChange?.({
+      equity, fico, monthsOwned, income, poolFilter,
+      // Solar filters — surfaced so the host can refine getPropertiesByCriteria
+      // when the user is on a solar-installer tenant.
+      solar: {
+        roofM2: [roofM2Min, roofM2Max],
+        sunshineHours: [sunshineMin, sunshineMax],
+        propertyAge: [propAgeMin, propAgeMax],
+        estProjectCost: [projCostMin, projCostMax],
+        minAnnualKwh: [minKwhMin, minKwhMax],
+        maxAnnualKwh: [maxKwhMin, maxKwhMax],
+      },
+    })
+  }, [equity, fico, monthsOwned, income, poolFilter,
+      roofM2Min, roofM2Max, sunshineMin, sunshineMax,
+      propAgeMin, propAgeMax, projCostMin, projCostMax,
+      minKwhMin, minKwhMax, maxKwhMin, maxKwhMax]) // eslint-disable-line
 
   const CoreFilters = () => (
     <div className="flex flex-col">
@@ -968,6 +983,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   // Real properties + analytics returned by get-properties-by-criteria
   const [realAnalytics, setRealAnalytics] = useState(null)
   const [realProperties, setRealProperties] = useState([])
+  const refetchTimerRef = useRef(null)
   // Real saved campaigns from this tenant (campaign-collections)
   const [savedCampaigns, setSavedCampaigns] = useState([])
   const [savedCampaignsLoading, setSavedCampaignsLoading] = useState(false)
@@ -1015,6 +1031,48 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
       .finally(() => { if (!cancelled) setSavedCampaignsLoading(false) })
     return () => { cancelled = true }
   }, [])
+
+  // Live refetch — when filters change while a polygon is drawn, re-run the
+  // criteria search after a short debounce so the user sees counts update.
+  useEffect(() => {
+    if (!mapShape || mapShape.kind === 'circle') return
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current)
+    refetchTimerRef.current = setTimeout(async () => {
+      try {
+        const isSolar = !!userInfo?.merchant_info?.is_solar
+        setPropertyCountLoading(true)
+        const propsData = await getPropertiesByCriteria(mapShape.latlngs, {
+          filters: filterVals,
+          solar: isSolar ? filterVals.solar : null,
+        }).catch(() => null)
+        if (propsData?.analytics) setRealAnalytics(propsData.analytics)
+        if (Array.isArray(propsData?.results) && propsData.results.length > 0) {
+          const realMarkers = propsData.results
+            .map((p, i) => {
+              const lat = p.Latitude ?? p.latitude ?? p.lat ?? null
+              const lng = p.Longitude ?? p.longitude ?? p.lng ?? null
+              if (typeof lat !== 'number' || typeof lng !== 'number') return null
+              const qualified = (p.qualifies ?? p.is_qualified) ??
+                ((p.FICO != null && p.AvailableEquity != null)
+                  ? (p.FICO >= 660 && p.AvailableEquity >= 50_000) : undefined)
+              return {
+                id: p.PropertyId ?? p.id ?? `p-${i}`,
+                lat, lng,
+                address: p.Address || '',
+                qualified,
+                popupHtml: buildPropertyPopup(p, { qualified }),
+              }
+            })
+            .filter(Boolean)
+          if (realMarkers.length > 0) setMapHouseholds(realMarkers)
+          setRealProperties(propsData.results)
+        }
+      } catch (e) { console.warn('[geo] refetch on filter change', e) }
+      finally { setPropertyCountLoading(false) }
+    }, 500)
+    return () => { if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterVals])
 
   // When heatmap mode flips, recolor every active overlay in place — no refetch.
   useEffect(() => {
@@ -1388,13 +1446,17 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                 // full criteria search (which also returns analytics).
                 ;(async () => {
                   try {
+                    const isSolar = !!userInfo?.merchant_info?.is_solar
                     const [countData, propsData] = await Promise.all([
                       shape.kind === 'circle'
                         ? getPropertiesCountCircle(shape.center, shape.radius)
                         : getPropertiesCountPolygon(shape.latlngs),
                       shape.kind === 'circle'
                         ? Promise.resolve(null)   // criteria endpoint requires polygon, skip for circle
-                        : getPropertiesByCriteria(shape.latlngs).catch(() => null),
+                        : getPropertiesByCriteria(shape.latlngs, {
+                            filters: filterVals,
+                            solar: isSolar ? filterVals.solar : null,
+                          }).catch(() => null),
                     ])
                     const count = countData?.count_of_properties ?? countData?.total_property_count ?? countData?.count ?? null
                     if (typeof count === 'number') setRealPropertyCount(count)

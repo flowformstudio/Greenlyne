@@ -103,17 +103,31 @@ export function getUserInfoByToken() {
  */
 export function getPropertiesByCriteria(latlngs, opts = {}) {
   const polygon = toClosedLngLatRing(latlngs)
+  const f = opts.filters || {}
+  const solar = opts.solar || null
   const body = {
     polygon_coordinates: polygon,
-    CLTV: [0, 100],
-    FICOScore: [600, 850],
-    AvailableEquity: [0, 99_999_000],
-    MonthOwnership: [0, 360],
+    CLTV: f.cltv ?? [0, 100],
+    FICOScore: [Math.max(600, Number(f.fico ?? 600)), 850],
+    AvailableEquity: [
+      Math.max(0, Number(f.equity ?? 0) * 1000),
+      99_999_000,
+    ],
+    MonthOwnership: [Math.max(0, Number(f.monthsOwned ?? 0)), 360],
     ApplyCensusTractFilter: false,
     ProductType: 'HELOC',
     CampaignIds: [],
-    ExcludePoolProperties: false,
-    ApplySwimmingPoolFilter: false,
+    ExcludePoolProperties: f.poolFilter === 'without',
+    ApplySwimmingPoolFilter: f.poolFilter && f.poolFilter !== 'any',
+    // Solar fields are only included when explicitly enabled via opts.solar
+    ...(solar ? {
+      RoofM2:               solar.roofM2,
+      SunshineHoursPerYear: solar.sunshineHours,
+      PropertyAge:          solar.propertyAge,
+      EstProjectCost:       solar.estProjectCost,
+      MinAnnualEnergyDcKwh: solar.minAnnualKwh,
+      MaxAnnualEnergyDcKwh: solar.maxAnnualKwh,
+    } : {}),
     ...opts.body,
   }
   return glyneFetch('get-properties-by-criteria', body, {
