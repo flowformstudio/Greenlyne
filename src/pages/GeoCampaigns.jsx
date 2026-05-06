@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
+import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape } from '../components/GeoLeafletMap'
+import { getPropertiesCountPolygon, getPropertiesCountCircle } from '../lib/glyneApi'
 
 const CAMPAIGNS_BASE = [
   {
@@ -953,6 +955,33 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   const [projectCost, setProjectCost] = useState('')
   const [addressQuery, setAddressQuery] = useState('')
   const [addressFocused, setAddresseFocused] = useState(false)
+  // Live-map state (real Leaflet)
+  const [mapShape, setMapShape] = useState(null)             // payload from GeoLeafletMap.onShape
+  const [mapHouseholds, setMapHouseholds] = useState([])     // markers rendered on the map
+  const [mapFlyTo, setMapFlyTo] = useState(null)             // [lat, lng, zoom] for programmatic recentering
+  const [geoSuggestions, setGeoSuggestions] = useState([])   // Nominatim results
+  const [geoLoading, setGeoLoading] = useState(false)
+  const geoTimerRef = useRef(null)
+  // Real backend counts for the drawn shape (replaces the rough area*800 estimate)
+  const [realPropertyCount, setRealPropertyCount] = useState(null)
+  const [propertyCountLoading, setPropertyCountLoading] = useState(false)
+
+  // Debounced live geocoding (Nominatim — free, ~1 req/sec).
+  useEffect(() => {
+    if (geoTimerRef.current) clearTimeout(geoTimerRef.current)
+    if (!addressQuery || addressQuery.trim().length < 3) {
+      setGeoSuggestions([])
+      setGeoLoading(false)
+      return
+    }
+    setGeoLoading(true)
+    geoTimerRef.current = setTimeout(async () => {
+      const hits = await geocodeAddress(addressQuery)
+      setGeoSuggestions(hits)
+      setGeoLoading(false)
+    }, 350)
+    return () => { if (geoTimerRef.current) clearTimeout(geoTimerRef.current) }
+  }, [addressQuery])
 
   // Edit mode: show existing screened leads from this campaign
   const [showingExistingLeads, setShowingExistingLeads] = useState(isEdit)
@@ -1085,39 +1114,61 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
       {step === 2 ? (
         <div className="flex-1 relative overflow-hidden">
 
-          {/* Map area — fills entire content area */}
-          <div
-            className={`absolute inset-0 overflow-hidden ${drawMode ? 'cursor-crosshair' : 'cursor-default'}`}
-              onClick={() => {
-                if (step === 2 && drawMode) {
-                  setDrawMode(null)
-                  setEstimatesLoading(true)
-                  setHouseholdPhase('loading')
-                  setSelectedHouseholds(new Set())
-                  setTimeout(() => {
-                    setShapeDrawn(true)
-                    setEstimatesLoading(false)
-                    setHouseholdPhase('list')
-                  }, 1600)
-                }
+          {/* Map area — real Leaflet map, fills the content area */}
+          <div className="absolute inset-0 overflow-hidden">
+            <GeoLeafletMap
+              center={[25.7617, -80.1918]}
+              zoom={12}
+              drawMode={drawMode}
+              flyTo={mapFlyTo}
+              households={mapHouseholds}
+              onShape={(shape) => {
+                setMapShape(shape)
+                setDrawMode(null)
+                setShapeDrawn(true)
+                setEstimatesLoading(true)
+                setHouseholdPhase('loading')
+                setSelectedHouseholds(new Set())
+                setRealPropertyCount(null)
+                setPropertyCountLoading(true)
+                // Generate plausible household markers inside the drawn shape
+                // for the side panel UX while we fetch the real count.
+                const generated = generateHouseholdsInShape(shape, 30)
+                setMapHouseholds(generated)
+                // Fire-and-forget: ask the real backend how many properties live
+                // inside the shape and replace the local estimate with the truth.
+                ;(async () => {
+                  try {
+                    const data = shape.kind === 'circle'
+                      ? await getPropertiesCountCircle(shape.center, shape.radius)
+                      : await getPropertiesCountPolygon(shape.latlngs)
+                    const count = data?.count_of_properties ?? data?.total_property_count ?? data?.count ?? null
+                    if (typeof count === 'number') setRealPropertyCount(count)
+                  } catch (e) {
+                    console.warn('[geo] get-properties-count failed', e)
+                  } finally {
+                    setPropertyCountLoading(false)
+                  }
+                })()
+                setTimeout(() => {
+                  setEstimatesLoading(false)
+                  setHouseholdPhase('list')
+                }, 1200)
+              }}
+              onClearShape={() => {
+                setShapeDrawn(false)
+                setMapShape(null)
+                setMapHouseholds([])
+                setHouseholdPhase('idle')
+                setSelectedHouseholds(new Set())
+                setPrescreenResults({})
+                setOutreachDone({})
               }}
             >
-              {/* Right-side vertical tools — zoom + draw */}
+              {/* Right-side vertical tools — draw shape only (Leaflet provides zoom in top-right) */}
               {step === 2 && (
-                <div className="absolute top-4 right-[340px] z-10 flex flex-col gap-2"
+                <div className="absolute top-4 right-[340px] z-[400] flex flex-col gap-2"
                   onClick={e => e.stopPropagation()}>
-                  {/* Zoom controls */}
-                  <div className="flex flex-col rounded-lg shadow-md overflow-hidden"
-                    style={{background: dark ? '#172340' : '#fff', border:`1px solid ${dark ? 'rgba(99,140,255,0.2)' : '#E5E7EB'}`}}>
-                    <button className="w-8 h-8 flex items-center justify-center transition-colors text-lg font-light"
-                      style={{color: dark ? 'rgba(232,238,248,0.6)' : '#4B5563', borderBottom:`1px solid ${dark ? 'rgba(99,140,255,0.12)' : '#F3F4F6'}`}}
-                      onMouseOver={e => e.currentTarget.style.background = dark ? 'rgba(232,238,248,0.06)' : '#F3F4F6'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}>+</button>
-                    <button className="w-8 h-8 flex items-center justify-center transition-colors text-lg font-light"
-                      style={{color: dark ? 'rgba(232,238,248,0.6)' : '#4B5563'}}
-                      onMouseOver={e => e.currentTarget.style.background = dark ? 'rgba(232,238,248,0.06)' : '#F3F4F6'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}>−</button>
-                  </div>
                   {/* Draw tools */}
                   <div className="flex flex-col rounded-lg shadow-md overflow-hidden"
                     style={{background: dark ? '#172340' : '#fff', border:`1px solid ${dark ? 'rgba(99,140,255,0.2)' : '#E5E7EB'}`}}>
@@ -1132,11 +1183,11 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                           <circle cx="12" cy="12" r="10"/>
                         </svg>
                       ), label: 'Circle / radius' },
-                      { key: 'census', icon: (
+                      { key: 'rectangle', icon: (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                          <rect x="3" y="5" width="18" height="14"/>
                         </svg>
-                      ), label: 'Census tract' },
+                      ), label: 'Rectangle / bbox' },
                     ].map(({ key, icon, label }, idx, arr) => (
                       <button key={key}
                         title={label}
@@ -1160,6 +1211,8 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                       onClick={() => {
                         setShapeDrawn(false)
                         setDrawMode(null)
+                        setMapShape(null)
+                        setMapHouseholds([])
                         setHouseholdPhase('idle')
                         setSelectedHouseholds(new Set())
                         setPrescreenResults({})
@@ -1177,59 +1230,41 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                 </div>
               )}
 
-              {/* Map SVG */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice">
-                <rect width="900" height="600" fill="#ede8de"/>
-                <polygon points="740,0 900,0 900,600 700,600 630,480 680,300 650,120" fill="#c2d9ee" opacity="0.85"/>
-                <rect x="110" y="170" width="90" height="65" rx="3" fill="#c6d9b0"/>
-                <rect x="390" y="350" width="65" height="45" rx="3" fill="#c6d9b0"/>
-                <rect x="540" y="160" width="50" height="70" rx="3" fill="#c6d9b0"/>
-                {[120,240,360,480].map(y => <line key={y} x1="0" y1={y} x2="740" y2={y} stroke="#ccc4b4" strokeWidth="3.5"/>)}
-                {[130,260,390,520,650].map(x => <line key={x} x1={x} y1="0" x2={x} y2="600" stroke="#ccc4b4" strokeWidth="3.5"/>)}
-                {[60,180,300,420,540].map(y => <line key={`sy${y}`} x1="0" y1={y} x2="740" y2={y} stroke="#d8d2c6" strokeWidth="1.5"/>)}
-                {[65,195,325,455,585].map(x => <line key={`sx${x}`} x1={x} y1="0" x2={x} y2="600" stroke="#d8d2c6" strokeWidth="1.5"/>)}
-                <line x1="0" y1="600" x2="450" y2="0" stroke="#ccc4b4" strokeWidth="1.5" opacity="0.6"/>
-                <polygon points="70,110 270,90 310,250 220,310 55,270" fill="#6366f1" opacity="0.10"/>
-                <polygon points="70,110 270,90 310,250 220,310 55,270" fill="none" stroke="#6366f1" strokeWidth="1.5" opacity="0.3" strokeDasharray="5,4"/>
-                <text x="165" y="200" textAnchor="middle" fontFamily="PostGrotesk, sans-serif" fontSize="10" fill="#6366f1" opacity="0.45" fontWeight="500">Miami Westside</text>
-                <polygon points="370,300 530,285 555,430 360,455" fill="#f59e0b" opacity="0.08"/>
-                <polygon points="370,300 530,285 555,430 360,455" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.25" strokeDasharray="5,4"/>
-                <text x="460" y="375" textAnchor="middle" fontFamily="PostGrotesk, sans-serif" fontSize="10" fill="#b45309" opacity="0.4" fontWeight="500">Brickell</text>
-                {shapeDrawn && <>
-                  <polygon points="155,125 430,105 475,270 390,355 135,335 95,220" fill="#16a34a" opacity="0.15"/>
-                  <polygon points="155,125 430,105 475,270 390,355 135,335 95,220" fill="none" stroke="#16a34a" strokeWidth="1.5" opacity="0.75"/>
-                  {[[155,125],[430,105],[475,270],[390,355],[135,335],[95,220]].map(([x,y],i) => (
-                    <circle key={i} cx={x} cy={y} r="5" fill="white" stroke="#16a34a" strokeWidth="1.5"/>
-                  ))}
-                </>}
-                {/* Live callout */}
-                {shapeDrawn && <>
-                  <rect x="185" y="185" width="265" height="54" rx="10" fill="white"
-                    style={{filter:'drop-shadow(0 2px 8px rgba(0,0,0,0.16))'}}/>
-                  <text x="317" y="207" textAnchor="middle" fontFamily="PostGrotesk, sans-serif" fontSize="12" fill="#111827" fontWeight="600">
-                    ~2,400 homeowners in area
-                  </text>
-                  <text x="317" y="226" textAnchor="middle" fontFamily="PostGrotesk, sans-serif" fontSize="12" fill="#15803d" fontWeight="600">
-                    ~{estQualify?.toLocaleString()} estimated to qualify
-                  </text>
-                </>}
-              </svg>
+              {/* Live callout — real count from backend when available, else local estimate */}
+              {shapeDrawn && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[400] pointer-events-none">
+                  <div className="rounded-xl px-4 py-2.5 text-center"
+                    style={{background:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.16)', border:'1px solid rgba(0,0,0,0.06)'}}>
+                    <div className="text-[12px] font-semibold text-gray-900 leading-tight">
+                      {propertyCountLoading
+                        ? 'Counting properties…'
+                        : realPropertyCount != null
+                          ? `${realPropertyCount.toLocaleString()} homeowners in area`
+                          : `~${Math.round((mapShape?.areaKm2 || 1) * 800).toLocaleString()} homeowners in area`}
+                    </div>
+                    <div className="text-[12px] font-semibold leading-tight" style={{color:'#15803d'}}>
+                      ~{(realPropertyCount != null ? Math.round(realPropertyCount * 0.35) : estQualify)?.toLocaleString()} estimated to qualify
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Draw hints — step 2 only */}
               {step === 2 && drawMode && !shapeDrawn && (
-                <div className="absolute inset-0 flex items-end justify-center pb-10 pointer-events-none">
+                <div className="absolute inset-0 flex items-end justify-center pb-10 pointer-events-none z-[400]">
                   <div className="bg-gray-900/80 text-white text-sm  px-5 py-2.5 rounded-xl backdrop-blur-sm">
-                    {drawMode === 'polygon' && 'Click to place points — click first point to close shape'}
-                    {drawMode === 'circle'  && 'Click on the map to set the center of your radius'}
-                    {drawMode === 'census'  && 'Click census tracts to select entire neighborhoods'}
+                    {drawMode === 'polygon'   && 'Click to place points — click the first point to close the shape'}
+                    {drawMode === 'circle'    && 'Click on the map and drag to set the radius'}
+                    {drawMode === 'rectangle' && 'Click and drag on the map to select a rectangular area'}
                   </div>
                 </div>
               )}
               {step === 2 && !drawMode && !shapeDrawn && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-gray-400 bg-white/80 px-3 py-1.5 rounded-lg border border-gray-200 whitespace-nowrap">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-gray-400 bg-white/80 px-3 py-1.5 rounded-lg border border-gray-200 whitespace-nowrap z-[400]">
                   Use a drawing tool to select an area
                 </div>
               )}
+            </GeoLeafletMap>
           </div>
 
           {/* Center top — address search bar */}
@@ -1255,29 +1290,25 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                   <button onClick={() => setAddressQuery('')} className="text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.3)' : '#D1D5DB'}}>✕</button>
                 )}
               </div>
-              {addressFocused && addressSuggestions.length > 0 && (
-                <div className="absolute top-full mt-1.5 left-0 right-0 rounded-2xl overflow-hidden z-30"
+              {addressFocused && (geoLoading || geoSuggestions.length > 0) && (
+                <div className="absolute top-full mt-1.5 left-0 right-0 rounded-2xl overflow-hidden z-[500]"
                   style={{background: dark ? '#172340' : '#fff', border:`1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.08)'}`, boxShadow:'0 8px 24px rgba(0,0,0,0.15)'}}>
-                  {addressSuggestions.map((s, i) => (
+                  {geoLoading && (
+                    <div className="px-4 py-2.5 text-[12px]" style={{color: dark ? 'rgba(232,238,248,0.45)' : '#9CA3AF'}}>Searching…</div>
+                  )}
+                  {!geoLoading && geoSuggestions.map((s, i) => (
                     <button key={i}
                       onMouseDown={() => {
                         setAddressQuery(s.label)
                         setAddresseFocused(false)
-                        setEstimatesLoading(true)
-                        setHouseholdPhase('loading')
-                        setSelectedHouseholds(new Set())
-                        setTimeout(() => {
-                          setShapeDrawn(true)
-                          setEstimatesLoading(false)
-                          setHouseholdPhase('list')
-                        }, 1600)
+                        setMapFlyTo([s.lat, s.lng, 15])
                       }}
                       className="w-full px-4 py-2.5 text-left text-[12px] flex items-center gap-2.5"
                       style={{color: dark ? 'rgba(232,238,248,0.7)' : '#374151', borderBottom:`1px solid ${dark ? 'rgba(99,140,255,0.08)' : '#F3F4F6'}`}}
                       onMouseOver={e => e.currentTarget.style.background = dark ? 'rgba(232,238,248,0.05)' : '#F9FAFB'}
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                      <span style={{color: dark ? 'rgba(232,238,248,0.25)' : '#9CA3AF'}} className="text-[11px]">📍</span>
-                      {s.label}
+                      <span style={{color: dark ? 'rgba(232,238,248,0.25)' : '#9CA3AF'}} className="text-[11px] shrink-0">📍</span>
+                      <span className="truncate">{s.label}</span>
                     </button>
                   ))}
                 </div>
