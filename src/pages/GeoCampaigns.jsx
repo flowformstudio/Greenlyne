@@ -984,6 +984,10 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   const [realAnalytics, setRealAnalytics] = useState(null)
   const [realProperties, setRealProperties] = useState([])
   const refetchTimerRef = useRef(null)
+  // Core filter values — managed by FiltersPanel, surfaced here for estimates +
+  // for the real `getPropertiesByCriteria` call. Declared up here so the
+  // live-refetch useEffect below can read it without TDZ issues.
+  const [filterVals, setFilterVals] = useState({ equity: 50, fico: 660, monthsOwned: 24, income: 50, poolFilter: 'any' })
   // Real saved campaigns from this tenant (campaign-collections)
   const [savedCampaigns, setSavedCampaigns] = useState([])
   const [savedCampaignsLoading, setSavedCampaignsLoading] = useState(false)
@@ -1129,10 +1133,89 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
       if (overlay) {
         setActiveOverlays([overlay])
         setFocusedCampaign({ campaign, detail: r })
+        // Also treat the saved polygon as the "active shape" so analytics + markers
+        // populate the same way drawing one would. Backend stores [lng,lat] —
+        // flip to [lat,lng] for the mapShape contract used by everything downstream.
+        if (Array.isArray(r?.polygon_coordinates) && r.polygon_coordinates.length >= 3) {
+          const latlngs = r.polygon_coordinates.map(([lng, lat]) => [lat, lng])
+          activateShapeFromCampaign({
+            kind: 'polygon',
+            latlngs,
+            bbox: bboxFromLatLngs(latlngs),
+            areaKm2: 0,  // not used downstream for saved campaigns
+            center: null,
+            radius: null,
+          })
+        }
       }
     } catch (e) {
       console.warn('[geo] load saved campaign', e)
     }
+  }
+
+  /** Treat a polygon (drawn or loaded) as the active shape: fetch real
+   * properties + analytics, populate household markers, advance UI to "list" phase. */
+  async function activateShapeFromCampaign(shape) {
+    setMapShape(shape)
+    setShapeDrawn(true)
+    setEstimatesLoading(true)
+    setHouseholdPhase('loading')
+    setSelectedHouseholds(new Set())
+    setRealPropertyCount(null)
+    setRealAnalytics(null)
+    setRealProperties([])
+    setMapHouseholds([])
+    setPropertyCountLoading(true)
+    try {
+      const isSolar = !!userInfo?.merchant_info?.is_solar
+      const [countData, propsData] = await Promise.all([
+        getPropertiesCountPolygon(shape.latlngs).catch(() => null),
+        getPropertiesByCriteria(shape.latlngs, {
+          filters: filterVals,
+          solar: isSolar ? filterVals.solar : null,
+        }).catch(() => null),
+      ])
+      const count = countData?.count_of_properties ?? null
+      if (typeof count === 'number') setRealPropertyCount(count)
+      if (propsData?.analytics) setRealAnalytics(propsData.analytics)
+      if (Array.isArray(propsData?.results) && propsData.results.length > 0) {
+        const realMarkers = propsData.results
+          .map((p, i) => {
+            const lat = p.Latitude ?? p.latitude ?? p.lat ?? null
+            const lng = p.Longitude ?? p.longitude ?? p.lng ?? null
+            if (typeof lat !== 'number' || typeof lng !== 'number') return null
+            const qualified = (p.qualifies ?? p.is_qualified) ??
+              ((p.FICO != null && p.AvailableEquity != null)
+                ? (p.FICO >= 660 && p.AvailableEquity >= 50_000) : undefined)
+            return {
+              id: p.PropertyId ?? p.id ?? `p-${i}`,
+              lat, lng,
+              address: p.Address || '',
+              qualified,
+              popupHtml: buildPropertyPopup(p, { qualified }),
+            }
+          })
+          .filter(Boolean)
+        if (realMarkers.length > 0) setMapHouseholds(realMarkers)
+        setRealProperties(propsData.results)
+      }
+    } finally {
+      setPropertyCountLoading(false)
+      setEstimatesLoading(false)
+      setHouseholdPhase('list')
+    }
+  }
+
+  function bboxFromLatLngs(latlngs) {
+    if (!latlngs || latlngs.length === 0) return [0, 0, 0, 0]
+    let s = Infinity, w = Infinity, n = -Infinity, e = -Infinity
+    for (const [lat, lng] of latlngs) {
+      if (lat < s) s = lat
+      if (lat > n) n = lat
+      if (lng < w) w = lng
+      if (lng > e) e = lng
+    }
+    return [s, w, n, e]
   }
 
   /**
@@ -1326,9 +1409,6 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
 
   // Loading state for estimates
   const [estimatesLoading, setEstimatesLoading] = useState(false)
-
-  // Core filter values — managed by FiltersPanel, surfaced here for estimates
-  const [filterVals, setFilterVals] = useState({ equity: 50, fico: 660, monthsOwned: 24, income: 50, poolFilter: 'any' })
 
   // Household selection + prescreen state
   const [selectedHouseholds, setSelectedHouseholds] = useState(new Set())
@@ -1572,31 +1652,51 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
               )}
 
               {/* Live callout — real backend data when available */}
-              {shapeDrawn && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[400] pointer-events-none">
-                  <div className="rounded-xl px-4 py-2.5 text-center"
-                    style={{background:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.16)', border:'1px solid rgba(0,0,0,0.06)', minWidth: 280}}>
-                    <div className="text-[12px] font-semibold text-gray-900 leading-tight">
-                      {propertyCountLoading
-                        ? 'Counting properties…'
-                        : realPropertyCount != null
-                          ? `${realPropertyCount.toLocaleString()} homeowners in area`
-                          : `~${Math.round((mapShape?.areaKm2 || 1) * 800).toLocaleString()} homeowners in area`}
-                    </div>
-                    <div className="text-[12px] font-semibold leading-tight" style={{color:'#15803d'}}>
-                      {realAnalytics
-                        ? `${(realAnalytics.count_of_qualifying_homeowners ?? realAnalytics.count_of_qualifying_households ?? 0).toLocaleString()} qualifying homeowners`
-                        : `~${(realPropertyCount != null ? Math.round(realPropertyCount * 0.35) : estQualify)?.toLocaleString()} estimated to qualify`}
-                    </div>
-                    {realAnalytics && (realAnalytics.median_home_value > 0 || realAnalytics.median_home_equity > 0) && (
-                      <div className="text-[10px] mt-1 leading-tight flex justify-center gap-3" style={{color:'rgba(0,0,0,0.5)'}}>
-                        {realAnalytics.median_home_value > 0 && <span>Med. value <strong>${(realAnalytics.median_home_value/1000).toFixed(0)}k</strong></span>}
-                        {realAnalytics.median_home_equity > 0 && <span>Med. equity <strong>${(realAnalytics.median_home_equity/1000).toFixed(0)}k</strong></span>}
+              {shapeDrawn && (() => {
+                // When we already have a count and a refetch is in-flight,
+                // don't blank the count — keep it readable, just dim and
+                // surface a subtle "Updating…" pulse pill so users know live
+                // data is moving in response to filter slider changes.
+                const haveResult = realPropertyCount != null
+                const refining = propertyCountLoading && haveResult
+                const initial  = propertyCountLoading && !haveResult
+                return (
+                  <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[400] pointer-events-none">
+                    <div className="relative rounded-xl px-4 py-2.5 text-center"
+                      style={{background:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.16)', border:'1px solid rgba(0,0,0,0.06)', minWidth: 280, transition:'opacity 0.18s'}}>
+                      {/* Top-right "Updating…" pill — only on refetch, not initial */}
+                      {refining && (
+                        <span className="absolute -top-2.5 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                          style={{background:'#001660', color:'#fff', fontSize:9, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', boxShadow:'0 2px 8px rgba(0,22,96,0.25)'}}>
+                          <span className="ff-pulse-dot" style={{width:6, height:6, borderRadius:999, background:'#93DDBA'}} />
+                          Updating
+                        </span>
+                      )}
+                      <div className="text-[12px] font-semibold text-gray-900 leading-tight"
+                        style={{opacity: refining ? 0.55 : 1, transition:'opacity 0.18s'}}>
+                        {initial
+                          ? 'Counting properties…'
+                          : haveResult
+                            ? `${realPropertyCount.toLocaleString()} homeowners in area`
+                            : `~${Math.round((mapShape?.areaKm2 || 1) * 800).toLocaleString()} homeowners in area`}
                       </div>
-                    )}
+                      <div className="text-[12px] font-semibold leading-tight"
+                        style={{color:'#15803d', opacity: refining ? 0.6 : 1, transition:'opacity 0.18s'}}>
+                        {realAnalytics
+                          ? `${(realAnalytics.count_of_qualifying_homeowners ?? realAnalytics.count_of_qualifying_households ?? 0).toLocaleString()} qualifying homeowners`
+                          : `~${(realPropertyCount != null ? Math.round(realPropertyCount * 0.35) : estQualify)?.toLocaleString()} estimated to qualify`}
+                      </div>
+                      {realAnalytics && (realAnalytics.median_home_value > 0 || realAnalytics.median_home_equity > 0) && (
+                        <div className="text-[10px] mt-1 leading-tight flex justify-center gap-3"
+                          style={{color:'rgba(0,0,0,0.5)', opacity: refining ? 0.55 : 1, transition:'opacity 0.18s'}}>
+                          {realAnalytics.median_home_value > 0 && <span>Med. value <strong>${(realAnalytics.median_home_value/1000).toFixed(0)}k</strong></span>}
+                          {realAnalytics.median_home_equity > 0 && <span>Med. equity <strong>${(realAnalytics.median_home_equity/1000).toFixed(0)}k</strong></span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Draw hints — step 2 only */}
               {step === 2 && drawMode && !shapeDrawn && (
