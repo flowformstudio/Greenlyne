@@ -1615,7 +1615,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
             style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.09)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)', maxHeight: '40%'}}
             onClick={e => e.stopPropagation()}>
             <div className="px-4 py-3 border-b" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)'}}>
                   Saved Campaigns
                 </span>
@@ -1627,6 +1627,18 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                       : `${savedCampaigns.length} live`}
                 </span>
               </div>
+              {userInfo?.bank_info && (
+                <div className="flex items-center gap-1.5 mb-2 text-[9.5px]" style={{color: dark ? 'rgba(232,238,248,0.5)' : 'rgba(0,22,96,0.55)'}}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6m0 10v6"/>
+                  </svg>
+                  Connected as
+                  <span className="font-semibold" style={{color: dark ? '#E8EEF8' : '#001660'}}>
+                    {userInfo.bank_info.bank_display_name || userInfo.bank_info.display_name}
+                  </span>
+                </div>
+              )}
               <button
                 onClick={handleToggleAllOverlays}
                 disabled={savedCampaigns.length === 0 || bulkLoading}
@@ -1788,6 +1800,37 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
           {/* Right floating panel — household selection + prescreen */}
           <div className="absolute top-4 right-4 bottom-4 z-20 w-80 flex flex-col rounded-2xl overflow-hidden"
             style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.08)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)'}}>
+
+            {/* Session header — real bank + user info, no PII secrets */}
+            {userInfo && (() => {
+              const bank = userInfo.bank_info || {}
+              const merch = userInfo.merchant_info || {}
+              const display = bank.bank_display_name || bank.display_name || 'Unknown bank'
+              const orgType = bank.org_type ? bank.org_type.replace(/_/g, ' ') : null
+              const userType = (userInfo.user_type || '').replace(/_/g, ' ')
+              return (
+                <div className="px-4 py-2.5 border-b flex items-center gap-2.5"
+                  style={{
+                    borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)',
+                    background: dark ? 'rgba(232,238,248,0.03)' : 'rgba(37,75,206,0.025)',
+                  }}>
+                  {merch.logo
+                    ? <img src={merch.logo} alt="" className="w-6 h-6 rounded shrink-0" style={{objectFit:'contain', background:'#fff', padding:2}} />
+                    : <div className="w-6 h-6 rounded shrink-0 flex items-center justify-center text-[10px] font-bold"
+                        style={{background: dark ? '#1F2937' : '#001660', color:'#fff'}}>
+                        {display.split(' ').map(s => s[0]).slice(0,2).join('').toUpperCase()}
+                      </div>}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11.5px] font-semibold truncate" style={{color: dark ? '#E8EEF8' : '#001660'}}>
+                      {display}
+                    </div>
+                    <div className="text-[9.5px]" style={{color: dark ? 'rgba(232,238,248,0.5)' : 'rgba(0,22,96,0.55)'}}>
+                      {userInfo.username}{userType && ` · ${userType}`}{orgType && ` · ${orgType}`}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Live prescreen quota — real data from prescreen-usage/widget */}
             {(() => {
