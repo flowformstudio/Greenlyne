@@ -88,6 +88,11 @@ export function getPrescreenUsageWidget() {
   return glyneFetch('prescreen-usage/widget')
 }
 
+/** Authenticated user's profile + bank/merchant info — drives deep-links + tenant labels. */
+export function getUserInfoByToken() {
+  return glyneFetch('get-user-info-by-token')
+}
+
 /**
  * Real property records inside a polygon, with per-shape analytics
  * (median home value/equity, qualifying counts, projected originations).

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
 import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape, buildPropertyPopup } from '../components/GeoLeafletMap'
-import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria, listSavedCampaigns, getSavedCampaignDetail, getPrescreenUsageWidget } from '../lib/glyneApi'
+import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria, listSavedCampaigns, getSavedCampaignDetail, getPrescreenUsageWidget, getUserInfoByToken } from '../lib/glyneApi'
 
 const CAMPAIGNS_BASE = [
   {
@@ -981,15 +981,24 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   // Real prescreen quota for the authenticated account.
   const [quotaWidget, setQuotaWidget] = useState(null)
   const [quotaLoading, setQuotaLoading] = useState(false)
+  // Authenticated user info — drives the "Open in PMPro" deep-link target + tenant label.
+  const [userInfo, setUserInfo] = useState(null)
   useEffect(() => {
     let cancelled = false
     setQuotaLoading(true)
-    getPrescreenUsageWidget()
-      .then(d => { if (!cancelled) setQuotaWidget(d) })
-      .catch(e => console.warn('[geo] quota widget', e))
-      .finally(() => { if (!cancelled) setQuotaLoading(false) })
+    Promise.all([
+      getPrescreenUsageWidget().catch(() => null),
+      getUserInfoByToken().catch(() => null),
+    ]).then(([q, u]) => {
+      if (cancelled) return
+      setQuotaWidget(q)
+      setUserInfo(u)
+    }).finally(() => { if (!cancelled) setQuotaLoading(false) })
     return () => { cancelled = true }
   }, [])
+  // Resolve the "Open in PMPro" URL from the live user-info, or fall back to a default.
+  const pmproHomeUrl = userInfo?.bank_info?.pmpro_website || 'https://greenlyne.ai/'
+  const userBankId = userInfo?.bank_info?.bank_id ?? userInfo?.bank_info?.id ?? null
   // Cache of fetched campaign details so we don't re-hit the API.
   const campaignDetailCache = useRef(new Map())
   // The "focused" campaign — drives the side card in the right panel.
@@ -1922,16 +1931,33 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                       )}
                     </div>
                   )}
-                  {/* Action: re-fly to this campaign */}
-                  <button onClick={() => focusSavedCampaign(c)}
-                    className="w-full mt-3 text-[11px] font-semibold rounded-md py-1.5 transition-colors"
-                    style={{
-                      background: dark ? 'rgba(99,140,255,0.12)' : 'rgba(37,75,206,0.06)',
-                      color: dark ? '#638CFF' : '#254BCE',
-                      border: `1px solid ${dark ? 'rgba(99,140,255,0.25)' : 'rgba(37,75,206,0.18)'}`,
-                    }}>
-                    Re-center map on this campaign
-                  </button>
+                  {/* Actions */}
+                  <div className="flex gap-1.5 mt-3">
+                    <button onClick={() => focusSavedCampaign(c)}
+                      className="flex-1 text-[11px] font-semibold rounded-md py-1.5 transition-colors"
+                      style={{
+                        background: dark ? 'rgba(99,140,255,0.12)' : 'rgba(37,75,206,0.06)',
+                        color: dark ? '#638CFF' : '#254BCE',
+                        border: `1px solid ${dark ? 'rgba(99,140,255,0.25)' : 'rgba(37,75,206,0.18)'}`,
+                      }}>
+                      Re-center map
+                    </button>
+                    <a
+                      href={pmproHomeUrl}
+                      target="_blank" rel="noopener noreferrer"
+                      title={`Open ${userInfo?.bank_info?.bank_display_name || 'PMPro'}`}
+                      className="flex items-center justify-center gap-1 text-[11px] font-semibold rounded-md px-3 transition-colors no-underline"
+                      style={{
+                        background: dark ? 'rgba(232,238,248,0.06)' : '#fff',
+                        color: dark ? 'rgba(232,238,248,0.7)' : 'rgba(0,22,96,0.7)',
+                        border: `1px solid ${dark ? 'rgba(99,140,255,0.18)' : 'rgba(0,0,0,0.10)'}`,
+                      }}>
+                      Open
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               )
             })()}
