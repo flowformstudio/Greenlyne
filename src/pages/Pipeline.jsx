@@ -9,6 +9,7 @@ import { calcRate, calcEscrowLoan, formatCurrencyFull, AMORT_TERM_MO, ORIGINATIO
 import { DEMO_PERSONA } from '../lib/persona'
 import { setDemoSession } from '../lib/demoSession'
 import { subscribeLeads, addLead, deleteLead } from '../lib/firebase'
+import { subscribeImports, addImport, seedImportsIfEmpty, formatImportDate } from '../lib/imports'
 
 // ─── Demo borrower profile (mirrors the SmartPOS persona for downstream calcs) ─
 const DEMO_PROFILE = {
@@ -1792,6 +1793,50 @@ const MOCK_VALIDATION = {
   ],
 }
 
+// Build a full pipeline-lead record from a single CSV row (the demo's mock rows
+// always pass prescreen). Generates plausible amounts so the rows look real
+// once they appear in the CRM list.
+function csvLeadToLead(csvRow, batchLabel = 'Bulk Upload') {
+  const m = (csvRow.city || '').match(/^(.+?),\s*([A-Z]{2})\s*(\d{5})?$/)
+  const city  = m ? m[1].trim() : (csvRow.city || '')
+  const state = m ? m[2] : ''
+  const zip   = m && m[3] ? m[3] : ''
+  // Deterministic-ish randomness based on the row id keeps demo output stable.
+  const seed = (csvRow.id || 0) * 17 + 23
+  const draw = 50_000 + (seed % 9) * 8_000              // $50–$114k
+  const monthly = 540 + (seed % 7) * 60                 // ~$540–$900
+  const fiveYr  = monthly * 60
+  const fmt = n => '$' + Math.round(n).toLocaleString()
+  return {
+    status: 'qualified',
+    name: csvRow.name,
+    location: city + (state ? `, ${state}` : ''),
+    amount: fmt(draw),
+    product: 'HELOC',
+    monthly: fmt(monthly),
+    fiveYear: fmt(fiveYr),
+    portal: false, apply: false, days: 0,
+    lastActivity: `Bulk import (${batchLabel}) · prescreened`,
+    actions: ['Send Email', 'Send Postcard'],
+    phone: '(555) 555-0100',
+    email: csvRow.email || '',
+    address: csvRow.address || '',
+    apr: '8.25%', offerDate: 'Today', offerStatus: 'active',
+    propValue: '—', equity: '—', cltv: '—', fico: '—', dti: '—',
+    portalFirst: null, portalLast: null, pagesViewed: 0, clickedApply: null, daysSince: 0,
+    emailSent: null, postcardSent: null, lastContact: null,
+    source: 'Bulk Upload', createdBy: 'Demo User', createdDate: 'Today',
+    zip,
+    prescreenChecks: [
+      { check: 'Address Verification', result: 'Pass', reason: null },
+      { check: 'Max CLTV',             result: 'Pass', reason: null },
+      { check: 'Credit check',         result: 'Pass', reason: null },
+      { check: 'Loan Offer',           result: 'Generated', reason: null },
+    ],
+    timeline: [{ date: 'Today', event: `Lead created via Bulk Upload (${batchLabel})` }],
+  }
+}
+
 const MOCK_CSV_LEADS = [
   { id:  1, name: 'Marcus Thompson',   address: '1842 Oak Hill Dr',    city: 'Phoenix, AZ 85001',   email: 'marcus.t@gmail.com',      warn: false },
   { id:  2, name: 'Jane Foster',       address: '77 Palm Ave',         city: 'Phoenix, AZ 85004',   email: 'jane.foster@outlook.com', warn: false },
@@ -1817,6 +1862,15 @@ function ImportCSVModal({ onClose, onBatchDone }) {
   const [error, setError]       = useState('')
   const [rowCount, setRowCount] = useState(null)
   const inputRef                = useRef(null)
+
+  // Live import history from Firestore. Seeds the demo's defaults on first open
+  // (only runs the write if the collection is actually empty).
+  const [imports, setImports] = useState([])
+  const [savedImportId, setSavedImportId] = useState(null)
+  useEffect(() => {
+    seedImportsIfEmpty().catch(e => console.warn('[imports] seed', e))
+    return subscribeImports(setImports)
+  }, [])
 
   function processFile(f) {
     if (!f) return
@@ -1877,7 +1931,8 @@ function ImportCSVModal({ onClose, onBatchDone }) {
     if (file) setBatchName(file.name.replace(/\.csv$/i, '').replace(/[_-]/g, ' '))
   }, [file])
 
-  // Processing animation — auto-advances to results when complete
+  // Processing animation — auto-advances to results when complete, persists
+  // the import-history doc, and adds the prescreened leads to the CRM main list.
   useEffect(() => {
     if (step !== 'processing') return
     setProcessed(0)
@@ -1889,6 +1944,26 @@ function ImportCSVModal({ onClose, onBatchDone }) {
       setProcessed(Math.round(pct * total))
       if (pct >= 1) {
         clearInterval(interval)
+        // Persist this import once per processing run.
+        if (file && !savedImportId) {
+          addImport({
+            file_name: file.name,
+            file_size_bytes: file.size,
+            household_count: validRows + skippedRows,
+            homeowner_count_with_offer: validRows,
+            status: 'OFFER_GENERATION_DONE',
+          })
+            .then(id => setSavedImportId(id))
+            .catch(e => console.warn('[imports] add', e))
+
+          // Push the prescreened leads (those that passed validation) into
+          // prescreen_leads so they appear in the pipeline list. Skip warn
+          // rows — those failed the prescreen.
+          const passed = MOCK_CSV_LEADS.filter(l => !l.warn)
+          const fileLabel = file.name.replace(/\.csv$/i, '')
+          Promise.all(passed.map(csv => addLead(csvLeadToLead(csv, fileLabel))))
+            .catch(e => console.warn('[imports] addLead batch', e))
+        }
         setStep('results')
       }
     }, 80)
@@ -2037,17 +2112,24 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                   <span>↓</span><span>Download template</span>
                 </button>
 
-                {/* Import history */}
+                {/* Import history — live from Firestore */}
                 <div className="border-t border-gray-100 pt-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Import History</p>
                   <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                    {IMPORT_HISTORY.map(item => (
-                      <div key={item.request_uid} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    {imports.length === 0 && (
+                      <div className="text-sm text-gray-400 px-3 py-3">No imports yet.</div>
+                    )}
+                    {imports.map(item => (
+                      <div key={item.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="text-gray-300 text-base shrink-0">📄</span>
                           <div className="min-w-0">
                             <p className="text-sm text-gray-800 font-medium truncate">{item.file_name}</p>
-                            <p className="text-xs text-gray-400">{item.created_at} · {item.household_count.toLocaleString()} rows{item.homeowner_count_with_offer > 0 ? ` · ${item.homeowner_count_with_offer} offers` : ''}</p>
+                            <p className="text-xs text-gray-400">
+                              {formatImportDate(item)}
+                              {typeof item.household_count === 'number' && ` · ${item.household_count.toLocaleString()} rows`}
+                              {item.homeowner_count_with_offer > 0 ? ` · ${item.homeowner_count_with_offer} offers` : ''}
+                            </p>
                           </div>
                         </div>
                         <div className="shrink-0 ml-3">{statusBadge(item.status)}</div>
