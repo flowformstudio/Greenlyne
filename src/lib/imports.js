@@ -74,6 +74,21 @@ export async function seedImportsIfEmpty() {
   }
 }
 
+/**
+ * Delete any import doc that has no parsed rows attached. Useful for clearing
+ * out historical seed/legacy entries created before file-content storage.
+ * Returns the number of docs removed.
+ */
+export async function clearEmptyImports() {
+  const snap = await getDocs(collection(db, COLL))
+  const empties = snap.docs.filter(d => {
+    const data = d.data() || {}
+    return !Array.isArray(data.rows) || data.rows.length === 0
+  })
+  await Promise.all(empties.map(d => deleteDoc(doc(db, COLL, d.id))))
+  return empties.length
+}
+
 /** Render either the seed's friendly label or a Firestore timestamp. */
 export function formatImportDate(item) {
   if (item?.created_at_label) return item.created_at_label

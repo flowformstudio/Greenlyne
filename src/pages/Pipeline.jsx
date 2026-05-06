@@ -9,7 +9,7 @@ import { calcRate, calcEscrowLoan, formatCurrencyFull, AMORT_TERM_MO, ORIGINATIO
 import { DEMO_PERSONA } from '../lib/persona'
 import { setDemoSession } from '../lib/demoSession'
 import { subscribeLeads, addLead, deleteLead } from '../lib/firebase'
-import { subscribeImports, addImport, seedImportsIfEmpty, formatImportDate, readFileAsText, parseCSV, MAX_STORED_ROWS } from '../lib/imports'
+import { subscribeImports, addImport, deleteImport, clearEmptyImports, formatImportDate, readFileAsText, parseCSV, MAX_STORED_ROWS } from '../lib/imports'
 
 // ─── Demo borrower profile (mirrors the SmartPOS persona for downstream calcs) ─
 const DEMO_PROFILE = {
@@ -1779,6 +1779,25 @@ function ImportDetailModal({ item, onClose }) {
   const headers = Array.isArray(item?.headers) && item.headers.length
     ? item.headers
     : (rows[0] ? Object.keys(rows[0]) : [])
+
+  // Quote a CSV cell only when it actually needs it (commas, quotes, or newlines).
+  function csvCell(v) {
+    const s = v == null ? '' : String(v)
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  function downloadCSV() {
+    if (!rows.length || !headers.length) return
+    const lines = [headers.join(',')]
+    for (const row of rows) lines.push(headers.map(h => csvCell(row[h])).join(','))
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = item?.file_name || 'import.csv'
+    document.body.appendChild(a); a.click(); a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div
       onClick={onClose}
@@ -1812,21 +1831,61 @@ function ImportDetailModal({ item, onClose }) {
                   ? ` · ${item.homeowner_count_with_offer} offers` : ''}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              aria-label="Close"
-              style={{
-                width: 32, height: 32, borderRadius: 8,
-                background: 'transparent', border: '1px solid rgba(0,22,96,0.12)',
-                color: 'rgba(0,22,96,0.6)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
-              </svg>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {rows.length > 0 && (
+                <button
+                  onClick={downloadCSV}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    height: 32, padding: '0 12px', borderRadius: 8,
+                    background: '#001660', color: '#fff', border: '1px solid #001660',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}
+                  title={`Download ${item?.file_name || 'CSV'}`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download CSV
+                </button>
+              )}
+              <button
+                onClick={async () => {
+                  if (!item?.id) return
+                  if (!window.confirm(`Delete "${item.file_name}" from import history? This can't be undone.`)) return
+                  try { await deleteImport(item.id) } catch (e) { console.warn('[imports] delete', e) }
+                  onClose()
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  height: 32, padding: '0 12px', borderRadius: 8,
+                  background: 'transparent', border: '1px solid rgba(185,28,28,0.30)',
+                  color: '#B91C1C', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'rgba(185,28,28,0.06)'}
+                onMouseOut={e  => e.currentTarget.style.background = 'transparent'}
+                title="Delete this import from history"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Delete
+              </button>
+              <button
+                onClick={onClose}
+                aria-label="Close"
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  background: 'transparent', border: '1px solid rgba(0,22,96,0.12)',
+                  color: 'rgba(0,22,96,0.6)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1890,6 +1949,48 @@ const MOCK_VALIDATION = {
     { name: 'Email',       official: 'email',      required: false, status: 'warning', issue_rows: 12 },
     { name: 'Phone',       official: 'phone',      required: false, status: 'found',   issue_rows: 0 },
   ],
+}
+
+// Format the "Added" cell — handles Firestore Timestamps, JS Dates, ISO
+// strings, and the static LEADS_BASE rows (which only have createdDate text).
+function formatLeadAddedAt(lead) {
+  const d = leadAddedAtDate(lead)
+  if (d) return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return lead?.createdDate || '—'
+}
+
+// Pull a real Date out of a lead, regardless of source (Firestore Timestamp,
+// JS Date, ISO string, or the LEADS_BASE static `createdDate` string).
+function leadAddedAtDate(lead) {
+  const ts = lead?.createdAt
+  if (ts) {
+    const d = ts.toDate ? ts.toDate() : new Date(ts)
+    if (!Number.isNaN(d?.getTime?.())) return d
+  }
+  if (lead?.createdDate) {
+    const d = new Date(lead.createdDate)
+    if (!Number.isNaN(d?.getTime?.())) return d
+  }
+  return null
+}
+
+// Derive a deterministic Qualified / Unqualified / Error result for a single
+// CSV row so the prescreen results page reflects what the user actually
+// selected (and stays stable between renders).
+function deriveCsvResult(csvRow) {
+  const address = `${csvRow.address || ''}, ${csvRow.city || ''}`.replace(/^,\s*|,\s*$/g, '')
+  if (csvRow.warn) {
+    return { name: csvRow.name, address, result: 'Error', amount: '', reason: 'Missing email' }
+  }
+  const bucket = (csvRow.id ?? 0) % 10
+  if (bucket < 7) {
+    const amount = '$' + (50_000 + ((csvRow.id ?? 0) * 4_700) % 50_000).toLocaleString()
+    return { name: csvRow.name, address, result: 'Qualified', amount, reason: '' }
+  }
+  if (bucket < 9) {
+    return { name: csvRow.name, address, result: 'Unqualified', amount: '', reason: 'Insufficient equity' }
+  }
+  return { name: csvRow.name, address, result: 'Error', amount: '', reason: 'Address not found' }
 }
 
 // Build a full pipeline-lead record from a single CSV row (the demo's mock rows
@@ -1968,7 +2069,9 @@ function ImportCSVModal({ onClose, onBatchDone }) {
   const [savedImportId, setSavedImportId] = useState(null)
   const [viewingImport, setViewingImport] = useState(null)
   useEffect(() => {
-    seedImportsIfEmpty().catch(e => console.warn('[imports] seed', e))
+    // Sweep out historical entries that have no row data attached — those
+    // were seed/legacy docs from before file-content storage existed.
+    clearEmptyImports().catch(e => console.warn('[imports] cleanup', e))
     return subscribeImports(setImports)
   }, [])
 
@@ -2074,10 +2177,11 @@ function ImportCSVModal({ onClose, onBatchDone }) {
             .then(id => setSavedImportId(id))
             .catch(e => console.warn('[imports] add', e))
 
-          // Push the prescreened leads (those that passed validation) into
-          // prescreen_leads so they appear in the pipeline list. Skip warn
-          // rows — those failed the prescreen.
-          const passed = MOCK_CSV_LEADS.filter(l => !l.warn)
+          // Push the prescreened leads into prescreen_leads so they appear
+          // in the CRM. Only adds rows the user actually selected on Step 3
+          // (and excludes warn rows that failed the prescreen) — so a
+          // one-lead prescreen creates exactly one CRM entry.
+          const passed = MOCK_CSV_LEADS.filter(l => selectedIds.has(l.id) && !l.warn)
           const fileLabel = file.name.replace(/\.csv$/i, '')
           Promise.all(passed.map(csv => addLead(csvLeadToLead(csv, fileLabel))))
             .catch(e => console.warn('[imports] addLead batch', e))
@@ -2151,7 +2255,7 @@ function ImportCSVModal({ onClose, onBatchDone }) {
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40" onClick={step === 'upload' ? onClose : undefined} />
-        <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-3xl flex flex-col overflow-y-auto max-h-[92vh]">
+        <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden max-h-[92vh]">
 
           {/* Sending overlay — covers the modal while emails go out */}
           {emailFlow === 'sending' && (
@@ -2510,20 +2614,30 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                   </div>
                 )}
 
-                {/* Punchy stat row */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { value: '312', label: 'Qualified',        sub: 'Ready for outreach', color: '#016163', bg: '#ECFDF5', border: '#D1FAE5' },
-                    { value: '156', label: 'Not Qualified',    sub: 'Equity / credit',    color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
-                    { value: '4',   label: 'Errors',           sub: "Couldn't process",   color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
-                  ].map(({ value, label, sub, color, bg, border }) => (
-                    <div key={label} className="rounded-md px-4 py-4 flex flex-col gap-1" style={{background: bg, border: `1px solid ${border}`}}>
-                      <span className="text-3xl font-bold tabular-nums leading-none" style={{color}}>{value}</span>
-                      <span className="text-[13px] font-semibold" style={{color}}>{label}</span>
-                      <span className="text-[11px] text-gray-400">{sub}</span>
+                {/* Punchy stat row — derived from the user's actual selection */}
+                {(() => {
+                  const selectedLeads = MOCK_CSV_LEADS.filter(l => selectedIds.has(l.id))
+                  const results = selectedLeads.map(l => deriveCsvResult(l))
+                  const qualifiedCt   = results.filter(r => r.result === 'Qualified').length
+                  const unqualifiedCt = results.filter(r => r.result === 'Unqualified').length
+                  const errorCt       = results.filter(r => r.result === 'Error').length
+                  const tiles = [
+                    { value: qualifiedCt,   label: 'Qualified',     sub: 'Ready for outreach', color: '#016163', bg: '#ECFDF5', border: '#D1FAE5' },
+                    { value: unqualifiedCt, label: 'Not Qualified', sub: 'Equity / credit',    color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+                    { value: errorCt,       label: 'Errors',        sub: "Couldn't process",   color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+                  ]
+                  return (
+                    <div className="grid grid-cols-3 gap-3">
+                      {tiles.map(({ value, label, sub, color, bg, border }) => (
+                        <div key={label} className="rounded-md px-4 py-4 flex flex-col gap-1" style={{background: bg, border: `1px solid ${border}`}}>
+                          <span className="text-3xl font-bold tabular-nums leading-none" style={{color}}>{value.toLocaleString()}</span>
+                          <span className="text-[13px] font-semibold" style={{color}}>{label}</span>
+                          <span className="text-[11px] text-gray-400">{sub}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
 
 
                 {/* Action buttons — primary CTA is whichever channel hasn't been sent yet */}
@@ -2600,18 +2714,13 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                   </div>
                 </div>
 
-                {/* Individual results — scrollable, clickable */}
+                {/* Individual results — scrollable, clickable. Built from the
+                    leads the user actually selected on step 3 so a one-lead
+                    prescreen shows exactly one result. */}
                 {(() => {
-                  const RESULT_ROWS = [
-                    { name: 'Marcus Thompson', address: '1842 Oak Hill Dr, Phoenix, AZ 85001', result: 'Qualified',   amount: '$92,000', reason: '' },
-                    { name: 'Jane Foster',      address: '77 Palm Ave, Phoenix, AZ 85004',      result: 'Unqualified', amount: '',        reason: 'Insufficient equity' },
-                    { name: 'Alex Ray',         address: '12 Oak Street, Phoenix, AZ 85009',    result: 'Error',       amount: '',        reason: 'Address not found' },
-                    { name: 'Olivia Chen',      address: '998 Canyon Rd, Phoenix, AZ 85016',    result: 'Qualified',   amount: '$68,500', reason: '' },
-                    { name: 'James Patel',      address: '334 Saguaro Blvd, Phoenix, AZ 85021', result: 'Qualified',   amount: '$54,000', reason: '' },
-                    { name: 'Maria Gonzalez',   address: '221 Cactus Dr, Phoenix, AZ 85031',    result: 'Unqualified', amount: '',        reason: 'Credit check' },
-                    { name: 'Robert Kim',       address: '540 Desert Rose Ln, Scottsdale, AZ',  result: 'Qualified',   amount: '$78,000', reason: '' },
-                    { name: 'Sandra Ortiz',     address: '8821 W Bell Rd, Glendale, AZ',        result: 'Unqualified', amount: '',        reason: 'Insufficient equity' },
-                  ]
+                  const RESULT_ROWS = MOCK_CSV_LEADS
+                    .filter(l => selectedIds.has(l.id))
+                    .map(l => deriveCsvResult(l))
                   const badgeStyle = r => r === 'Qualified'
                     ? { background: '#ECFDF5', color: '#016163' }
                     : r === 'Unqualified'
@@ -2695,7 +2804,7 @@ function ImportCSVModal({ onClose, onBatchDone }) {
 
             return (
               <>
-                <div className="px-6 py-5 flex flex-col gap-5">
+                <div className="px-6 py-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
 
                   {/* Batch name */}
                   <div className="flex flex-col gap-1.5">
@@ -2982,10 +3091,45 @@ export default function Pipeline() {
   // Backed by Firestore so adds persist across reloads and sync across browsers.
   const [extraLeads, setExtraLeads]       = useState([])
   const [freshlyAddedId, setFreshlyAddedId] = useState(null)
+  // Set of recently-added Firestore lead IDs (highlighted briefly in the table).
+  // We diff against the previous snapshot so a bulk import lights up every new row,
+  // not just one. Each id is auto-removed after the highlight window expires.
+  const [recentlyAddedIds, setRecentlyAddedIds] = useState(() => new Set())
+  const HIGHLIGHT_MS = 12000
   // IDs of leads the user removed in-session (LEADS_BASE entries can't be deleted —
   // we just hide them locally; Firestore-backed leads are deleted from the collection).
   const [hiddenLeadIds, setHiddenLeadIds] = useState(() => new Set())
-  useEffect(() => subscribeLeads(setExtraLeads), [])
+  useEffect(() => {
+    let known = new Set()
+    let firstSnapshot = true
+    return subscribeLeads(list => {
+      // Skip highlights on the very first snapshot — those are not "new", they're
+      // historical leads loading from Firestore.
+      if (!firstSnapshot) {
+        const fresh = list.filter(l => !known.has(l.id)).map(l => l.id)
+        if (fresh.length > 0) {
+          setRecentlyAddedIds(prev => {
+            const next = new Set(prev)
+            fresh.forEach(id => next.add(id))
+            return next
+          })
+          fresh.forEach(id => {
+            setTimeout(() => {
+              setRecentlyAddedIds(prev => {
+                if (!prev.has(id)) return prev
+                const next = new Set(prev)
+                next.delete(id)
+                return next
+              })
+            }, HIGHLIGHT_MS)
+          })
+        }
+      }
+      known = new Set(list.map(l => l.id))
+      firstSnapshot = false
+      setExtraLeads(list)
+    })
+  }, [])
   // Per-session "just sent" tracking — flips the lead row to "Sent · Just now"
   const [sentLeadIds, setSentLeadIds]     = useState(() => new Set())
   const [selectedIds, setSelectedIds]     = useState(new Set())
@@ -3176,14 +3320,23 @@ export default function Pipeline() {
     return true
   })
 
-  const sorted = sortKey ? [...filtered].sort((a, b) => {
-    const dir = sortDir === 'asc' ? 1 : -1
-    if (sortKey === 'amount')  return (parseAmt(a.amount)  - parseAmt(b.amount))  * dir
-    if (sortKey === 'monthly') return (parseAmt(a.monthly) - parseAmt(b.monthly)) * dir
-    if (sortKey === 'days')    return (a.days - b.days) * dir
-    const av = String(a[sortKey] ?? ''), bv = String(b[sortKey] ?? '')
+  // Default sort: newest leads first (Added On desc) when the user hasn't
+  // chosen a column to sort by. Once they click a column header it takes over.
+  const effectiveSortKey = sortKey ?? 'addedAt'
+  const effectiveSortDir = sortKey ? sortDir : 'desc'
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = effectiveSortDir === 'asc' ? 1 : -1
+    if (effectiveSortKey === 'amount')  return (parseAmt(a.amount)  - parseAmt(b.amount))  * dir
+    if (effectiveSortKey === 'monthly') return (parseAmt(a.monthly) - parseAmt(b.monthly)) * dir
+    if (effectiveSortKey === 'days')    return (a.days - b.days) * dir
+    if (effectiveSortKey === 'addedAt') {
+      const at = leadAddedAtDate(a)?.getTime() ?? 0
+      const bt = leadAddedAtDate(b)?.getTime() ?? 0
+      return (at - bt) * dir
+    }
+    const av = String(a[effectiveSortKey] ?? ''), bv = String(b[effectiveSortKey] ?? '')
     return av.localeCompare(bv) * dir
-  }) : filtered
+  })
 
   const hasFilters = !!(search || filterChannel || filterProduct || filterSource || filterStage || ctxSalesRep) || activeStatuses.size > 0
 
@@ -3238,19 +3391,20 @@ export default function Pipeline() {
     return d
   }
 
-  const DEFAULT_VISIBLE_COLS = new Set(['status','name','location','amount','product','monthly','portal','apply','days','lastActivity','source','actions'])
+  const DEFAULT_VISIBLE_COLS = new Set(['status','name','location','amount','product','monthly','portal','apply','days','lastActivity','source','addedAt','actions'])
   const ALL_COLS = [
     { key:'status', label:'Status' }, { key:'name', label:'Name' }, { key:'location', label:'Location' },
     { key:'amount', label:'Loan Amount' }, { key:'product', label:'Product' }, { key:'monthly', label:'Monthly' },
     { key:'portal', label:'Portal' }, { key:'apply', label:'Apply' }, { key:'days', label:'Days' },
-    { key:'lastActivity', label:'Last Activity' }, { key:'source', label:'Source' }, { key:'actions', label:'Actions' },
+    { key:'lastActivity', label:'Last Activity' }, { key:'source', label:'Source' }, { key:'addedAt', label:'Added On' },
+    { key:'actions', label:'Actions' },
   ]
   const [visibleCols, setVisibleCols] = useState(new Set(DEFAULT_VISIBLE_COLS))
   const [colPickerOpen, setColPickerOpen] = useState(false)
 
   const [colWidths, setColWidths] = useState({
     status: 130, name: 165, location: 145, amount: 115, product: 85,
-    monthly: 90, portal: 72, apply: 72, days: 62, lastActivity: 130, source: 145, actions: 120,
+    monthly: 90, portal: 72, apply: 72, days: 62, lastActivity: 130, source: 145, addedAt: 110, actions: 120,
   })
   const resizingRef = useRef(null)
   const filterSentinelRef = useRef(null)
@@ -3601,9 +3755,24 @@ export default function Pipeline() {
                   value={search}
                   onChange={e => { setSearch(e.target.value); setCurrentPage(0) }}
                   placeholder="Search leads..."
-                  className="pl-8 pr-3 py-1.5 text-[12px] rounded-lg w-44 focus:outline-none"
+                  className="pl-8 pr-7 py-1.5 text-[12px] rounded-lg w-44 focus:outline-none"
                   style={{border:`1px solid ${tk.filterBorder}`, background: tk.filterBg, color: tk.nameColor}}
                 />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(''); setCurrentPage(0) }}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center transition-colors"
+                    style={{ background: 'rgba(0,22,96,0.10)', color: tk.muteText2, border: 'none', cursor: 'pointer', padding: 0 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,22,96,0.18)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,22,96,0.10)' }}
+                  >
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                      <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+                    </svg>
+                  </button>
+                )}
               </div>
               <select value={filterStage} onChange={e => { setFilterStage(e.target.value); setActiveStatuses(new Set()); setCurrentPage(0) }}
                 className="pl-3 pr-8 py-1.5 text-[12px] rounded-lg cursor-pointer focus:outline-none"
@@ -3742,7 +3911,59 @@ export default function Pipeline() {
             <table className="text-sm" style={{tableLayout:'fixed', width:'100%', minWidth: Object.values(colWidths).reduce((a,b)=>a+b,0)+40}}>
               <thead>
                 <tr className="text-left" style={{borderBottom:`1px solid ${tk.innerCardBorder}`, background: tk.tableHeaderBg, position:'sticky', top:0, zIndex:2}}>
-                  {visibleCols.has('status')   && <SortTh col="status"   label="Status"      sortKey={sortKey} sortDir={sortDir} onSort={handleSort} width={colWidths.status}   onResizeStart={(e,c) => { resizingRef.current = { col:c, startX:e.clientX, startWidth:colWidths[c] } }} />}
+                  {visibleCols.has('status') && (() => {
+                    const pageIds   = paginated.map(l => l.id)
+                    const pageHas   = pageIds.length > 0
+                    const allOnPage = pageHas && pageIds.every(id => selectedIds.has(id))
+                    const someOnPage= pageHas && pageIds.some(id => selectedIds.has(id))
+                    return (
+                      <th
+                        className="relative px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest group whitespace-nowrap"
+                        style={{width: colWidths.status, minWidth: colWidths.status, color: tk.labelColor}}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="w-3.5 h-3.5 rounded cursor-pointer shrink-0"
+                            style={{ accentColor: '#001660' }}
+                            checked={allOnPage}
+                            ref={el => { if (el) el.indeterminate = !allOnPage && someOnPage }}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedIds(prev => {
+                                  const next = new Set(prev)
+                                  pageIds.forEach(id => next.add(id))
+                                  return next
+                                })
+                              } else {
+                                setSelectedIds(prev => {
+                                  const next = new Set(prev)
+                                  pageIds.forEach(id => next.delete(id))
+                                  return next
+                                })
+                              }
+                            }}
+                            title={allOnPage ? 'Deselect all on this page' : 'Select all on this page'}
+                          />
+                          <span
+                            className="cursor-pointer select-none flex items-center gap-1"
+                            onClick={() => handleSort('status')}
+                          >
+                            Status
+                            <span className="inline-flex flex-col gap-px shrink-0">
+                              <span style={{ fontSize: '7px', lineHeight: 1, color: sortKey === 'status' && sortDir === 'asc'  ? tk.labelColor : 'rgba(0,22,96,0.2)' }}>▲</span>
+                              <span style={{ fontSize: '7px', lineHeight: 1, color: sortKey === 'status' && sortDir === 'desc' ? tk.labelColor : 'rgba(0,22,96,0.2)' }}>▼</span>
+                            </span>
+                          </span>
+                        </div>
+                        <div
+                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-200 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onMouseDown={e => { e.preventDefault(); resizingRef.current = { col:'status', startX:e.clientX, startWidth:colWidths.status } }}
+                        />
+                      </th>
+                    )
+                  })()}
                   {visibleCols.has('name')     && <SortTh col="name"     label="Name"        sortKey={sortKey} sortDir={sortDir} onSort={handleSort} width={colWidths.name}     onResizeStart={(e,c) => { resizingRef.current = { col:c, startX:e.clientX, startWidth:colWidths[c] } }} />}
                   {visibleCols.has('location') && <SortTh col="location" label="Location"    sortKey={sortKey} sortDir={sortDir} onSort={handleSort} width={colWidths.location}  onResizeStart={(e,c) => { resizingRef.current = { col:c, startX:e.clientX, startWidth:colWidths[c] } }} />}
                   {visibleCols.has('amount')   && <SortTh col="amount"   label="Loan Amount" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} width={colWidths.amount}   onResizeStart={(e,c) => { resizingRef.current = { col:c, startX:e.clientX, startWidth:colWidths[c] } }} />}
@@ -3763,6 +3984,7 @@ export default function Pipeline() {
                       <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-200 z-10 opacity-0 group-hover:opacity-100 transition-opacity" onMouseDown={e => { e.preventDefault(); resizingRef.current = { col:'source', startX:e.clientX, startWidth:colWidths.source } }} />
                     </th>
                   )}
+                  {visibleCols.has('addedAt') && <SortTh col="addedAt" label="Added On" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} width={colWidths.addedAt} onResizeStart={(e,c) => { resizingRef.current = { col:c, startX:e.clientX, startWidth:colWidths[c] } }} />}
                   {visibleCols.has('actions') && <th className="px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest" style={{width:colWidths.actions, minWidth:colWidths.actions, color: tk.labelColor}}>Actions</th>}
                 </tr>
               </thead>
@@ -3771,7 +3993,7 @@ export default function Pipeline() {
                   <tr><td colSpan={visibleCols.size + 1} className="px-4 py-16 text-center text-[13px]" style={{color: tk.muteText3}}>No leads match this filter</td></tr>
                 )}
                 {paginated.map((lead, i) => {
-                  const isFresh = lead.id === freshlyAddedId
+                  const isFresh = lead.id === freshlyAddedId || recentlyAddedIds.has(lead.id)
                   return (
                   <tr
                     key={lead.id}
@@ -3810,14 +4032,7 @@ export default function Pipeline() {
                     )}
                     {visibleCols.has('name')     && (
                       <td className="px-4 py-3 text-[13px] font-semibold" style={{color: tk.nameColor}}>
-                        <span className="inline-flex items-center gap-2">
-                          {lead.name}
-                          {isFresh && (
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{background:'#016163', color:'#fff'}}>
-                              Just added
-                            </span>
-                          )}
-                        </span>
+                        {lead.name}
                       </td>
                     )}
                     {visibleCols.has('location') && <td className="px-4 py-3 text-[12px]" style={{color: tk.mutedText}}>{lead.location}</td>}
@@ -3827,7 +4042,21 @@ export default function Pipeline() {
                     {visibleCols.has('portal')   && <td className="px-4 py-3 text-center">{lead.portal ? <span className="text-[13px] font-bold" style={{color:'#016163'}}>✓</span> : <span style={{color: tk.muteText3}}>—</span>}</td>}
                     {visibleCols.has('apply')    && <td className="px-4 py-3 text-center">{lead.apply ? <span className="text-[13px] font-bold" style={{color:'#016163'}}>✓</span> : <span style={{color: tk.muteText3}}>—</span>}</td>}
                     {visibleCols.has('days')     && <td className="px-4 py-3 text-center text-[12px]" style={{color: tk.mutedText}}>{lead.days}</td>}
-                    {visibleCols.has('lastActivity') && <td className="px-4 py-3 text-[11px]" style={{color: tk.muteText2}}>{lead.lastActivity}</td>}
+                    {visibleCols.has('lastActivity') && (
+                      <td
+                        className="px-4 py-3 text-[11px]"
+                        style={{
+                          color: tk.muteText2,
+                          maxWidth: colWidths.lastActivity || 220,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                        title={lead.lastActivity}
+                      >
+                        {lead.lastActivity}
+                      </td>
+                    )}
                     {visibleCols.has('source') && (
                       <td className="px-4 py-3 text-[11px]">
                         {lead.source?.startsWith('Geo Campaign — ')
@@ -3837,6 +4066,11 @@ export default function Pipeline() {
                             : lead.source === 'Manual Entry'
                               ? <span className="px-2 py-0.5 rounded-full font-medium" style={{background:'rgba(0,22,96,0.06)', color:'rgba(0,22,96,0.5)'}}>Manual</span>
                               : <span style={{color:'rgba(0,22,96,0.2)'}}>—</span>}
+                      </td>
+                    )}
+                    {visibleCols.has('addedAt') && (
+                      <td className="px-4 py-3 text-[11px]" style={{color: tk.muteText2}}>
+                        {formatLeadAddedAt(lead)}
                       </td>
                     )}
                     {visibleCols.has('actions') && <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
