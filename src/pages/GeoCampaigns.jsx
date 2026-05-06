@@ -972,6 +972,11 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   const [savedCampaigns, setSavedCampaigns] = useState([])
   const [savedCampaignsLoading, setSavedCampaignsLoading] = useState(false)
   const [activeOverlays, setActiveOverlays] = useState([])
+  const [showAllOverlays, setShowAllOverlays] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 })
+  // Cache of fetched campaign details so we don't re-hit the API.
+  const campaignDetailCache = useRef(new Map())
 
   // Fetch the tenant's saved campaigns once when the map view opens.
   useEffect(() => {
@@ -984,40 +989,106 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
     return () => { cancelled = true }
   }, [])
 
+  async function fetchCampaignDetail(campaign) {
+    if (campaignDetailCache.current.has(campaign.id)) {
+      return campaignDetailCache.current.get(campaign.id)
+    }
+    const detail = await getSavedCampaignDetail(campaign.id)
+    const r = Array.isArray(detail?.results) && detail.results[0] ? detail.results[0] : null
+    campaignDetailCache.current.set(campaign.id, r)
+    return r
+  }
+
+  function buildOverlayFromDetail(campaign, r, fitBounds) {
+    if (!r?.polygon_coordinates || r.polygon_coordinates.length < 3) return null
+    const color = COLORS_FOR_CAMPAIGN[campaign.id % COLORS_FOR_CAMPAIGN.length]
+    const popupHtml = `
+      <div class="glp-card">
+        <div class="glp-eyebrow">Saved Campaign</div>
+        <div class="glp-name">${escapeHtmlSafe(campaign.name || r.name || 'Untitled')}</div>
+        <div class="glp-addr">${escapeHtmlSafe(campaign.created_by_name || '')}${campaign.created_at ? ` · ${new Date(campaign.created_at).toLocaleDateString()}` : ''}</div>
+        <div class="glp-grid">
+          <div class="glp-cell"><div class="glp-key">Selected</div><div class="glp-val">${(r.selected_households ?? 0).toLocaleString()}</div></div>
+          <div class="glp-cell"><div class="glp-key">Qualifying</div><div class="glp-val">${(r.qualifying_households ?? 0).toLocaleString()}</div></div>
+          <div class="glp-cell"><div class="glp-key">Homeowners</div><div class="glp-val">${(r.qualifying_homeowners ?? 0).toLocaleString()}</div></div>
+          <div class="glp-cell"><div class="glp-key">Pre-screen Offers</div><div class="glp-val">${(r.homeowners_with_pre_screen_offer ?? 0).toLocaleString()}</div></div>
+        </div>
+      </div>
+    `
+    return {
+      id: `camp-${campaign.id}`,
+      latlngs: r.polygon_coordinates,
+      color,
+      name: campaign.name,
+      popupHtml,
+      fitBounds,
+    }
+  }
+
   async function handleLoadSavedCampaign(campaign) {
     try {
-      const detail = await getSavedCampaignDetail(campaign.id)
-      const r = Array.isArray(detail?.results) && detail.results[0] ? detail.results[0] : null
-      if (!r?.polygon_coordinates || r.polygon_coordinates.length < 3) {
-        console.warn('[geo] saved campaign has no polygon', campaign)
-        return
-      }
-      const popupHtml = `
-        <div class="glp-card">
-          <div class="glp-eyebrow">Saved Campaign</div>
-          <div class="glp-name">${escapeHtmlSafe(campaign.name || r.name || 'Untitled')}</div>
-          <div class="glp-addr">${campaign.created_by_name || ''}${campaign.created_at ? ` · ${new Date(campaign.created_at).toLocaleDateString()}` : ''}</div>
-          <div class="glp-grid">
-            <div class="glp-cell"><div class="glp-key">Selected</div><div class="glp-val">${(r.selected_households ?? 0).toLocaleString()}</div></div>
-            <div class="glp-cell"><div class="glp-key">Qualifying</div><div class="glp-val">${(r.qualifying_households ?? 0).toLocaleString()}</div></div>
-            <div class="glp-cell"><div class="glp-key">Homeowners</div><div class="glp-val">${(r.qualifying_homeowners ?? 0).toLocaleString()}</div></div>
-            <div class="glp-cell"><div class="glp-key">Pre-screen Offers</div><div class="glp-val">${(r.homeowners_with_pre_screen_offer ?? 0).toLocaleString()}</div></div>
-          </div>
-        </div>
-      `
-      setActiveOverlays([{
-        id: `camp-${campaign.id}`,
-        latlngs: r.polygon_coordinates,
-        color: '#254BCE',
-        name: campaign.name,
-        popupHtml,
-        fitBounds: true,
-      }])
+      const r = await fetchCampaignDetail(campaign)
+      const overlay = buildOverlayFromDetail(campaign, r, true)
+      if (overlay) setActiveOverlays([overlay])
     } catch (e) {
       console.warn('[geo] load saved campaign', e)
     }
   }
+
+  /**
+   * Bulk-load every saved campaign's polygon and overlay them on the map.
+   * Runs in batches of 8 in parallel to keep the proxy from drowning, with
+   * progress reported to the panel. Cached so re-toggling is instant.
+   */
+  async function handleToggleAllOverlays() {
+    if (showAllOverlays) {
+      // Toggle off — clear and bail.
+      setShowAllOverlays(false)
+      setActiveOverlays([])
+      return
+    }
+    setShowAllOverlays(true)
+    setBulkLoading(true)
+    setBulkProgress({ done: 0, total: savedCampaigns.length })
+    const overlays = []
+    const BATCH = 8
+    for (let i = 0; i < savedCampaigns.length; i += BATCH) {
+      const batch = savedCampaigns.slice(i, i + BATCH)
+      // eslint-disable-next-line no-await-in-loop
+      const details = await Promise.all(batch.map(c => fetchCampaignDetail(c).catch(() => null)))
+      details.forEach((r, idx) => {
+        const o = buildOverlayFromDetail(batch[idx], r, false)
+        if (o) overlays.push(o)
+      })
+      setBulkProgress({ done: Math.min(i + BATCH, savedCampaigns.length), total: savedCampaigns.length })
+      // Live-update the map as batches come in so progress is visible.
+      setActiveOverlays(overlays.slice())
+    }
+    // After everything's loaded, fit to combined bounds.
+    if (overlays.length > 0) {
+      // Mark the last one as fitBounds=true so the map flies to the union.
+      // Better approach: compute combined bbox + use fitBounds. For simplicity,
+      // mark the overlay that covers the most area.
+      let biggest = overlays[0], biggestArea = 0
+      for (const o of overlays) {
+        const lats = o.latlngs.map(p => p[1])
+        const lngs = o.latlngs.map(p => p[0])
+        const area = (Math.max(...lats) - Math.min(...lats)) * (Math.max(...lngs) - Math.min(...lngs))
+        if (area > biggestArea) { biggest = o; biggestArea = area }
+      }
+      biggest.fitBounds = true
+      setActiveOverlays(overlays.slice())
+    }
+    setBulkLoading(false)
+  }
+
   const escapeHtmlSafe = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]))
+
+  // 12 distinct campaign colors — chosen to read cleanly on the light basemap.
+  const COLORS_FOR_CAMPAIGN = [
+    '#254BCE', '#016163', '#7C3AED', '#DC2626', '#D97706', '#0891B2',
+    '#059669', '#BE185D', '#475569', '#9333EA', '#0F766E', '#1F2937',
+  ]
 
   // Debounced live geocoding (Nominatim — free, ~1 req/sec).
   useEffect(() => {
@@ -1421,13 +1492,32 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
           <div className="absolute bottom-4 left-4 z-20 w-64 flex flex-col rounded-2xl overflow-hidden"
             style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.09)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)', maxHeight: '40%'}}
             onClick={e => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b flex items-center justify-between" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)'}}>
-                Saved Campaigns
-              </span>
-              <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
-                {savedCampaignsLoading ? '…' : `${savedCampaigns.length} live`}
-              </span>
+            <div className="px-4 py-3 border-b" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)'}}>
+                  Saved Campaigns
+                </span>
+                <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                  {savedCampaignsLoading ? '…' : `${savedCampaigns.length} live`}
+                </span>
+              </div>
+              <button
+                onClick={handleToggleAllOverlays}
+                disabled={savedCampaigns.length === 0 || bulkLoading}
+                className="w-full text-[11px] font-semibold rounded-md py-1.5 px-2 transition-colors flex items-center justify-center gap-1.5"
+                style={{
+                  background: showAllOverlays ? '#254BCE' : (dark ? 'rgba(99,140,255,0.10)' : 'rgba(37,75,206,0.06)'),
+                  color: showAllOverlays ? '#fff' : (dark ? '#638CFF' : '#254BCE'),
+                  border: `1px solid ${showAllOverlays ? '#254BCE' : (dark ? 'rgba(99,140,255,0.25)' : 'rgba(37,75,206,0.18)')}`,
+                  opacity: (savedCampaigns.length === 0 || bulkLoading) ? 0.7 : 1,
+                  cursor: (savedCampaigns.length === 0 || bulkLoading) ? 'wait' : 'pointer',
+                }}>
+                {bulkLoading
+                  ? `Loading ${bulkProgress.done}/${bulkProgress.total}…`
+                  : showAllOverlays
+                    ? '✓ Showing all on map'
+                    : 'Show all on map'}
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {savedCampaigns.length === 0 && !savedCampaignsLoading && (
@@ -1467,7 +1557,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                 <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.5)' : 'rgba(0,22,96,0.5)'}}>
                   {activeOverlays.length} on map
                 </span>
-                <button onClick={() => setActiveOverlays([])}
+                <button onClick={() => { setActiveOverlays([]); setShowAllOverlays(false) }}
                   className="text-[10px] font-semibold transition-colors"
                   style={{color: dark ? '#FCA5A5' : '#DC2626'}}>
                   Clear
