@@ -14,6 +14,87 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
+// Inject popup CSS once — Leaflet's default popup is too plain for the demo.
+if (typeof document !== 'undefined' && !document.getElementById('glyne-leaflet-popup-css')) {
+  const s = document.createElement('style')
+  s.id = 'glyne-leaflet-popup-css'
+  s.textContent = `
+    .glyne-popup .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      box-shadow: 0 8px 28px rgba(0,22,96,0.18);
+      padding: 0;
+      border: 1px solid rgba(0,22,96,0.06);
+    }
+    .glyne-popup .leaflet-popup-content { margin: 0; padding: 0; min-width: 240px; font-family: 'Manrope', system-ui, sans-serif; }
+    .glyne-popup .leaflet-popup-tip { box-shadow: 0 4px 14px rgba(0,22,96,0.18); }
+    .glp-card { padding: 14px 16px 12px; color: #001660; }
+    .glp-eyebrow { font-size: 9px; font-weight: 800; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(0,22,96,0.55); }
+    .glp-name { font-size: 13px; font-weight: 700; color: #001660; line-height: 1.25; margin-top: 4px; }
+    .glp-addr { font-size: 11px; color: rgba(0,22,96,0.65); line-height: 1.4; margin-top: 2px; }
+    .glp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,22,96,0.08); }
+    .glp-cell { min-width: 0; }
+    .glp-key { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(0,22,96,0.5); }
+    .glp-val { font-size: 13px; font-weight: 700; color: #001660; margin-top: 2px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .glp-val small { font-size: 10px; font-weight: 500; color: rgba(0,22,96,0.5); margin-left: 2px; }
+    .glp-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 8px; }
+    .glp-status.qualified   { background: rgba(22,163,74,0.10); color: #166534; }
+    .glp-status.unqualified { background: rgba(220,38,38,0.10); color: #991B1B; }
+  `
+  document.head.appendChild(s)
+}
+
+/** Build a polished HTML popup string from a property record. Safe defaults
+ * for missing fields. Caller passes whatever the API returns + a label. */
+export function buildPropertyPopup(p, opts = {}) {
+  const fmt$ = n => (n == null || n === '' || isNaN(n)) ? '—' : '$' + Math.round(Number(n)).toLocaleString()
+  const fmtPct = n => (n == null || n === '' || isNaN(n)) ? '—' : `${Math.round(Number(n))}%`
+  const owner = [p.OwnerFirstName, p.OwnerLastName].filter(Boolean).join(' ') || p.owner_name || 'Homeowner'
+  const addr  = [p.Address, p.City, p.State, p.ZipCode].filter(Boolean).join(', ') || p.address || ''
+  const cltv  = p.CLTV ?? p.cltv
+  const equity = p.AvailableEquity ?? p.available_equity
+  const fico  = p.FICO ?? p.fico
+  const home  = p.HomeValue ?? p.home_value
+  const loan  = p.LoanAmount ?? p.loan_amount
+  const apr   = p.APR ?? p.apr
+  const months = p.MonthsOwnership ?? p.months_ownership
+  const propAge = p.property_age ?? p.PropertyAge
+  const qualified = opts.qualified // optional override
+  const statusBadge =
+    qualified === true  ? `<span class="glp-status qualified">✓ Qualified</span>`
+  : qualified === false ? `<span class="glp-status unqualified">Not Qualified</span>`
+  : ''
+  const cells = [
+    home   != null && { k: 'Home Value', v: fmt$(home) },
+    equity != null && { k: 'Equity',     v: fmt$(equity) },
+    cltv   != null && { k: 'CLTV',       v: fmtPct(cltv) },
+    fico   != null && { k: 'FICO',       v: fico },
+    loan   != null && { k: 'Loan Est.',  v: fmt$(loan) },
+    apr    != null && { k: 'APR',        v: apr ? `${Number(apr).toFixed(2)}%` : '—' },
+    months != null && { k: 'Owned',      v: months ? `${Math.round(months / 12)} yr` : '—' },
+    propAge!= null && { k: 'Built',      v: propAge ? `${propAge} yr ago` : '—' },
+  ].filter(Boolean)
+  return `
+    <div class="glp-card">
+      <div class="glp-eyebrow">Property</div>
+      <div class="glp-name">${escapeHtml(owner)}</div>
+      ${addr ? `<div class="glp-addr">${escapeHtml(addr)}</div>` : ''}
+      ${statusBadge}
+      <div class="glp-grid">
+        ${cells.map(c => `
+          <div class="glp-cell">
+            <div class="glp-key">${escapeHtml(c.k)}</div>
+            <div class="glp-val">${c.v}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]))
+}
+
 const DEFAULT_CENTER = [25.7617, -80.1918]   // Miami
 const DEFAULT_ZOOM   = 12
 
@@ -106,7 +187,7 @@ export default function GeoLeafletMap({
     }
   }, [drawMode, ready])
 
-  // Render household markers
+  // Render household markers (with optional rich popup via popupHtml/raw)
   useEffect(() => {
     if (!ready || !householdLayer.current) return
     householdLayer.current.clearLayers()
@@ -123,7 +204,8 @@ export default function GeoLeafletMap({
         fillColor: color,
         fillOpacity: isSelected ? 0.9 : 0.55,
       })
-      if (h.address) marker.bindTooltip(h.address, { direction: 'top', offset: [0, -6] })
+      if (h.popupHtml) marker.bindPopup(h.popupHtml, { maxWidth: 280, className: 'glyne-popup' })
+      else if (h.address) marker.bindTooltip(h.address, { direction: 'top', offset: [0, -6] })
       if (onSelectHousehold) marker.on('click', () => onSelectHousehold(h.id))
       marker.addTo(householdLayer.current)
     })
@@ -238,15 +320,47 @@ export function generateHouseholdsInShape(shape, count = 30) {
     tries++
     const [lat, lng] = randomPointIn(shape)
     if (lat == null) continue
+    // Deterministic-ish synthetic data derived from index — real-feeling values
+    // so the demo's clickable popups have something useful when no backend
+    // results come back.
+    const idx = items.length
+    const fico = 640 + (idx * 13) % 200
+    const home = 240_000 + (idx * 17_300) % 380_000
+    const equity = Math.round(home * (0.25 + ((idx * 7) % 40) / 100))
+    const cltv = Math.round(((home - equity) / home) * 100)
+    const months = 24 + (idx * 11) % 240
+    const propAge = 5 + (idx * 3) % 75
+    const owner = SAMPLE_OWNERS[idx % SAMPLE_OWNERS.length]
+    const address = wantedAddresses[idx] || `${100 + idx} Sample St`
+    const qualified = fico >= 660 && equity >= 50_000
+    const propRecord = {
+      OwnerFirstName: owner[0],
+      OwnerLastName:  owner[1],
+      Address: address,
+      City: 'Kansas City', State: 'MO',
+      FICO: fico, HomeValue: home, AvailableEquity: equity, CLTV: cltv,
+      MonthsOwnership: months, property_age: propAge,
+      LoanAmount: Math.round(equity * 0.85),
+      APR: 8 + ((idx * 3) % 20) / 10,
+    }
     items.push({
-      id: `gen-${items.length}-${Date.now()}`,
+      id: `gen-${idx}-${Date.now()}`,
       lat, lng,
-      address: wantedAddresses[items.length] || `${100 + items.length} Sample St`,
-      qualified: undefined,
+      address,
+      qualified,
+      popupHtml: buildPropertyPopup(propRecord, { qualified }),
     })
   }
   return items
 }
+
+const SAMPLE_OWNERS = [
+  ['Sarah','Johnson'], ['Michael','Chen'], ['David','Martinez'], ['Jennifer','Lee'],
+  ['Robert','Brown'], ['Amanda','Wilson'], ['James','Taylor'], ['Maria','Gonzalez'],
+  ['Patricia','Williams'], ['Kevin','Moore'], ['Lisa','Anderson'], ['Brian','Harris'],
+  ['Nancy','Clark'], ['Jason','Lewis'], ['Marcus','Thompson'], ['Olivia','Chen'],
+  ['James','Patel'], ['Sandra','Ortiz'], ['Robert','Kim'], ['Alex','Ray'],
+]
 
 function randomPointIn(shape) {
   if (shape.kind === 'circle') {

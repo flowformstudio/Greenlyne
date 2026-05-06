@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
-import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape } from '../components/GeoLeafletMap'
+import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape, buildPropertyPopup } from '../components/GeoLeafletMap'
 import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria } from '../lib/glyneApi'
 
 const CAMPAIGNS_BASE = [
@@ -1161,11 +1161,18 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                           const lat = p.Latitude ?? p.latitude ?? p.lat ?? null
                           const lng = p.Longitude ?? p.longitude ?? p.lng ?? null
                           if (typeof lat !== 'number' || typeof lng !== 'number') return null
+                          // Backend doesn't always tag qualification per-row in the
+                          // DB-only fetch; infer from FICO + equity if missing.
+                          const qualified = (p.qualifies ?? p.is_qualified) ??
+                            ((p.FICO != null && p.AvailableEquity != null)
+                              ? (p.FICO >= 660 && p.AvailableEquity >= 50_000)
+                              : undefined)
                           return {
-                            id: p.id ?? `p-${i}`,
+                            id: p.PropertyId ?? p.id ?? `p-${i}`,
                             lat, lng,
                             address: p.Address || p.address || '',
-                            qualified: p.qualifies ?? p.is_qualified ?? undefined,
+                            qualified,
+                            popupHtml: buildPropertyPopup(p, { qualified }),
                           }
                         })
                         .filter(Boolean)
