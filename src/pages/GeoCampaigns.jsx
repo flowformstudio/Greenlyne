@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
 import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape, buildPropertyPopup } from '../components/GeoLeafletMap'
-import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria, listSavedCampaigns, getSavedCampaignDetail } from '../lib/glyneApi'
+import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria, listSavedCampaigns, getSavedCampaignDetail, getPrescreenUsageWidget } from '../lib/glyneApi'
 
 const CAMPAIGNS_BASE = [
   {
@@ -978,6 +978,18 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   const [campaignQuery, setCampaignQuery] = useState('')
   const [campaignSort, setCampaignSort] = useState('date') // 'date' | 'props' | 'name'
   const [heatmapMode, setHeatmapMode] = useState(false)
+  // Real prescreen quota for the authenticated account.
+  const [quotaWidget, setQuotaWidget] = useState(null)
+  const [quotaLoading, setQuotaLoading] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    setQuotaLoading(true)
+    getPrescreenUsageWidget()
+      .then(d => { if (!cancelled) setQuotaWidget(d) })
+      .catch(e => console.warn('[geo] quota widget', e))
+      .finally(() => { if (!cancelled) setQuotaLoading(false) })
+    return () => { cancelled = true }
+  }, [])
   // Cache of fetched campaign details so we don't re-hit the API.
   const campaignDetailCache = useRef(new Map())
 
@@ -1064,18 +1076,20 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
     }
     setShowAllOverlays(true)
     setBulkLoading(true)
-    setBulkProgress({ done: 0, total: savedCampaigns.length })
+    // Search-aware: load whatever's currently filtered, not the full list.
+    const target = filteredCampaigns
+    setBulkProgress({ done: 0, total: target.length })
     const overlays = []
     const BATCH = 8
-    for (let i = 0; i < savedCampaigns.length; i += BATCH) {
-      const batch = savedCampaigns.slice(i, i + BATCH)
+    for (let i = 0; i < target.length; i += BATCH) {
+      const batch = target.slice(i, i + BATCH)
       // eslint-disable-next-line no-await-in-loop
       const details = await Promise.all(batch.map(c => fetchCampaignDetail(c).catch(() => null)))
       details.forEach((r, idx) => {
         const o = buildOverlayFromDetail(batch[idx], r, false)
         if (o) overlays.push(o)
       })
-      setBulkProgress({ done: Math.min(i + BATCH, savedCampaigns.length), total: savedCampaigns.length })
+      setBulkProgress({ done: Math.min(i + BATCH, target.length), total: target.length })
       // Live-update the map as batches come in so progress is visible.
       setActiveOverlays(overlays.slice())
     }
@@ -1600,8 +1614,10 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                 {bulkLoading
                   ? `Loading ${bulkProgress.done}/${bulkProgress.total}…`
                   : showAllOverlays
-                    ? '✓ Showing all on map'
-                    : 'Show all on map'}
+                    ? `✓ Showing ${activeOverlays.length} on map`
+                    : campaignQuery
+                      ? `Show ${filteredCampaigns.length} match${filteredCampaigns.length === 1 ? '' : 'es'} on map`
+                      : 'Show all on map'}
               </button>
               {/* Search input */}
               <div className="relative mb-1.5">
@@ -1745,6 +1761,68 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
           {/* Right floating panel — household selection + prescreen */}
           <div className="absolute top-4 right-4 bottom-4 z-20 w-80 flex flex-col rounded-2xl overflow-hidden"
             style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.08)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)'}}>
+
+            {/* Live prescreen quota — real data from prescreen-usage/widget */}
+            {(() => {
+              const w = quotaWidget
+              const period = w?.period
+              const status = w?.threshold_status
+              const usagePct = typeof w?.usage_pct === 'number' ? Math.round(w.usage_pct * 100) / 100 : null
+              const remaining = w?.remaining_quota
+              const limit = w?.limit
+              const usage = w?.current_usage
+              const isUnlimited = period === 'unlimited' || limit == null
+              // Color the bar by threshold_status
+              const barColor = status === 'critical' ? '#DC2626'
+                            : status === 'warning'  ? '#D97706'
+                            : '#016163'
+              return (
+                <div className="px-4 pt-3 pb-3 border-b" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)'}}>
+                      Prescreen Quota
+                    </span>
+                    {quotaLoading
+                      ? <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>…</span>
+                      : isUnlimited
+                        ? <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                            style={{background:'rgba(1,97,99,0.10)', color:'#016163'}}>Unlimited</span>
+                        : null}
+                  </div>
+                  {!w && quotaLoading && (
+                    <div className="text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>Loading quota…</div>
+                  )}
+                  {w && isUnlimited && (
+                    <div className="text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.6)'}}>
+                      No quota cap on this account · <span className="tabular-nums">{usage?.toLocaleString?.() ?? 0}</span> run{usage === 1 ? '' : 's'} so far
+                    </div>
+                  )}
+                  {w && !isUnlimited && (
+                    <>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="tabular-nums text-[18px] font-bold" style={{color: dark ? '#E8EEF8' : '#001660'}}>
+                          {(remaining ?? 0).toLocaleString()}
+                        </span>
+                        <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.45)' : 'rgba(0,22,96,0.45)'}}>
+                          of {(limit ?? 0).toLocaleString()} remaining
+                        </span>
+                      </div>
+                      {/* Usage bar */}
+                      <div className="h-1.5 rounded-full mt-2 overflow-hidden" style={{background: dark ? 'rgba(232,238,248,0.08)' : 'rgba(0,22,96,0.06)'}}>
+                        <div className="h-full transition-all" style={{
+                          width: `${Math.max(2, Math.min(100, usagePct ?? 0))}%`,
+                          background: barColor,
+                        }} />
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5 text-[9.5px]" style={{color: dark ? 'rgba(232,238,248,0.45)' : 'rgba(0,22,96,0.5)'}}>
+                        <span>{usage?.toLocaleString() ?? 0} used · {usagePct ?? 0}%</span>
+                        {w.period_end_date && <span>resets {new Date(w.period_end_date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}</span>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* ── EDIT MODE: existing screened leads ── */}
             {showingExistingLeads && (() => {

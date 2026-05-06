@@ -83,6 +83,11 @@ export function getSavedCampaignDetail(id) {
   return glyneFetch(`campaign-collections/mail/${id}/`, {})
 }
 
+/** Real prescreen quota / usage widget for the authenticated account. */
+export function getPrescreenUsageWidget() {
+  return glyneFetch('prescreen-usage/widget')
+}
+
 /**
  * Real property records inside a polygon, with per-shape analytics
  * (median home value/equity, qualifying counts, projected originations).
