@@ -975,6 +975,8 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   const [showAllOverlays, setShowAllOverlays] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 })
+  const [campaignQuery, setCampaignQuery] = useState('')
+  const [campaignSort, setCampaignSort] = useState('date') // 'date' | 'props' | 'name'
   // Cache of fetched campaign details so we don't re-hit the API.
   const campaignDetailCache = useRef(new Map())
 
@@ -1089,6 +1091,45 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
     '#254BCE', '#016163', '#7C3AED', '#DC2626', '#D97706', '#0891B2',
     '#059669', '#BE185D', '#475569', '#9333EA', '#0F766E', '#1F2937',
   ]
+  const colorForCampaignId = (id) => COLORS_FOR_CAMPAIGN[id % COLORS_FOR_CAMPAIGN.length]
+
+  /** Apply search query + sort to saved campaigns. */
+  const filteredCampaigns = (() => {
+    const q = campaignQuery.trim().toLowerCase()
+    let list = savedCampaigns
+    if (q) {
+      list = list.filter(c =>
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.created_by_name || '').toLowerCase().includes(q),
+      )
+    }
+    if (campaignSort === 'name') {
+      list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    } else if (campaignSort === 'props') {
+      list = [...list].sort((a, b) => (b.total_property_count ?? 0) - (a.total_property_count ?? 0))
+    } else {
+      // date desc — already comes from API in that order; ensure stability anyway
+      list = [...list].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    }
+    return list
+  })()
+
+  /** Center the map on a single saved campaign without removing other overlays. */
+  async function focusSavedCampaign(campaign) {
+    try {
+      const r = await fetchCampaignDetail(campaign)
+      const overlay = buildOverlayFromDetail(campaign, r, true)
+      if (!overlay) return
+      // If we're showing all, just re-fit to this one without losing the others.
+      if (showAllOverlays) {
+        setActiveOverlays(prev => prev.map(o => ({ ...o, fitBounds: o.id === overlay.id })))
+      } else {
+        setActiveOverlays([overlay])
+      }
+    } catch (e) {
+      console.warn('[geo] focus saved campaign', e)
+    }
+  }
 
   // Debounced live geocoding (Nominatim — free, ~1 req/sec).
   useEffect(() => {
@@ -1498,13 +1539,17 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                   Saved Campaigns
                 </span>
                 <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
-                  {savedCampaignsLoading ? '…' : `${savedCampaigns.length} live`}
+                  {savedCampaignsLoading
+                    ? '…'
+                    : campaignQuery
+                      ? `${filteredCampaigns.length} of ${savedCampaigns.length}`
+                      : `${savedCampaigns.length} live`}
                 </span>
               </div>
               <button
                 onClick={handleToggleAllOverlays}
                 disabled={savedCampaigns.length === 0 || bulkLoading}
-                className="w-full text-[11px] font-semibold rounded-md py-1.5 px-2 transition-colors flex items-center justify-center gap-1.5"
+                className="w-full text-[11px] font-semibold rounded-md py-1.5 px-2 transition-colors flex items-center justify-center gap-1.5 mb-2"
                 style={{
                   background: showAllOverlays ? '#254BCE' : (dark ? 'rgba(99,140,255,0.10)' : 'rgba(37,75,206,0.06)'),
                   color: showAllOverlays ? '#fff' : (dark ? '#638CFF' : '#254BCE'),
@@ -1518,34 +1563,102 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                     ? '✓ Showing all on map'
                     : 'Show all on map'}
               </button>
+              {/* Search input */}
+              <div className="relative mb-1.5">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{color: dark ? 'rgba(232,238,248,0.35)' : '#9CA3AF'}}>
+                  <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="17" y2="17"/>
+                </svg>
+                <input
+                  type="text"
+                  value={campaignQuery}
+                  onChange={e => setCampaignQuery(e.target.value)}
+                  placeholder="Search by name or creator…"
+                  className="w-full pl-7 pr-7 py-1.5 rounded-md text-[11px] outline-none"
+                  style={{
+                    background: dark ? 'rgba(232,238,248,0.05)' : '#F9FAFB',
+                    border: `1px solid ${dark ? 'rgba(99,140,255,0.15)' : 'rgba(0,0,0,0.08)'}`,
+                    color: dark ? '#E8EEF8' : '#001660',
+                  }}
+                />
+                {campaignQuery && (
+                  <button onClick={() => setCampaignQuery('')}
+                    aria-label="Clear search"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{background:'rgba(0,22,96,0.10)', color: dark ? 'rgba(232,238,248,0.6)' : '#6B7280', border:'none', cursor:'pointer', padding:0}}>
+                    <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {/* Sort tabs */}
+              <div className="flex gap-1 text-[10px]">
+                {[
+                  { id: 'date',  label: 'Newest' },
+                  { id: 'props', label: 'Most Props' },
+                  { id: 'name',  label: 'A–Z' },
+                ].map(t => {
+                  const on = campaignSort === t.id
+                  return (
+                    <button key={t.id} onClick={() => setCampaignSort(t.id)}
+                      className="flex-1 py-1 rounded font-semibold transition-colors"
+                      style={{
+                        background: on ? (dark ? 'rgba(99,140,255,0.18)' : 'rgba(37,75,206,0.08)') : 'transparent',
+                        color:      on ? (dark ? '#638CFF' : '#254BCE') : (dark ? 'rgba(232,238,248,0.5)' : 'rgba(0,22,96,0.55)'),
+                        border:     on ? `1px solid ${dark ? 'rgba(99,140,255,0.35)' : 'rgba(37,75,206,0.25)'}` : '1px solid transparent',
+                      }}>
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {savedCampaigns.length === 0 && !savedCampaignsLoading && (
+              {savedCampaignsLoading && savedCampaigns.length === 0 && (
+                <div className="px-4 py-3 text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                  Loading…
+                </div>
+              )}
+              {!savedCampaignsLoading && savedCampaigns.length === 0 && (
                 <div className="px-4 py-3 text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
                   No campaigns from this tenant yet.
                 </div>
               )}
-              {savedCampaigns.slice(0, 25).map(c => {
+              {!savedCampaignsLoading && filteredCampaigns.length === 0 && savedCampaigns.length > 0 && (
+                <div className="px-4 py-3 text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                  No matches for "{campaignQuery}".
+                </div>
+              )}
+              {filteredCampaigns.map(c => {
                 const isActive = activeOverlays.some(o => o.id === `camp-${c.id}`)
+                const dotColor = colorForCampaignId(c.id)
                 return (
                   <button key={c.id}
-                    onClick={() => handleLoadSavedCampaign(c)}
-                    className="w-full text-left px-4 py-2.5 flex items-start gap-2 transition-colors"
+                    onClick={() => isActive ? focusSavedCampaign(c) : handleLoadSavedCampaign(c)}
+                    className="w-full text-left px-4 py-2.5 flex items-start gap-2.5 transition-colors"
                     style={{
                       background: isActive ? (dark ? 'rgba(37,75,206,0.18)' : 'rgba(37,75,206,0.06)') : 'transparent',
                       borderBottom: `1px solid ${dark ? 'rgba(99,140,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
                     }}
                     onMouseOver={e => { if (!isActive) e.currentTarget.style.background = dark ? 'rgba(232,238,248,0.04)' : '#F9FAFB' }}
                     onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
-                    <span className="w-1 self-stretch mt-0.5 rounded-full shrink-0"
-                      style={{background: isActive ? '#254BCE' : (dark ? 'rgba(99,140,255,0.18)' : '#E5E7EB'), minHeight: 28}} />
+                    {/* Color dot — visible always, brighter when overlayed */}
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
+                      style={{
+                        background: dotColor,
+                        opacity: isActive ? 1 : 0.4,
+                        boxShadow: isActive ? `0 0 0 2px ${dotColor}33` : 'none',
+                      }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[12px] font-semibold truncate" style={{color: dark ? '#E8EEF8' : '#001660'}}>
                         {c.name || `Campaign ${c.id}`}
                       </div>
-                      <div className="text-[10px] mt-0.5" style={{color: dark ? 'rgba(232,238,248,0.45)' : 'rgba(0,22,96,0.5)'}}>
+                      <div className="text-[10px] mt-0.5 truncate" style={{color: dark ? 'rgba(232,238,248,0.45)' : 'rgba(0,22,96,0.5)'}}>
                         {(c.total_property_count ?? 0).toLocaleString()} properties
                         {c.created_at ? ` · ${new Date(c.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })}` : ''}
+                        {c.created_by_name ? ` · ${c.created_by_name.split(' ')[0]}` : ''}
                       </div>
                     </div>
                   </button>
