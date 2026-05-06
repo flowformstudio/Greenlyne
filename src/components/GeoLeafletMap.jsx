@@ -125,6 +125,7 @@ export default function GeoLeafletMap({
   onSelectHousehold,
   flyTo,            // [lat, lng, zoom?] — programmatic recentering (e.g. address search hit)
   overlays = [],    // [{ id, latlngs ([lng,lat] from API), color, name, popupHtml, fitBounds }]
+  onOverlayClick,   // (id) => void — fires before the polygon's popup opens
   children,
 }) {
   const containerRef = useRef(null)
@@ -238,6 +239,7 @@ export default function GeoLeafletMap({
       })
       if (o.popupHtml) poly.bindPopup(o.popupHtml, { maxWidth: 300, className: 'glyne-popup' })
       else if (o.name) poly.bindTooltip(o.name, { sticky: true })
+      if (onOverlayClick) poly.on('click', () => onOverlayClick(o.id))
       poly.addTo(overlayLayer.current)
       if (o.fitBounds) lastBounds = poly.getBounds()
     })

@@ -992,6 +992,9 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   }, [])
   // Cache of fetched campaign details so we don't re-hit the API.
   const campaignDetailCache = useRef(new Map())
+  // The "focused" campaign — drives the side card in the right panel.
+  // Holds both the list row (id, name, created_by_name, …) and the detail (polygon, analytics).
+  const [focusedCampaign, setFocusedCampaign] = useState(null)
 
   // Fetch the tenant's saved campaigns once when the map view opens.
   useEffect(() => {
@@ -1056,7 +1059,10 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
     try {
       const r = await fetchCampaignDetail(campaign)
       const overlay = buildOverlayFromDetail(campaign, r, true)
-      if (overlay) setActiveOverlays([overlay])
+      if (overlay) {
+        setActiveOverlays([overlay])
+        setFocusedCampaign({ campaign, detail: r })
+      }
     } catch (e) {
       console.warn('[geo] load saved campaign', e)
     }
@@ -1180,9 +1186,20 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
       } else {
         setActiveOverlays([overlay])
       }
+      setFocusedCampaign({ campaign, detail: r })
     } catch (e) {
       console.warn('[geo] focus saved campaign', e)
     }
+  }
+
+  /** Polygon click on the map → focus that campaign in the side card. */
+  function handleOverlayClick(overlayId) {
+    const id = Number(String(overlayId).replace('camp-', ''))
+    const campaign = savedCampaigns.find(c => c.id === id)
+    if (!campaign) return
+    const cached = campaignDetailCache.current.get(id)
+    if (cached) setFocusedCampaign({ campaign, detail: cached })
+    else fetchCampaignDetail(campaign).then(d => setFocusedCampaign({ campaign, detail: d })).catch(() => {})
   }
 
   // Debounced live geocoding (Nominatim — free, ~1 req/sec).
@@ -1341,6 +1358,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
               drawMode={drawMode}
               flyTo={mapFlyTo}
               overlays={activeOverlays}
+              onOverlayClick={handleOverlayClick}
               households={mapHouseholds}
               onShape={(shape) => {
                 setMapShape(shape)
@@ -1820,6 +1838,100 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                       </div>
                     </>
                   )}
+                </div>
+              )
+            })()}
+
+            {/* Focused saved-campaign card — drives off real backend detail */}
+            {focusedCampaign && (() => {
+              const { campaign: c, detail: r } = focusedCampaign
+              const dot = colorForCampaignId(c.id, c.total_property_count)
+              const fmt = n => (n == null ? '—' : Number(n).toLocaleString())
+              const stats = [
+                { k: 'Selected',          v: fmt(r?.selected_households ?? c.total_property_count) },
+                { k: 'Qualifying',        v: fmt(r?.qualifying_households) },
+                { k: 'Homeowners',        v: fmt(r?.qualifying_homeowners) },
+                { k: 'Pre-screen Offers', v: fmt(r?.homeowners_with_pre_screen_offer) },
+              ]
+              const created = c.created_at ? new Date(c.created_at) : null
+              return (
+                <div className="px-4 pt-3 pb-3 border-b" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)'}}>
+                      Focused Campaign
+                    </span>
+                    <button onClick={() => setFocusedCampaign(null)}
+                      className="text-[10px] font-semibold transition-colors"
+                      style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                      ✕ close
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full mt-1 shrink-0"
+                      style={{background: dot, boxShadow: `0 0 0 2px ${dot}33`}} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-bold truncate" style={{color: dark ? '#E8EEF8' : '#001660'}}>
+                        {c.name || `Campaign ${c.id}`}
+                      </div>
+                      <div className="text-[10px] mt-0.5" style={{color: dark ? 'rgba(232,238,248,0.5)' : 'rgba(0,22,96,0.55)'}}>
+                        {c.created_by_name || 'Unknown'}
+                        {created && ` · ${created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                      </div>
+                      {r?.status && (
+                        <span className="inline-block mt-1.5 text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                          style={{background: dark ? 'rgba(99,140,255,0.18)' : 'rgba(37,75,206,0.10)', color: dark ? '#638CFF' : '#254BCE'}}>
+                          {r.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* 2×2 stat grid */}
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    {stats.map(s => (
+                      <div key={s.k} className="rounded-md px-2.5 py-1.5"
+                        style={{background: dark ? 'rgba(232,238,248,0.04)' : '#F8FAFC', border: `1px solid ${dark ? 'rgba(99,140,255,0.10)' : 'rgba(0,0,0,0.05)'}`}}>
+                        <div className="text-[9px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.45)' : 'rgba(0,22,96,0.5)'}}>
+                          {s.k}
+                        </div>
+                        <div className="text-[15px] font-bold tabular-nums leading-tight mt-0.5" style={{color: dark ? '#E8EEF8' : '#001660'}}>
+                          {s.v}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Secondary meta line */}
+                  {(r?.product_type || r?.census_tract_metric || r?.shape_type) && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {r.product_type && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
+                          style={{background: dark ? 'rgba(232,238,248,0.06)' : 'rgba(0,22,96,0.04)', color: dark ? 'rgba(232,238,248,0.65)' : 'rgba(0,22,96,0.65)'}}>
+                          {r.product_type}
+                        </span>
+                      )}
+                      {r.shape_type && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
+                          style={{background: dark ? 'rgba(232,238,248,0.06)' : 'rgba(0,22,96,0.04)', color: dark ? 'rgba(232,238,248,0.65)' : 'rgba(0,22,96,0.65)'}}>
+                          {r.shape_type}
+                        </span>
+                      )}
+                      {r.census_tract_metric && r.census_tract_metric !== 'is_lmi_or_cra_eligible' && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
+                          style={{background: dark ? 'rgba(232,238,248,0.06)' : 'rgba(0,22,96,0.04)', color: dark ? 'rgba(232,238,248,0.65)' : 'rgba(0,22,96,0.65)'}}>
+                          {r.census_tract_metric.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {/* Action: re-fly to this campaign */}
+                  <button onClick={() => focusSavedCampaign(c)}
+                    className="w-full mt-3 text-[11px] font-semibold rounded-md py-1.5 transition-colors"
+                    style={{
+                      background: dark ? 'rgba(99,140,255,0.12)' : 'rgba(37,75,206,0.06)',
+                      color: dark ? '#638CFF' : '#254BCE',
+                      border: `1px solid ${dark ? 'rgba(99,140,255,0.25)' : 'rgba(37,75,206,0.18)'}`,
+                    }}>
+                    Re-center map on this campaign
+                  </button>
                 </div>
               )
             })()}
