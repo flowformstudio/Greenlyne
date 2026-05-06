@@ -124,6 +124,7 @@ export default function GeoLeafletMap({
   selectedHousehold,
   onSelectHousehold,
   flyTo,            // [lat, lng, zoom?] — programmatic recentering (e.g. address search hit)
+  overlays = [],    // [{ id, latlngs ([lng,lat] from API), color, name, popupHtml, fitBounds }]
   children,
 }) {
   const containerRef = useRef(null)
@@ -131,6 +132,7 @@ export default function GeoLeafletMap({
   const drawnLayer   = useRef(null)
   const drawHandler  = useRef(null)
   const householdLayer = useRef(null)
+  const overlayLayer  = useRef(null)
 
   const [ready, setReady] = useState(false)
 
@@ -148,8 +150,9 @@ export default function GeoLeafletMap({
       maxZoom: 19,
     }).addTo(map)
 
-    drawnLayer.current = new L.FeatureGroup().addTo(map)
+    drawnLayer.current     = new L.FeatureGroup().addTo(map)
     householdLayer.current = new L.LayerGroup().addTo(map)
+    overlayLayer.current   = new L.LayerGroup().addTo(map)
 
     map.on(L.Draw.Event.CREATED, (e) => {
       // Replace any existing shape — only one selection at a time.
@@ -217,6 +220,31 @@ export default function GeoLeafletMap({
     const [lat, lng, fz = 14] = flyTo
     mapRef.current.flyTo([lat, lng], fz, { duration: 0.6 })
   }, [flyTo, ready])
+
+  // Render external overlay polygons (e.g., loaded saved campaigns).
+  // Each overlay: { id, latlngs (lng-lat from API), color, name, popupHtml, fitBounds? }
+  useEffect(() => {
+    if (!ready || !overlayLayer.current) return
+    overlayLayer.current.clearLayers()
+    if (!Array.isArray(overlays) || overlays.length === 0) return
+    let lastBounds = null
+    overlays.forEach(o => {
+      if (!o?.latlngs || o.latlngs.length < 3) return
+      // Backend stores [lng, lat] — flip for Leaflet's [lat, lng] expectation.
+      const ll = o.latlngs.map(([lng, lat]) => [lat, lng])
+      const color = o.color || '#254BCE'
+      const poly = L.polygon(ll, {
+        color, weight: 2, fillColor: color, fillOpacity: 0.15,
+      })
+      if (o.popupHtml) poly.bindPopup(o.popupHtml, { maxWidth: 300, className: 'glyne-popup' })
+      else if (o.name) poly.bindTooltip(o.name, { sticky: true })
+      poly.addTo(overlayLayer.current)
+      if (o.fitBounds) lastBounds = poly.getBounds()
+    })
+    if (lastBounds && mapRef.current) {
+      mapRef.current.flyToBounds(lastBounds, { padding: [40, 40], duration: 0.55 })
+    }
+  }, [overlays, ready])
 
   // Public API: clear shape from outside (host calls this via ref)
   const clear = useCallback(() => {

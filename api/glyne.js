@@ -13,6 +13,9 @@
  *   GLYNE_API_BASE   — default https://api-dev.greenlyne.ai
  */
 
+// Vercel — bump function timeout from default 10s to 60s for slow upstream calls.
+export const config = { maxDuration: 60 }
+
 const API_BASE  = process.env.GLYNE_API_BASE || 'https://api-dev.greenlyne.ai'
 const HOST_REF  = process.env.GLYNE_HOST_REF || 'fbkc-pro-dev.greenlyne.ai'
 const USER_TYPE = process.env.GLYNE_USER_TYPE || 'loan_officer'

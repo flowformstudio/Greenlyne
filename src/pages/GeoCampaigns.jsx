@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
 import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape, buildPropertyPopup } from '../components/GeoLeafletMap'
-import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria } from '../lib/glyneApi'
+import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria, listSavedCampaigns, getSavedCampaignDetail } from '../lib/glyneApi'
 
 const CAMPAIGNS_BASE = [
   {
@@ -968,6 +968,56 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   // Real properties + analytics returned by get-properties-by-criteria
   const [realAnalytics, setRealAnalytics] = useState(null)
   const [realProperties, setRealProperties] = useState([])
+  // Real saved campaigns from this tenant (campaign-collections)
+  const [savedCampaigns, setSavedCampaigns] = useState([])
+  const [savedCampaignsLoading, setSavedCampaignsLoading] = useState(false)
+  const [activeOverlays, setActiveOverlays] = useState([])
+
+  // Fetch the tenant's saved campaigns once when the map view opens.
+  useEffect(() => {
+    let cancelled = false
+    setSavedCampaignsLoading(true)
+    listSavedCampaigns()
+      .then(data => { if (!cancelled) setSavedCampaigns(Array.isArray(data?.results) ? data.results : []) })
+      .catch(e => console.warn('[geo] listSavedCampaigns', e))
+      .finally(() => { if (!cancelled) setSavedCampaignsLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  async function handleLoadSavedCampaign(campaign) {
+    try {
+      const detail = await getSavedCampaignDetail(campaign.id)
+      const r = Array.isArray(detail?.results) && detail.results[0] ? detail.results[0] : null
+      if (!r?.polygon_coordinates || r.polygon_coordinates.length < 3) {
+        console.warn('[geo] saved campaign has no polygon', campaign)
+        return
+      }
+      const popupHtml = `
+        <div class="glp-card">
+          <div class="glp-eyebrow">Saved Campaign</div>
+          <div class="glp-name">${escapeHtmlSafe(campaign.name || r.name || 'Untitled')}</div>
+          <div class="glp-addr">${campaign.created_by_name || ''}${campaign.created_at ? ` · ${new Date(campaign.created_at).toLocaleDateString()}` : ''}</div>
+          <div class="glp-grid">
+            <div class="glp-cell"><div class="glp-key">Selected</div><div class="glp-val">${(r.selected_households ?? 0).toLocaleString()}</div></div>
+            <div class="glp-cell"><div class="glp-key">Qualifying</div><div class="glp-val">${(r.qualifying_households ?? 0).toLocaleString()}</div></div>
+            <div class="glp-cell"><div class="glp-key">Homeowners</div><div class="glp-val">${(r.qualifying_homeowners ?? 0).toLocaleString()}</div></div>
+            <div class="glp-cell"><div class="glp-key">Pre-screen Offers</div><div class="glp-val">${(r.homeowners_with_pre_screen_offer ?? 0).toLocaleString()}</div></div>
+          </div>
+        </div>
+      `
+      setActiveOverlays([{
+        id: `camp-${campaign.id}`,
+        latlngs: r.polygon_coordinates,
+        color: '#254BCE',
+        name: campaign.name,
+        popupHtml,
+        fitBounds: true,
+      }])
+    } catch (e) {
+      console.warn('[geo] load saved campaign', e)
+    }
+  }
+  const escapeHtmlSafe = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]))
 
   // Debounced live geocoding (Nominatim — free, ~1 req/sec).
   useEffect(() => {
@@ -1124,6 +1174,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
               zoom={11}
               drawMode={drawMode}
               flyTo={mapFlyTo}
+              overlays={activeOverlays}
               households={mapHouseholds}
               onShape={(shape) => {
                 setMapShape(shape)
@@ -1361,9 +1412,68 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
 
           {/* Left floating panel — filters */}
           <div className="absolute top-4 left-4 z-20 w-64 flex flex-col rounded-2xl overflow-hidden"
-            style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.09)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)', maxHeight:'calc(100% - 2rem)'}}
+            style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.09)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)', maxHeight:'calc(60% - 1rem)'}}
             onClick={e => e.stopPropagation()}>
             <FiltersPanel onCoreChange={setFilterVals} floatMode />
+          </div>
+
+          {/* Saved Campaigns panel — sits below the filters, scrolls independently */}
+          <div className="absolute bottom-4 left-4 z-20 w-64 flex flex-col rounded-2xl overflow-hidden"
+            style={{background: dark ? '#172340' : '#fff', border: `1px solid ${dark ? 'rgba(99,140,255,0.2)' : 'rgba(0,0,0,0.09)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)', maxHeight: '40%'}}
+            onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{color: dark ? 'rgba(232,238,248,0.55)' : 'rgba(0,22,96,0.55)'}}>
+                Saved Campaigns
+              </span>
+              <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                {savedCampaignsLoading ? '…' : `${savedCampaigns.length} live`}
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {savedCampaigns.length === 0 && !savedCampaignsLoading && (
+                <div className="px-4 py-3 text-[11px]" style={{color: dark ? 'rgba(232,238,248,0.4)' : 'rgba(0,22,96,0.4)'}}>
+                  No campaigns from this tenant yet.
+                </div>
+              )}
+              {savedCampaigns.slice(0, 25).map(c => {
+                const isActive = activeOverlays.some(o => o.id === `camp-${c.id}`)
+                return (
+                  <button key={c.id}
+                    onClick={() => handleLoadSavedCampaign(c)}
+                    className="w-full text-left px-4 py-2.5 flex items-start gap-2 transition-colors"
+                    style={{
+                      background: isActive ? (dark ? 'rgba(37,75,206,0.18)' : 'rgba(37,75,206,0.06)') : 'transparent',
+                      borderBottom: `1px solid ${dark ? 'rgba(99,140,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
+                    }}
+                    onMouseOver={e => { if (!isActive) e.currentTarget.style.background = dark ? 'rgba(232,238,248,0.04)' : '#F9FAFB' }}
+                    onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
+                    <span className="w-1 self-stretch mt-0.5 rounded-full shrink-0"
+                      style={{background: isActive ? '#254BCE' : (dark ? 'rgba(99,140,255,0.18)' : '#E5E7EB'), minHeight: 28}} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-semibold truncate" style={{color: dark ? '#E8EEF8' : '#001660'}}>
+                        {c.name || `Campaign ${c.id}`}
+                      </div>
+                      <div className="text-[10px] mt-0.5" style={{color: dark ? 'rgba(232,238,248,0.45)' : 'rgba(0,22,96,0.5)'}}>
+                        {(c.total_property_count ?? 0).toLocaleString()} properties
+                        {c.created_at ? ` · ${new Date(c.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' })}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {activeOverlays.length > 0 && (
+              <div className="px-4 py-2 border-t flex items-center justify-between" style={{borderColor: dark ? 'rgba(99,140,255,0.12)' : 'rgba(0,0,0,0.06)'}}>
+                <span className="text-[10px]" style={{color: dark ? 'rgba(232,238,248,0.5)' : 'rgba(0,22,96,0.5)'}}>
+                  {activeOverlays.length} on map
+                </span>
+                <button onClick={() => setActiveOverlays([])}
+                  className="text-[10px] font-semibold transition-colors"
+                  style={{color: dark ? '#FCA5A5' : '#DC2626'}}>
+                  Clear
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right floating panel — household selection + prescreen */}

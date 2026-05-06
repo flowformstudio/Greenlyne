@@ -73,6 +73,16 @@ export function getCampaignDemographics(payload) {
   return glyneFetch('get-campaign-target-area-demographics', payload)
 }
 
+/** List all saved campaign collections (real data from this tenant). */
+export function listSavedCampaigns() {
+  return glyneFetch('campaign-collections')
+}
+
+/** Detail for a single mail campaign — includes polygon_coordinates + analytics. */
+export function getSavedCampaignDetail(id) {
+  return glyneFetch(`campaign-collections/mail/${id}/`, {})
+}
+
 /**
  * Real property records inside a polygon, with per-shape analytics
  * (median home value/equity, qualifying counts, projected originations).
