@@ -42,20 +42,22 @@ export async function glyneFetch(path, body, query = {}) {
 
 /* ── Convenience wrappers for the geo flow ─────────────────────────────── */
 
-/** Properties count inside a polygon (lat/lng pairs). */
+/** Properties count inside a polygon. Caller passes Leaflet [lat, lng] pairs;
+ * we flip to GeoJSON [lng, lat] and close the ring before sending. */
 export function getPropertiesCountPolygon(latlngs) {
-  // Backend GeoDjango expects a CLOSED LinearRing — repeat the first point
-  // at the end if the caller hasn't done it. We pass [lat, lng] order; if
-  // the upstream returns wrong totals we'll flip to [lng, lat].
-  const ring = (latlngs && latlngs.length)
-    ? (sameLatLng(latlngs[0], latlngs[latlngs.length - 1]) ? latlngs : [...latlngs, latlngs[0]])
-    : []
+  const ring = toClosedLngLatRing(latlngs)
   return glyneFetch('get-properties-count', { polygon_coordinates: ring })
 }
 
-function sameLatLng(a, b) {
-  if (!a || !b) return false
-  return Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9
+function toClosedLngLatRing(latlngs) {
+  if (!latlngs || latlngs.length === 0) return []
+  const lngLat = latlngs.map(([lat, lng]) => [lng, lat])
+  const first = lngLat[0]
+  const last  = lngLat[lngLat.length - 1]
+  if (Math.abs(first[0] - last[0]) > 1e-9 || Math.abs(first[1] - last[1]) > 1e-9) {
+    lngLat.push([first[0], first[1]])
+  }
+  return lngLat
 }
 
 /** Properties count inside a circle (center [lat,lng], radius in meters). */
@@ -69,4 +71,35 @@ export function getPropertiesCountCircle(center, radiusMeters) {
 /** Demographics for a campaign target area. */
 export function getCampaignDemographics(payload) {
   return glyneFetch('get-campaign-target-area-demographics', payload)
+}
+
+/**
+ * Real property records inside a polygon, with per-shape analytics
+ * (median home value/equity, qualifying counts, projected originations).
+ *
+ * Uses fetch_data_only_from_db=true so we get an immediate response
+ * instead of waiting on the Altair WebSocket pipeline (which requires
+ * campaign infrastructure). Wider GeoDjango polygon → bigger results.
+ */
+export function getPropertiesByCriteria(latlngs, opts = {}) {
+  const polygon = toClosedLngLatRing(latlngs)
+  const body = {
+    polygon_coordinates: polygon,
+    CLTV: [0, 100],
+    FICOScore: [600, 850],
+    AvailableEquity: [0, 99_999_000],
+    MonthOwnership: [0, 360],
+    ApplyCensusTractFilter: false,
+    ProductType: 'HELOC',
+    CampaignIds: [],
+    ExcludePoolProperties: false,
+    ApplySwimmingPoolFilter: false,
+    ...opts.body,
+  }
+  return glyneFetch('get-properties-by-criteria', body, {
+    page: opts.page ?? 1,
+    page_size: opts.pageSize ?? 50,
+    determine_offer: 'false',
+    fetch_data_only_from_db: 'true',
+  })
 }

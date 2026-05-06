@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { QUOTA } from '../lib/quota'
 import { useTheme } from '../lib/theme'
 import GeoLeafletMap, { geocodeAddress, generateHouseholdsInShape } from '../components/GeoLeafletMap'
-import { getPropertiesCountPolygon, getPropertiesCountCircle } from '../lib/glyneApi'
+import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCriteria } from '../lib/glyneApi'
 
 const CAMPAIGNS_BASE = [
   {
@@ -965,6 +965,9 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
   // Real backend counts for the drawn shape (replaces the rough area*800 estimate)
   const [realPropertyCount, setRealPropertyCount] = useState(null)
   const [propertyCountLoading, setPropertyCountLoading] = useState(false)
+  // Real properties + analytics returned by get-properties-by-criteria
+  const [realAnalytics, setRealAnalytics] = useState(null)
+  const [realProperties, setRealProperties] = useState([])
 
   // Debounced live geocoding (Nominatim — free, ~1 req/sec).
   useEffect(() => {
@@ -1117,8 +1120,8 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
           {/* Map area — real Leaflet map, fills the content area */}
           <div className="absolute inset-0 overflow-hidden">
             <GeoLeafletMap
-              center={[25.7617, -80.1918]}
-              zoom={12}
+              center={[39.0997, -94.5786]}   /* Kansas City — FBKC tenant data coverage */
+              zoom={11}
               drawMode={drawMode}
               flyTo={mapFlyTo}
               households={mapHouseholds}
@@ -1130,22 +1133,47 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                 setHouseholdPhase('loading')
                 setSelectedHouseholds(new Set())
                 setRealPropertyCount(null)
+                setRealAnalytics(null)
+                setRealProperties([])
                 setPropertyCountLoading(true)
-                // Generate plausible household markers inside the drawn shape
-                // for the side panel UX while we fetch the real count.
+                // Generated markers act as a placeholder until/unless the
+                // real properties endpoint returns rows for this shape.
                 const generated = generateHouseholdsInShape(shape, 30)
                 setMapHouseholds(generated)
-                // Fire-and-forget: ask the real backend how many properties live
-                // inside the shape and replace the local estimate with the truth.
+                // Fire both real-data calls in parallel: a fast count and the
+                // full criteria search (which also returns analytics).
                 ;(async () => {
                   try {
-                    const data = shape.kind === 'circle'
-                      ? await getPropertiesCountCircle(shape.center, shape.radius)
-                      : await getPropertiesCountPolygon(shape.latlngs)
-                    const count = data?.count_of_properties ?? data?.total_property_count ?? data?.count ?? null
+                    const [countData, propsData] = await Promise.all([
+                      shape.kind === 'circle'
+                        ? getPropertiesCountCircle(shape.center, shape.radius)
+                        : getPropertiesCountPolygon(shape.latlngs),
+                      shape.kind === 'circle'
+                        ? Promise.resolve(null)   // criteria endpoint requires polygon, skip for circle
+                        : getPropertiesByCriteria(shape.latlngs).catch(() => null),
+                    ])
+                    const count = countData?.count_of_properties ?? countData?.total_property_count ?? countData?.count ?? null
                     if (typeof count === 'number') setRealPropertyCount(count)
+                    if (propsData?.analytics) setRealAnalytics(propsData.analytics)
+                    if (Array.isArray(propsData?.results) && propsData.results.length > 0) {
+                      const realMarkers = propsData.results
+                        .map((p, i) => {
+                          const lat = p.Latitude ?? p.latitude ?? p.lat ?? null
+                          const lng = p.Longitude ?? p.longitude ?? p.lng ?? null
+                          if (typeof lat !== 'number' || typeof lng !== 'number') return null
+                          return {
+                            id: p.id ?? `p-${i}`,
+                            lat, lng,
+                            address: p.Address || p.address || '',
+                            qualified: p.qualifies ?? p.is_qualified ?? undefined,
+                          }
+                        })
+                        .filter(Boolean)
+                      if (realMarkers.length > 0) setMapHouseholds(realMarkers)
+                      setRealProperties(propsData.results)
+                    }
                   } catch (e) {
-                    console.warn('[geo] get-properties-count failed', e)
+                    console.warn('[geo] real-data fetch failed', e)
                   } finally {
                     setPropertyCountLoading(false)
                   }
@@ -1230,11 +1258,11 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                 </div>
               )}
 
-              {/* Live callout — real count from backend when available, else local estimate */}
+              {/* Live callout — real backend data when available */}
               {shapeDrawn && (
                 <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[400] pointer-events-none">
                   <div className="rounded-xl px-4 py-2.5 text-center"
-                    style={{background:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.16)', border:'1px solid rgba(0,0,0,0.06)'}}>
+                    style={{background:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.16)', border:'1px solid rgba(0,0,0,0.06)', minWidth: 280}}>
                     <div className="text-[12px] font-semibold text-gray-900 leading-tight">
                       {propertyCountLoading
                         ? 'Counting properties…'
@@ -1243,8 +1271,16 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '' }) 
                           : `~${Math.round((mapShape?.areaKm2 || 1) * 800).toLocaleString()} homeowners in area`}
                     </div>
                     <div className="text-[12px] font-semibold leading-tight" style={{color:'#15803d'}}>
-                      ~{(realPropertyCount != null ? Math.round(realPropertyCount * 0.35) : estQualify)?.toLocaleString()} estimated to qualify
+                      {realAnalytics
+                        ? `${(realAnalytics.count_of_qualifying_homeowners ?? realAnalytics.count_of_qualifying_households ?? 0).toLocaleString()} qualifying homeowners`
+                        : `~${(realPropertyCount != null ? Math.round(realPropertyCount * 0.35) : estQualify)?.toLocaleString()} estimated to qualify`}
                     </div>
+                    {realAnalytics && (realAnalytics.median_home_value > 0 || realAnalytics.median_home_equity > 0) && (
+                      <div className="text-[10px] mt-1 leading-tight flex justify-center gap-3" style={{color:'rgba(0,0,0,0.5)'}}>
+                        {realAnalytics.median_home_value > 0 && <span>Med. value <strong>${(realAnalytics.median_home_value/1000).toFixed(0)}k</strong></span>}
+                        {realAnalytics.median_home_equity > 0 && <span>Med. equity <strong>${(realAnalytics.median_home_equity/1000).toFixed(0)}k</strong></span>}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
