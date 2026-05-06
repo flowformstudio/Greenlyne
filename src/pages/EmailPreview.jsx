@@ -4,6 +4,7 @@ import { DEMO_PERSONA } from '../lib/persona'
 import { calcRate } from '../lib/loanCalc'
 import { computeOffer, computeFiveYearTotal } from '../components/ScreenOfferSelect'
 import { useActivePartners } from '../lib/PartnersContext'
+import { useIsMobile } from '../lib/useIsMobile'
 
 function slugify(s = '') {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'partner'
@@ -46,6 +47,7 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
   const navigate = useNavigate()
   const session  = getDemoSession()
   const { merchant, lender } = useActivePartners()
+  const isMobile = useIsMobile(640)
   const merchantName   = merchant?.name || 'Westhaven Power'
   const merchantLogo   = merchant?.logoUrl || '/westhaven-logo-new.avif'
   const merchantSymbol = merchant?.symbolLogoUrl || merchant?.logoUrl || '/westhaven-icon.svg'
@@ -120,27 +122,57 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
       </div>}
 
       {/* ── Email body ──────────────────────────────────────────── */}
-      <div style={{ maxWidth: 640, margin: '28px auto', padding: '0 16px 60px' }}>
+      <div style={{ maxWidth: 680, margin: '28px auto', padding: '0 20px 60px', boxSizing: 'border-box', width: '100%' }}>
         <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 24px rgba(0,0,0,0.08)' }}>
 
-          {/* HEADER */}
-          <div style={{
-            padding: '20px 32px', display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', borderBottom: `1px solid ${C.gray100}`,
-          }}>
-            <img src={merchantLogo} alt={merchantName} style={{ maxHeight: 33, maxWidth: 184, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: '#001660' }}>Financing powered by</span>
-                <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto' }} />
+          {/* HEADER — desktop: side-by-side merchant + meta. Mobile: centered stacked rows. */}
+          {isMobile ? (
+            <div style={{ borderBottom: `1px solid ${C.gray100}` }}>
+              {/* Row 1 — merchant logo, centered */}
+              <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                  src={merchantLogo}
+                  alt={merchantName}
+                  style={{ maxHeight: 42, maxWidth: 220, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+                />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
-                <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 12, maxWidth: 77, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
-                {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
+              <div style={{ height: 1, background: C.gray100 }} />
+              {/* Row 2 — financing + lending, centered, compact */}
+              <div style={{
+                padding: '12px 24px 14px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                textAlign: 'center',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>Financing powered by</span>
+                  <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto', display: 'block' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
+                  <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 11, maxWidth: 80, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                  {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div style={{
+              padding: '20px 32px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', borderBottom: `1px solid ${C.gray100}`, gap: 16,
+            }}>
+              <img src={merchantLogo} alt={merchantName} style={{ maxHeight: 33, maxWidth: 184, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#001660' }}>Financing powered by</span>
+                  <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
+                  <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 12, maxWidth: 77, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                  {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* COVER PHOTO */}
           <div style={{ padding: '16px 16px 0' }}>
@@ -169,56 +201,30 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
               Two HELOC options · pre-qualified
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              {/* ── Standard HELOC ── */}
-              <div style={{ background: C.white, borderRadius: 12, padding: '0 0 18px', overflow: 'hidden', border: `1px solid ${C.gray200}`, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ background: C.gray50, padding: '10px 16px', borderBottom: `1px solid ${C.gray100}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: C.dark, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1.2 }}>
-                    Standard<br/>HELOC
-                  </div>
-                </div>
-                <div style={{ padding: '14px 16px 0', minHeight: 96 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(16,16,16,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Monthly payment</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: C.dark2, letterSpacing: '-0.5px', lineHeight: 1 }}>
-                    {fmt(stdMonthly)}<span style={{ fontSize: 13, fontWeight: 600, color: C.gray400 }}>/mo</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: C.gray500, marginTop: 4 }}>Same payment, every month</div>
-                </div>
-                <div style={{ padding: '12px 16px 0', display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: C.gray500 }}>
-                  <span>5-yr total <strong style={{ color: C.dark, fontWeight: 700 }}>{fmt(stdFive)}</strong></span>
-                  <span>APR <strong style={{ color: C.dark, fontWeight: 700 }}>{(stdOffer ? stdOffer.apr * 100 : 8).toFixed(2)}%</strong></span>
-                </div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, paddingTop: 16, marginBottom: 12, alignItems: 'stretch' }}>
 
-              {/* ── Optimum HELOC — highlighted as the saver ── */}
-              <div style={{
-                background: C.white, borderRadius: 12, padding: '0 0 18px',
-                overflow: 'hidden', border: `1.5px solid ${C.green}`,
-                boxShadow: '0 6px 16px rgba(16,16,16,0.18)',
-                display: 'flex', flexDirection: 'column',
-              }}>
-                <div style={{ background: C.greenBg, padding: '10px 16px', borderBottom: `1px solid rgba(16,16,16,0.18)`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: C.green, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1.2 }}>
-                    Optimum<br/>HELOC
-                  </div>
-                  <span style={{
-                    background: C.green, color: C.white,
-                    fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
-                    padding: '2px 7px', borderRadius: 99, textTransform: 'uppercase', whiteSpace: 'nowrap',
-                  }}>Lowest 5-yr cost</span>
-                </div>
-                <div style={{ padding: '14px 16px 0', minHeight: 96 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(16,16,16,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Monthly payment</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: C.green, letterSpacing: '-0.5px', lineHeight: 1 }}>
-                    $0<span style={{ fontSize: 13, fontWeight: 600, color: C.gray400 }}>/mo</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: C.gray500, marginTop: 4 }}>First 6 months — then ~{fmt(recMonthly)}/mo</div>
-                </div>
-                <div style={{ padding: '12px 16px 0', display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: C.gray500 }}>
-                  <span>5-yr total <strong style={{ color: C.dark, fontWeight: 700 }}>{fmt(recFive)}</strong></span>
-                  <span>APR <strong style={{ color: C.dark, fontWeight: 700 }}>{(recOffer ? recOffer.apr * 100 : 8).toFixed(2)}%</strong></span>
-                </div>
-              </div>
+              {/* ── Standard HELOC ── */}
+              <PlanTile
+                kind="standard"
+                C={C}
+                label={<>Standard<br/>HELOC</>}
+                monthly={fmt(stdMonthly)}
+                monthlyNote="Same payment, every month"
+                fiveYr={fmt(stdFive)}
+                apr={`${(stdOffer ? stdOffer.apr * 100 : 8).toFixed(2)}%`}
+              />
+
+              {/* ── Optimum HELOC ── */}
+              <PlanTile
+                kind="optimum"
+                C={C}
+                label={<>Optimum<br/>HELOC</>}
+                monthly="$0"
+                monthlyNote={`First 6 months — then ~${fmt(recMonthly)}/mo`}
+                fiveYr={fmt(recFive)}
+                apr={`${(recOffer ? recOffer.apr * 100 : 8).toFixed(2)}%`}
+                badge="Lowest 5-yr cost"
+              />
             </div>
 
             {/* Why choose Optimum HELOC — high-energy benefits panel */}
@@ -481,5 +487,100 @@ function SavingsIcon() {
       <path d="M14 10 L18 6 L22 10" stroke="#D82020" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M10 26 L26 26" stroke="#D82020" strokeWidth="2" strokeLinecap="round"/>
     </svg>
+  )
+}
+
+// ── Plan tile used by the email ──────────────────────────────────────────────
+function PlanTile({ kind, C, label, monthly, monthlyNote, fiveYr, apr, badge }) {
+  const isOpt = kind === 'optimum'
+  const accent     = isOpt ? C.green : C.dark2
+  const accentSoft = isOpt ? C.greenBg : C.gray50
+  const border     = isOpt ? `1.5px solid ${C.green}` : `1px solid ${C.gray200}`
+  const tileShadow = isOpt ? '0 8px 22px rgba(16,16,16,0.16)' : '0 1px 3px rgba(0,0,0,0.04)'
+  return (
+    <div style={{ position: 'relative', height: '100%' }}>
+      {badge && (
+        <span style={{
+          position: 'absolute',
+          left: '50%', top: 0, transform: 'translate(-50%, -50%)',
+          background: C.dark, color: C.white,
+          fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+          padding: '5px 11px', borderRadius: 99, textTransform: 'uppercase', whiteSpace: 'nowrap',
+          boxShadow: '0 3px 8px rgba(16,16,16,0.22)',
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          zIndex: 2,
+        }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill={C.white} aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          {badge}
+        </span>
+      )}
+      <div style={{
+        background: C.white, borderRadius: 14, border, boxShadow: tileShadow, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', height: '100%',
+      }}>
+        {/* Top section — plan label */}
+        <div style={{ background: accentSoft, padding: '14px 14px 12px' }}>
+          <div style={{
+            fontSize: 11, fontWeight: 800,
+            color: accent, letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1.2,
+          }}>
+            {label}
+          </div>
+        </div>
+
+        {/* Body — monthly payment block */}
+        <div style={{ padding: '14px 14px 4px', flex: 1 }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, color: isOpt ? accent : 'rgba(16,16,16,0.55)',
+            letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6,
+          }}>
+            Monthly payment
+          </div>
+          <div style={{
+            fontSize: 26, fontWeight: 800, color: accent,
+            letterSpacing: '-0.05em', lineHeight: 1,
+            whiteSpace: 'nowrap',
+          }}>
+            {monthly}<span style={{ fontSize: 13, fontWeight: 600, color: C.gray400, letterSpacing: '0' }}>/mo</span>
+          </div>
+          <div style={{ fontSize: 11, color: C.gray500, marginTop: 6, lineHeight: 1.5 }}>
+            {monthlyNote}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: C.gray100, margin: '12px 14px 0' }} />
+
+        {/* Footer — 5-yr total + APR stacked vertically */}
+        <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <div style={{
+              fontSize: 9, fontWeight: 700,
+              color: isOpt ? accent : 'rgba(16,16,16,0.5)',
+              letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2,
+            }}>
+              5-yr total
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.dark, letterSpacing: '-0.01em' }}>
+              {fiveYr}
+            </div>
+          </div>
+          <div>
+            <div style={{
+              fontSize: 9, fontWeight: 700,
+              color: isOpt ? accent : 'rgba(16,16,16,0.5)',
+              letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2,
+            }}>
+              APR
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.dark, letterSpacing: '-0.01em' }}>
+              {apr}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

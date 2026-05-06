@@ -1,6 +1,7 @@
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import AIChat from '../components/AIChat'
 import DemoSwitcher from '../components/DemoSwitcher'
+import DemoStepsDropdown from '../components/DemoStepsDropdown'
 
 const STEPS = [
   { label: 'PMPro',            path: '/pipeline', subtitle: 'GreenLyne • Back-office pipeline' },
@@ -10,105 +11,40 @@ const STEPS = [
 ]
 
 export default function DemoLayout() {
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
-
-  const activeIndex = STEPS.findIndex(s => s.path === pathname)
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Demo nav */}
-      <div style={{
+      <style>{`
+        @media (max-width: 768px) {
+          /* Each dropdown button shares the bar 50/50 on mobile */
+          .demo-nav-bar > div { flex: 1 1 0; min-width: 0; }
+          .demo-nav-bar > div > button { width: 100% !important; min-width: 0 !important; }
+          /* Popovers: edge-to-edge sheet centered just below the nav bar */
+          .demo-dropdown-menu {
+            position: fixed !important;
+            top: calc(var(--demo-nav-h, 56px) + 6px) !important;
+            left: 8px !important; right: 8px !important;
+            min-width: 0 !important;
+            max-height: calc(100vh - var(--demo-nav-h, 56px) - 24px);
+            overflow-y: auto;
+          }
+        }
+      `}</style>
+      <div className="demo-nav-bar" style={{
         background: '#0d0d0d',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        padding: '0 20px',
+        padding: '8px 14px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        height: 54,
+        gap: 8,
+        flexWrap: 'wrap',
         position: 'sticky',
         top: 0,
         zIndex: 1000,
         flexShrink: 0,
       }}>
-        {/* Demo switcher — pinned to the left */}
-        <div style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)' }}>
-          <DemoSwitcher currentLabel="Smart POS" theme="dark" />
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {STEPS.map((step, i) => {
-            const isActive = i === activeIndex
-            const isDone = i < activeIndex
-
-            return (
-              <div key={step.path} style={{ display: 'flex', alignItems: 'center' }}>
-                <button
-                  onClick={() => navigate(step.path)}
-                  style={{
-                    background: isActive ? 'rgba(255,255,255,0.12)' : 'none',
-                    border: 'none',
-                    borderRadius: 7,
-                    padding: '5px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 7,
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none' }}
-                >
-                  {/* Step dot */}
-                  <div style={{
-                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                    background: isActive ? '#254BCE' : isDone ? '#016163' : 'rgba(255,255,255,0.15)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {isDone
-                      ? <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                          <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      : <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? 'white' : 'rgba(255,255,255,0.5)' }}>{i + 1}</span>
-                    }
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{
-                      fontSize: 12,
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? '#ffffff' : isDone ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)',
-                      letterSpacing: '-0.1px',
-                      fontFamily: "'PostGrotesk', system-ui, sans-serif",
-                      whiteSpace: 'nowrap',
-                      lineHeight: 1.2,
-                    }}>
-                      {step.label}
-                    </span>
-                    <span style={{
-                      fontSize: 9,
-                      fontWeight: 500,
-                      color: isActive ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.2)',
-                      whiteSpace: 'nowrap',
-                      letterSpacing: '0.01em',
-                      fontFamily: "'PostGrotesk', system-ui, sans-serif",
-                    }}>
-                      {step.subtitle}
-                    </span>
-                  </div>
-                </button>
-
-                {/* Divider */}
-                {i < STEPS.length - 1 && (
-                  <div style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="5" height="9" viewBox="0 0 5 9" fill="none">
-                      <path d="M1 1L4 4.5L1 8" stroke="rgba(255,255,255,0.18)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <DemoSwitcher currentLabel="Smart POS" theme="dark" />
+        <DemoStepsDropdown steps={STEPS} theme="dark" />
       </div>
 
       {/* Page content */}

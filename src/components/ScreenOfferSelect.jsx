@@ -370,7 +370,12 @@ function IoPicker({ ioYrsId, setIoYrsId, setTierId, setReductionYrs, onDone }) {
       <p style={{ margin: '0 0 12px', fontSize: 13, color: T.body, lineHeight: 1.6 }}>
         During an interest-only period your monthly payment is lower — you're not paying down principal yet. After the IO period, you'll switch to full principal + interest.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 8, marginBottom: 12 }}>
+      <style>{`
+        .ff-io-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+        @media (max-width: 900px) { .ff-io-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 480px) { .ff-io-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      `}</style>
+      <div className="ff-io-grid">
         {IO_OPTIONS.map(({ id, label, desc, years }) => {
           const active = ioYrsId === id
           const isBase = id === 'pi'
@@ -1510,7 +1515,21 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
       {/* Offer tiles wrapper — constant marginBottom so button padding stays consistent */}
       <div style={{ position: 'relative', marginBottom: 48 }}>
-        <div style={{
+        <style>{`
+          @media (max-width: 720px) {
+            .ff-offer-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+            .ff-offer-trust-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+            /* Custom plan button: edge-to-edge, dominant on mobile */
+            .ff-custom-btn-wrap { width: 100% !important; }
+            .ff-custom-btn { width: 100% !important; padding: 16px 20px !important; font-size: 15px !important; }
+            /* Trust signals + disclaimer span full width below the button */
+            .ff-trust-signals { grid-column: 1 / -1 !important; text-align: left !important; }
+            .ff-trust-signals > div:first-child {
+              justify-content: flex-start !important; gap: 10px 14px !important;
+            }
+          }
+        `}</style>
+        <div className="ff-offer-grid" style={{
           display: 'grid',
           gridTemplateColumns: showAdvanced ? 'repeat(3, 1fr)' : '1fr 1fr',
           gap: 16,
@@ -1543,7 +1562,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
       </div>
 
       {/* Create custom plan toggle on the left + Trust signals on the right (fixed 3-col so trust never shifts) */}
-      <div style={{
+      <div className="ff-offer-trust-grid" style={{
         marginBottom: 28,
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
@@ -1551,8 +1570,9 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         alignItems: 'center',
       }}>
         {/* Create custom plan toggle — left column, kept small/consistent */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+        <div className="ff-custom-btn-wrap" style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <button
+            className="ff-custom-btn"
             onClick={() => {
               // Seed the custom dials from the currently-selected non-custom plan
               // (or the Recommended preset if nothing is selected yet) so the user
@@ -1604,7 +1624,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
         </div>
 
         {/* Trust signals + disclaimer — right side, always spans cols 2-3 (no shift on advanced toggle) */}
-        <div style={{ gridColumn: '2 / span 2', textAlign: 'left' }}>
+        <div className="ff-trust-signals" style={{ gridColumn: '2 / span 2', textAlign: 'left' }}>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
             {['No obligation', 'No hard pull yet', 'Final terms at closing'].map(t => (
               <div key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1719,7 +1739,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
 
       {/* Major confirm action — floating, fixed to the bottom of the right (main) panel only */}
       {currentOffer && (
-        <div style={{
+        <div className="ff-confirm-bar" style={{
           position: 'fixed',
           bottom: 20,
           left: 250, /* clears the 250px StepSidebar on the left so it never floats over it */
@@ -1730,7 +1750,48 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
           justifyContent: 'center',
           padding: '0 20px',
         }}>
-          <div style={{
+          <style>{`
+            @media (max-width: 768px) {
+              .ff-confirm-bar { left: 0 !important; bottom: 0 !important; padding: 0 !important; }
+              .ff-confirm-bar .ff-confirm-inner {
+                max-width: none !important;
+                border-radius: 0 !important;
+                border-left: 0 !important; border-right: 0 !important; border-bottom: 0 !important;
+                padding: 12px 16px calc(14px + env(safe-area-inset-bottom)) 16px !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+                align-items: stretch !important;
+              }
+              /* Summary row above the actions: hide the inline desktop Back, show only summary, centered */
+              .ff-confirm-bar .ff-confirm-meta {
+                width: 100%; gap: 0 !important;
+                justify-content: center !important; text-align: center !important;
+              }
+              .ff-confirm-bar .ff-confirm-meta-divider,
+              .ff-confirm-bar .ff-confirm-back-desktop { display: none !important; }
+              .ff-confirm-bar .ff-confirm-meta > div { text-align: center !important; }
+              .ff-confirm-bar .ff-confirm-summary { font-size: 13px !important; line-height: 1.35 !important; }
+              /* Action row: round Back chip + Confirm button on a single line */
+              .ff-confirm-bar .ff-confirm-cta {
+                display: flex !important; align-items: center !important;
+                gap: 10px !important; width: 100% !important;
+              }
+              .ff-confirm-bar .ff-confirm-back-mobile {
+                display: flex !important;
+                flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%;
+                background: #fff; border: 1.5px solid rgba(0,22,96,0.12);
+                color: rgba(0,22,96,0.7);
+                align-items: center; justify-content: center;
+                font-size: 18px; font-family: inherit;
+                cursor: pointer; padding: 0;
+              }
+              .ff-confirm-bar .ff-confirm-cta button.ff-confirm-primary { flex: 1 !important; padding: 15px 20px !important; }
+            }
+            @media (min-width: 769px) {
+              .ff-confirm-bar .ff-confirm-back-mobile { display: none !important; }
+            }
+          `}</style>
+          <div className="ff-confirm-inner" style={{
             pointerEvents: 'auto',
             width: '100%',
             maxWidth: 1200,
@@ -1744,21 +1805,31 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
             justifyContent: 'space-between',
             gap: 20,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <SecondaryButton onClick={() => dispatch({ type: 'BACK' })} back>Back</SecondaryButton>
-              <div style={{ width: 1, height: 32, background: T.border }} />
-              <div>
+            <div className="ff-confirm-meta" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <span className="ff-confirm-back-desktop">
+                <SecondaryButton onClick={() => dispatch({ type: 'BACK' })} back>Back</SecondaryButton>
+              </span>
+              <div className="ff-confirm-meta-divider" style={{ width: 1, height: 32, background: T.border }} />
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
                   Selected: {selectedLabel}
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: T.text, letterSpacing: '-0.01em', lineHeight: 1.2, ...NUM }}>
+                <div className="ff-confirm-summary" style={{ fontSize: 16, fontWeight: 700, color: T.text, letterSpacing: '-0.01em', lineHeight: 1.2, ...NUM }}>
                   {formatCurrencyFull(Math.round(currentOffer.monthly))}/mo · {(currentOffer.apr * 100).toFixed(2)}% APR · {formatCurrencyFull(Math.round(currentOffer.loanAmount))} loan
                 </div>
               </div>
             </div>
-            <PrimaryButton onClick={handleConfirm} size="lg" style={{ flexShrink: 0 }}>
-              Confirm your plan
-            </PrimaryButton>
+            <div className="ff-confirm-cta" style={{ flexShrink: 0 }}>
+              <button
+                type="button"
+                aria-label="Back"
+                className="ff-confirm-back-mobile"
+                onClick={() => dispatch({ type: 'BACK' })}
+              >←</button>
+              <PrimaryButton className="ff-confirm-primary" onClick={handleConfirm} size="lg">
+                Confirm your plan
+              </PrimaryButton>
+            </div>
           </div>
         </div>
       )}
