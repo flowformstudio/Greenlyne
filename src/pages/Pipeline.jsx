@@ -9,7 +9,7 @@ import { calcRate, calcEscrowLoan, formatCurrencyFull, AMORT_TERM_MO, ORIGINATIO
 import { DEMO_PERSONA } from '../lib/persona'
 import { setDemoSession } from '../lib/demoSession'
 import { subscribeLeads, addLead, deleteLead } from '../lib/firebase'
-import { subscribeImports, addImport, seedImportsIfEmpty, formatImportDate } from '../lib/imports'
+import { subscribeImports, addImport, seedImportsIfEmpty, formatImportDate, readFileAsText, parseCSV, MAX_STORED_ROWS } from '../lib/imports'
 
 // ─── Demo borrower profile (mirrors the SmartPOS persona for downstream calcs) ─
 const DEMO_PROFILE = {
@@ -1773,6 +1773,105 @@ function statusBadge(status) {
   return <span className="text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">Uploaded</span>
 }
 
+// ── Import detail — shows the rows that were uploaded for a specific CSV ────
+function ImportDetailModal({ item, onClose }) {
+  const rows    = Array.isArray(item?.rows) ? item.rows : []
+  const headers = Array.isArray(item?.headers) && item.headers.length
+    ? item.headers
+    : (rows[0] ? Object.keys(rows[0]) : [])
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 60,
+        background: 'rgba(7,9,14,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+        backdropFilter: 'blur(3px)',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 'min(900px, 100%)', maxHeight: 'calc(100vh - 40px)',
+          background: '#fff', borderRadius: 14,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '18px 24px 14px', borderBottom: '1px solid rgba(0,22,96,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Import detail</div>
+              <h3 className="text-lg font-semibold text-gray-900 mt-0.5 truncate">{item?.file_name}</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {formatImportDate(item)}
+                {typeof item?.household_count === 'number' && ` · ${item.household_count.toLocaleString()} rows`}
+                {typeof item?.homeowner_count_with_offer === 'number' && item.homeowner_count_with_offer > 0
+                  ? ` · ${item.homeowner_count_with_offer} offers` : ''}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: 'transparent', border: '1px solid rgba(0,22,96,0.12)',
+                color: 'rgba(0,22,96,0.6)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 24px 20px' }}>
+          {rows.length === 0 ? (
+            <div style={{ padding: 28, textAlign: 'center', color: 'rgba(0,22,96,0.5)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>No row data stored for this import.</div>
+              <div style={{ fontSize: 12 }}>Imports created before file-content storage was added show metadata only.</div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-gray-100 overflow-hidden" style={{ marginTop: 14 }}>
+              <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wide" style={{ width: 40 }}>#</th>
+                    {headers.map(h => (
+                      <th key={h} className="px-3 py-2 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => (
+                    <tr key={i} className="border-t border-gray-100">
+                      <td className="px-3 py-2 text-xs text-gray-400 tabular-nums">{i + 1}</td>
+                      {headers.map(h => (
+                        <td key={h} className="px-3 py-2 text-xs text-gray-700 whitespace-nowrap">{row[h] ?? ''}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {item?.rows_truncated && (
+            <p className="text-[11px] text-amber-700 mt-3">
+              Showing the first {rows.length.toLocaleString()} rows. Full file had more rows but Firestore caps doc size at 1 MB.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Step 2 mock validation result — uses real column names from csv_service.py
 const MOCK_VALIDATION = {
   row_count: 500,
@@ -1867,20 +1966,35 @@ function ImportCSVModal({ onClose, onBatchDone }) {
   // (only runs the write if the collection is actually empty).
   const [imports, setImports] = useState([])
   const [savedImportId, setSavedImportId] = useState(null)
+  const [viewingImport, setViewingImport] = useState(null)
   useEffect(() => {
     seedImportsIfEmpty().catch(e => console.warn('[imports] seed', e))
     return subscribeImports(setImports)
   }, [])
 
-  function processFile(f) {
+  // Parsed CSV from the user's actual upload — saved into Firestore so the
+  // import history shows real rows from real files.
+  const [parsedRows, setParsedRows]       = useState([])
+  const [parsedHeaders, setParsedHeaders] = useState([])
+
+  async function processFile(f) {
     if (!f) return
     if (!f.name.endsWith('.csv')) {
       setError('Please upload a .csv file')
-      setFile(null); setRowCount(null)
+      setFile(null); setRowCount(null); setParsedRows([]); setParsedHeaders([])
       return
     }
     setError(''); setFile(f)
-    setRowCount(Math.floor(f.size / 80) || 500)
+    try {
+      const text = await readFileAsText(f)
+      const { headers, rows } = parseCSV(text)
+      setParsedHeaders(headers)
+      setParsedRows(rows)
+      setRowCount(rows.length || Math.floor(f.size / 80) || 500)
+    } catch (e) {
+      console.warn('[imports] parse', e)
+      setRowCount(Math.floor(f.size / 80) || 500)
+    }
   }
 
   function handleDrop(e) { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]) }
@@ -1946,12 +2060,16 @@ function ImportCSVModal({ onClose, onBatchDone }) {
         clearInterval(interval)
         // Persist this import once per processing run.
         if (file && !savedImportId) {
+          const rowsToStore = (parsedRows || []).slice(0, MAX_STORED_ROWS)
           addImport({
             file_name: file.name,
             file_size_bytes: file.size,
-            household_count: validRows + skippedRows,
+            household_count: parsedRows.length || validRows + skippedRows,
             homeowner_count_with_offer: validRows,
             status: 'OFFER_GENERATION_DONE',
+            headers: parsedHeaders,
+            rows: rowsToStore,
+            rows_truncated: parsedRows.length > MAX_STORED_ROWS,
           })
             .then(id => setSavedImportId(id))
             .catch(e => console.warn('[imports] add', e))
@@ -2119,24 +2237,39 @@ function ImportCSVModal({ onClose, onBatchDone }) {
                     {imports.length === 0 && (
                       <div className="text-sm text-gray-400 px-3 py-3">No imports yet.</div>
                     )}
-                    {imports.map(item => (
-                      <div key={item.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-gray-300 text-base shrink-0">📄</span>
-                          <div className="min-w-0">
-                            <p className="text-sm text-gray-800 font-medium truncate">{item.file_name}</p>
-                            <p className="text-xs text-gray-400">
-                              {formatImportDate(item)}
-                              {typeof item.household_count === 'number' && ` · ${item.household_count.toLocaleString()} rows`}
-                              {item.homeowner_count_with_offer > 0 ? ` · ${item.homeowner_count_with_offer} offers` : ''}
-                            </p>
+                    {imports.map(item => {
+                      const hasRows = Array.isArray(item.rows) && item.rows.length > 0
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setViewingImport(item)}
+                          className="w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                          title={hasRows ? 'View imported rows' : 'No row data stored for this import'}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-gray-300 text-base shrink-0">📄</span>
+                            <div className="min-w-0">
+                              <p className="text-sm text-gray-800 font-medium truncate">{item.file_name}</p>
+                              <p className="text-xs text-gray-400">
+                                {formatImportDate(item)}
+                                {typeof item.household_count === 'number' && ` · ${item.household_count.toLocaleString()} rows`}
+                                {item.homeowner_count_with_offer > 0 ? ` · ${item.homeowner_count_with_offer} offers` : ''}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="shrink-0 ml-3">{statusBadge(item.status)}</div>
-                      </div>
-                    ))}
+                          <div className="shrink-0 ml-3 flex items-center gap-2">
+                            {statusBadge(item.status)}
+                            <span className="text-gray-300 text-xs">›</span>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
+                {viewingImport && (
+                  <ImportDetailModal item={viewingImport} onClose={() => setViewingImport(null)} />
+                )}
               </div>
 
               <div className="px-6 pb-6 flex items-center justify-between gap-3 shrink-0">

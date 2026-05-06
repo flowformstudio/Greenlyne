@@ -83,3 +83,36 @@ export function formatImportDate(item) {
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+/* ── CSV parsing helpers ────────────────────────────────────────────────── */
+
+/** Read a File / Blob as UTF-8 text. */
+export function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload  = e => resolve(e.target.result)
+    r.onerror = () => reject(new Error('Could not read file'))
+    r.readAsText(file)
+  })
+}
+
+/**
+ * Minimal CSV parser — sufficient for the demo template (comma-separated, no
+ * embedded commas / quoted fields). For more complex files we'd swap in
+ * Papa Parse, but keeping the dep tree small here.
+ */
+export function parseCSV(text) {
+  const lines = (text || '').split(/\r?\n/).filter(l => l.trim().length > 0)
+  if (lines.length === 0) return { headers: [], rows: [] }
+  const headers = lines[0].split(',').map(h => h.trim())
+  const rows = lines.slice(1).map(line => {
+    const cells = line.split(',').map(c => c.trim())
+    const obj = {}
+    headers.forEach((h, i) => { obj[h] = cells[i] ?? '' })
+    return obj
+  })
+  return { headers, rows }
+}
+
+/** Cap total stored rows to keep doc size under Firestore's 1MB limit. */
+export const MAX_STORED_ROWS = 2000
