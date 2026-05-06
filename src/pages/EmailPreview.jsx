@@ -4,6 +4,7 @@ import { DEMO_PERSONA } from '../lib/persona'
 import { calcRate } from '../lib/loanCalc'
 import { computeOffer, computeFiveYearTotal } from '../components/ScreenOfferSelect'
 import { useActivePartners } from '../lib/PartnersContext'
+import { useIsMobile } from '../lib/useIsMobile'
 
 function slugify(s = '') {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'partner'
@@ -46,6 +47,7 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
   const navigate = useNavigate()
   const session  = getDemoSession()
   const { merchant, lender } = useActivePartners()
+  const isMobile = useIsMobile(640)
   const merchantName   = merchant?.name || 'Westhaven Power'
   const merchantLogo   = merchant?.logoUrl || '/westhaven-logo-new.avif'
   const merchantSymbol = merchant?.symbolLogoUrl || merchant?.logoUrl || '/westhaven-icon.svg'
@@ -123,35 +125,54 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
       <div style={{ maxWidth: 680, margin: '28px auto', padding: '0 20px 60px', boxSizing: 'border-box', width: '100%' }}>
         <div style={{ background: C.white, borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 24px rgba(0,0,0,0.08)' }}>
 
-          {/* HEADER — two stacked rows, divider between */}
-          <div style={{ borderBottom: `1px solid ${C.gray100}` }}>
-            {/* Row 1 — merchant logo, centered */}
-            <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img
-                src={merchantLogo}
-                alt={merchantName}
-                style={{ maxHeight: 42, maxWidth: 220, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
-              />
+          {/* HEADER — desktop: side-by-side merchant + meta. Mobile: centered stacked rows. */}
+          {isMobile ? (
+            <div style={{ borderBottom: `1px solid ${C.gray100}` }}>
+              {/* Row 1 — merchant logo, centered */}
+              <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                  src={merchantLogo}
+                  alt={merchantName}
+                  style={{ maxHeight: 42, maxWidth: 220, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+              <div style={{ height: 1, background: C.gray100 }} />
+              {/* Row 2 — financing + lending, centered, compact */}
+              <div style={{
+                padding: '12px 24px 14px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                textAlign: 'center',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>Financing powered by</span>
+                  <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto', display: 'block' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
+                  <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 11, maxWidth: 80, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                  {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
+                </div>
+              </div>
             </div>
-            {/* Divider */}
-            <div style={{ height: 1, background: C.gray100 }} />
-            {/* Row 2 — financing + lending, centered, compact */}
+          ) : (
             <div style={{
-              padding: '12px 24px 14px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-              textAlign: 'center',
+              padding: '20px 32px', display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', borderBottom: `1px solid ${C.gray100}`, gap: 16,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#001660' }}>Financing powered by</span>
-                <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto', display: 'block' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
-                <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 11, maxWidth: 80, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
-                {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
+              <img src={merchantLogo} alt={merchantName} style={{ maxHeight: 33, maxWidth: 184, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: '#001660' }}>Financing powered by</span>
+                  <img src="/greenlyne-logo.svg" alt="GreenLyne" style={{ height: 15, width: 'auto' }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, color: '#bcc7d5' }}>Lending services by</span>
+                  <img src={lenderLogo} alt={lenderName} style={{ maxHeight: 12, maxWidth: 77, height: 'auto', width: 'auto', objectFit: 'contain', display: 'block' }} />
+                  {lenderNmls && <span style={{ fontSize: 10, color: '#bcc7d5' }}>NMLS #{lenderNmls}</span>}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* COVER PHOTO */}
           <div style={{ padding: '16px 16px 0' }}>
