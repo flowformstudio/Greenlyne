@@ -192,9 +192,30 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
             </h1>
 
             {/* Narrative — friendly, light on numbers */}
-            <p style={{ fontSize: 16, color: C.gray500, lineHeight: 1.7, margin: '0 0 24px' }}>
+            <p style={{ fontSize: 16, color: C.gray500, lineHeight: 1.7, margin: '0 0 20px' }}>
               Your {merchantName} consultant pre-screened <strong style={{ color: C.dark, fontWeight: 700 }}>{recipientAddress}</strong> — no hard credit pull, no commitment.
             </p>
+
+            {/* Primary CTA — early in the email so users can jump straight in */}
+            <div style={{ padding: '4px 0 28px' }}>
+              <a
+                href="#"
+                onClick={go}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  background: brandRed, color: C.white,
+                  padding: '14px 26px', borderRadius: 999,
+                  fontSize: 15, fontWeight: 700, letterSpacing: '-0.005em',
+                  textDecoration: 'none',
+                  boxShadow: '0 6px 16px rgba(216,32,32,0.22)',
+                }}
+              >
+                View my offer
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </a>
+            </div>
 
             {/* Section header — savings-focused framing */}
             <div style={{ fontSize: 18, fontWeight: 700, color: C.dark, marginBottom: 12, letterSpacing: '-0.3px' }}>
