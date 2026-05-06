@@ -341,54 +341,43 @@ function CardHeader({ title, sub }) {
 function NavButtons({ onBack, onNext, nextLabel = 'Continue', disabled = false, showBack = true }) {
   const isMobile = useIsMobile(640)
   if (isMobile) {
-    // Mobile: sticky bottom action bar — primary CTA dominates, secondary actions in a quieter row.
+    // Mobile: sticky bottom CTA bar — solid white blocker, single dominant Continue button.
+    // A small Back chip lives at the top-left of the bar so users can step back.
     return (
-      <>
-        <div style={{
-          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
-          background: 'rgba(245,241,238,0.95)',
-          backdropFilter: 'saturate(180%) blur(14px)',
-          borderTop: '1px solid rgba(0,22,96,0.08)',
-          padding: '12px 16px calc(14px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          <button
-            onClick={onNext}
-            disabled={disabled}
-            style={{
-              width: '100%', padding: '15px 20px', borderRadius: 999,
-              fontSize: 16, fontWeight: 700,
-              background: disabled ? 'rgba(0,22,96,0.18)' : '#001660',
-              color: '#fff', border: 'none',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
-              transition: 'background .15s',
-            }}
-          >
-            {nextLabel}
-          </button>
-          {(showBack || true) && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              {showBack && (
-                <button onClick={onBack} style={{
-                  flex: 1, padding: '11px 16px', borderRadius: 999,
-                  fontSize: 14, fontWeight: 600,
-                  background: 'transparent', border: '1.5px solid rgba(0,22,96,0.12)',
-                  color: 'rgba(0,22,96,0.7)', cursor: 'pointer',
-                  fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
-                }}>← Back</button>
-              )}
-              <button style={{
-                flex: 1, padding: '11px 16px', borderRadius: 999,
-                fontSize: 14, fontWeight: 600,
-                background: 'transparent', border: '1.5px solid rgba(0,22,96,0.12)',
-                color: 'rgba(0,22,96,0.55)', cursor: 'pointer',
-                fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
-              }}>Save for later</button>
-            </div>
-          )}
-        </div>
-      </>
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
+        background: '#fff',
+        borderTop: '1px solid rgba(0,22,96,0.10)',
+        boxShadow: '0 -6px 18px rgba(0,22,96,0.06)',
+        padding: '12px 16px calc(14px + env(safe-area-inset-bottom)) 16px',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        {showBack && (
+          <button onClick={onBack} aria-label="Back" style={{
+            flexShrink: 0, width: 48, height: 48, borderRadius: '50%',
+            background: '#fff', border: '1.5px solid rgba(0,22,96,0.12)',
+            color: 'rgba(0,22,96,0.7)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+            fontSize: 18,
+          }}>←</button>
+        )}
+        <button
+          onClick={onNext}
+          disabled={disabled}
+          style={{
+            flex: 1, padding: '15px 20px', borderRadius: 999,
+            fontSize: 16, fontWeight: 700,
+            background: disabled ? 'rgba(0,22,96,0.18)' : '#001660',
+            color: '#fff', border: 'none',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
+            transition: 'background .15s',
+          }}
+        >
+          {nextLabel}
+        </button>
+      </div>
     )
   }
   return (
@@ -606,9 +595,17 @@ function MobileStepStrip({ appState, dispatch }) {
     <div style={{
       position: 'sticky', top: 0, zIndex: 5,
       background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)',
-      padding: '10px 16px 12px',
+      padding: '10px 22px 12px',
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{
+          fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
+          fontSize: 14, fontWeight: 700, color: '#001660',
+          maxWidth: '60%',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {currentLabel}
+        </span>
         <span style={{
           fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
           fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
@@ -616,25 +613,10 @@ function MobileStepStrip({ appState, dispatch }) {
         }}>
           Step {current} of {total}
         </span>
-        <span style={{
-          fontFamily: "'Sora', ui-sans-serif, system-ui, sans-serif",
-          fontSize: 14, fontWeight: 700, color: '#001660',
-          maxWidth: '60%', textAlign: 'right',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {currentLabel}
-        </span>
-      </div>
-      <div style={{ height: 4, borderRadius: 999, background: 'rgba(0,22,96,0.08)', overflow: 'hidden' }}>
-        <div style={{
-          height: '100%', width: `${pct}%`,
-          background: 'linear-gradient(90deg, #016163 0%, #001660 100%)',
-          transition: 'width 0.4s ease',
-        }} />
       </div>
       {/* Compact step dots — tappable to jump (mirrors desktop sidebar behavior) */}
       <div style={{
-        marginTop: 10, display: 'flex', alignItems: 'center', gap: 6,
+        display: 'flex', alignItems: 'center', gap: 6,
         overflowX: 'auto', WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none', msOverflowStyle: 'none',
       }}
@@ -1083,9 +1065,13 @@ function FieldRow({ children, gap = 12 }) {
 }
 
 // Sized input wrapper
-function FieldWrap({ flex, minWidth, maxWidth, children }) {
+function FieldWrap({ flex, minWidth, maxWidth, tight, className, children }) {
+  const base = tight ? 'ff-field-wrap-tight' : 'ff-field-wrap'
   return (
-    <div className="ff-field-wrap" style={{ flex: flex ?? '1 1 0', minWidth: minWidth ?? 0, maxWidth: maxWidth ?? 'none' }}>
+    <div
+      className={className ? `${base} ${className}` : base}
+      style={{ flex: flex ?? '1 1 0', minWidth: minWidth ?? 0, maxWidth: maxWidth ?? 'none' }}
+    >
       {children}
     </div>
   )
@@ -1340,8 +1326,16 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
         .anim-fwd  { animation: slideInFwd  0.28s cubic-bezier(0.22,1,0.36,1) both; }
         .anim-back { animation: slideInBack 0.28s cubic-bezier(0.22,1,0.36,1) both; }
         @media (max-width: 640px) {
-          .ff-field-row { flex-direction: column !important; gap: 14px !important; }
+          .ff-field-row { flex-direction: column !important; gap: 14px !important; align-items: stretch !important; }
           .ff-field-wrap { max-width: none !important; flex: 1 1 auto !important; width: 100%; }
+          /* "tight" wraps keep their inline maxWidth and don't stretch — used for mid initial, DOB, etc. */
+          .ff-field-wrap-tight { flex: 0 0 auto !important; width: auto !important; }
+          /* Special: name row keeps First + Mid on same row, Last on its own row */
+          .ff-name-row { display: grid !important; grid-template-columns: 1fr 96px !important; gap: 12px !important; }
+          .ff-name-row .ff-name-last { grid-column: 1 / -1 !important; }
+          .ff-name-row .ff-field-wrap, .ff-name-row .ff-field-wrap-tight {
+            width: auto !important; flex: initial !important; max-width: 100% !important;
+          }
         }
       `}</style>
 
@@ -1405,13 +1399,13 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
         {/* ── Screen 0: Name + DOB ────────────────────────────────── */}
         {screenIdx === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <FieldRow gap={12}>
+            <div className="ff-field-row ff-name-row" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <FieldWrap flex="2 1 0"><Field label="First Name"><Input value={step1.firstName} onChange={v => set('firstName', v)} /></Field></FieldWrap>
-              <FieldWrap maxWidth={96}><Field label="Mid. Initial"><Input value={step1.middleInitial || ''} onChange={v => set('middleInitial', v.slice(0, 1).toUpperCase())} placeholder="A" /></Field></FieldWrap>
-              <FieldWrap flex="2 1 0"><Field label="Last Name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
-            </FieldRow>
+              <FieldWrap maxWidth={96} tight><Field label="Mid. Initial"><Input value={step1.middleInitial || ''} onChange={v => set('middleInitial', v.slice(0, 1).toUpperCase())} placeholder="A" /></Field></FieldWrap>
+              <FieldWrap flex="2 1 0" className="ff-name-last"><Field label="Last Name"><Input value={step1.lastName} onChange={v => set('lastName', v)} /></Field></FieldWrap>
+            </div>
             <FieldRow gap={12}>
-              <FieldWrap flex="2 1 0">
+              <FieldWrap maxWidth={200} tight>
                 <Field label="Date of Birth">
                   <Input type="date"
                     value={dobToIso(step1.dob)}
@@ -1419,9 +1413,6 @@ function ScreenBasicInfo({ step1, dispatch, initialScreen = 0 }) {
                     placeholder="MM/DD/YYYY" />
                 </Field>
               </FieldWrap>
-              {/* spacers so DOB visually matches First Name width above */}
-              <FieldWrap maxWidth={96} />
-              <FieldWrap flex="2 1 0" />
             </FieldRow>
           </div>
         )}
@@ -5265,7 +5256,7 @@ export default function POSDemo() {
           {isMobile && !isFlexScreen && <MobileStepStrip appState={app} dispatch={dispatch} />}
           {isFlexScreen ? renderScreen() : (
             <div style={isMobile
-              ? { width: '100%', padding: '20px 16px calc(120px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 20 }
+              ? { width: '100%', padding: '20px 22px calc(100px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 20 }
               : { maxWidth: 1240, width: '100%', margin: '0 auto', padding: '32px 32px 144px', display: 'flex', gap: 24, alignItems: 'flex-start' }
             }>
               <div style={{ flex: 1, minWidth: 0, width: '100%' }}>

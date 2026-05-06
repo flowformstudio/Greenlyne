@@ -9,6 +9,13 @@
   .ff-flow-screen .p-8 { padding: 16px !important; }
   /* Bottom safe area for fixed CTAs */
   .ff-flow-screen { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* AI chat bubble: keep it pinned to the lower-right, lifted above the sticky CTA bar */
+  .aichat-fixed {
+    right: 16px !important;
+    /* sticky NavButtons mobile bar is ~96px tall + safe-area; lift the bubble above it */
+    bottom: calc(116px + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 /* ── Offer Select tile transitions ───────────────────────────────────────── */
