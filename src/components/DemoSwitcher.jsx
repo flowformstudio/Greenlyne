@@ -84,6 +84,7 @@ export default function DemoSwitcher({ currentLabel, theme = 'dark' }) {
           position: 'absolute',
           top: 'calc(100% + 6px)',
           left: 0,  /* under the button */
+          zIndex: 2000, /* sit above floating map panels (z-1100) */
           minWidth: 220,
           background: menuBg,
           border: menuBorder,

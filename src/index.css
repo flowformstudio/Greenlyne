@@ -422,3 +422,14 @@ input[type="range"]::-webkit-slider-runnable-track {
   box-shadow: 0 4px 12px -2px #00166066;
   cursor: grab;
 }
+
+/* Leaflet popups render above the in-map informational callouts (e.g. the
+ * "homeowners in area" pill) so clicking a marker isn't visually blocked. */
+.leaflet-popup-pane,
+.leaflet-popup,
+.leaflet-popup-tip-container { z-index: 1200 !important; }
+
+/* Spinner used by the geo-prescreen "polling status" indicator. */
+@keyframes ff-spin {
+  to { transform: rotate(360deg); }
+}

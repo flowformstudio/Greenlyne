@@ -3598,7 +3598,7 @@ export default function Pipeline() {
                     label: 'Geo-Search Leads',
                     desc: 'Find leads by area',
                     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
-                    action: () => { navigate('/geo-campaigns?view=map&from=pipeline'); setAddLeadsOpen(false) },
+                    action: () => { navigate('/geo-campaigns?view=map'); setAddLeadsOpen(false) },
                   },
                 ].map(({ label, desc, icon, action }) => (
                   <button key={label} onClick={action}

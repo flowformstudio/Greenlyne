@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { QUOTA } from '../lib/quota'
 import { ThemeContext } from '../lib/theme'
@@ -10,7 +10,7 @@ const NAV_ITEMS = [
     icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   },
   {
-    id: 'geo', label: 'Geo Campaigns', path: '/geo-campaigns',
+    id: 'geo', label: 'Campaigns', path: '/geo-campaigns',
     icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
   },
 ]
@@ -293,6 +293,10 @@ export default function AppLayout() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [themeMode, setThemeMode] = useState('light')
   const [dark, setDark] = useState(false)
+  const location = useLocation()
+  // Geo Review / Browse Map runs in immersive full-screen mode — no sidebar.
+  const immersive = location.pathname === '/geo-campaigns' &&
+                    new URLSearchParams(location.search).get('view') === 'map'
 
   // Recompute dark whenever themeMode changes, and listen for system pref changes
   useEffect(() => {
@@ -341,11 +345,11 @@ export default function AppLayout() {
       {/* Body: sidebar + content */}
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Sidebar spacer — holds layout width so content never shifts */}
-        <div className="shrink-0" style={{width: 40}} />
+        {/* Sidebar spacer — holds layout width so content never shifts. Hidden in immersive mode. */}
+        {!immersive && <div className="shrink-0" style={{width: 40}} />}
 
-        {/* Sidebar — overlays content on expand */}
-        <aside
+        {/* Sidebar — overlays content on expand. Suppressed in immersive Geo Review. */}
+        {!immersive && <aside
           onMouseEnter={() => setSidebarExpanded(true)}
           onMouseLeave={() => setSidebarExpanded(false)}
           className="absolute left-0 top-0 bottom-0 z-20 flex flex-col overflow-hidden"
@@ -399,7 +403,7 @@ export default function AppLayout() {
               </NavLink>
             ))}
           </nav>
-        </aside>
+        </aside>}
 
         {/* Main content */}
         <main className="flex-1 overflow-auto" style={{background: dark ? '#0F172A' : '#F0F2F5'}}>

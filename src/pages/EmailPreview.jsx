@@ -43,7 +43,7 @@ const C = {
   bg:      '#EDEAE6',
 }
 
-export default function EmailPreview({ hideClientChrome = false, loanAmountOverride }) {
+export default function EmailPreview({ hideClientChrome = false, loanAmountOverride, recipient }) {
   const navigate = useNavigate()
   const session  = getDemoSession()
   const { merchant, lender } = useActivePartners()
@@ -58,20 +58,26 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
   const lenderName     = lender?.name || 'Owning'
   const lenderLogo     = lender?.logoUrl || '/owning-logo.webp'
   const lenderNmls     = lender?.nmls || '2611'
-  const firstName = session.firstName || DEMO_PERSONA.firstName
-  const lastName  = session.lastName  || DEMO_PERSONA.lastName
-  const recipientEmail = session.email || DEMO_PERSONA.email
-  const recipientAddress = session.address || DEMO_PERSONA.address
-  const recipientCity    = session.city    || DEMO_PERSONA.city
-  const recipientState   = session.state   || DEMO_PERSONA.state
+  const firstName = recipient?.firstName || session.firstName || DEMO_PERSONA.firstName
+  const lastName  = recipient?.lastName  || session.lastName  || DEMO_PERSONA.lastName
+  const recipientEmail = recipient?.email || session.email || DEMO_PERSONA.email
+  const recipientAddress = recipient?.address || session.address || DEMO_PERSONA.address
+  const recipientCity    = recipient?.city    || session.city    || DEMO_PERSONA.city
+  const recipientState   = recipient?.state   || session.state   || DEMO_PERSONA.state
   const slug = `${firstName}-${lastName}`.toLowerCase().replace(/[^a-z0-9-]/g, '')
 
   // Live offer figures — `loanAmountOverride` (e.g. from the prescreen slider) wins
   // so the email preview re-renders instantly on each slider move. Falls back to
   // the demo session for standalone /email visits.
-  const drawAmt = Number(loanAmountOverride) || Number(session.requestedLoanAmount) || DEMO_PERSONA.requestedLoanAmountN || 45_000
+  const drawAmt = Number(loanAmountOverride) || Number(recipient?.loanAmount) || Number(session.requestedLoanAmount) || DEMO_PERSONA.requestedLoanAmountN || 45_000
   const projectCost = Number(session.projectCost) || drawAmt
-  const profile = { ...PROFILE_BASE, drawAmt }
+  const profile = {
+    ...PROFILE_BASE,
+    ...(recipient?.fico        ? { fico:        Number(recipient.fico) }        : {}),
+    ...(recipient?.propValue   ? { propValue:   Number(recipient.propValue) }   : {}),
+    ...(recipient?.mortgageBal ? { mortgageBal: Number(recipient.mortgageBal) } : {}),
+    drawAmt,
+  }
   const cltv  = (profile.mortgageBal + profile.creditLim) / profile.propValue
   const rate  = calcRate(profile.fico, cltv) ?? 0.0825
   const stdOffer = computeOffer({ C: drawAmt, rate, preset: STANDARD_PRESET })

@@ -1316,11 +1316,17 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     return calcRate(DEMO_FICO, cltv0) ?? 0.0825
   }, [creditLim])
 
-  const baselineOffer = useMemo(() =>
-    computeOffer({
+  const baselineOffer = useMemo(() => {
+    const o = computeOffer({
       C: creditLim, rate: baselineRate,
       preset: { zeroStart: false, ioYrs: 0, s: 0, reductionYrs: null },
-    }), [baselineRate, creditLim])
+    })
+    // Display the nominal contract rate as APR so Standard / Optimum / Custom
+    // all advertise the same APR — the per-plan effective IRR differs because
+    // of escrow timing, but the customer-facing rate should be consistent.
+    if (o) o.apr = o.rate
+    return o
+  }, [baselineRate, creditLim])
 
   // Pick up merchant-set Recommended plan from PMPro Pipeline (Step 2 result page)
   const merchantRecommended = useMemo(() => {
@@ -1337,17 +1343,24 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     } catch { return null }
   }, [])
 
-  const recommendedOffer = useMemo(() =>
-    computeOffer({
+  const recommendedOffer = useMemo(() => {
+    const o = computeOffer({
       C: creditLim, rate: baselineRate,
       preset: merchantRecommended ?? { zeroStart: true, ioYrs: 5, s: 0.30, reductionYrs: 5 },
-    }), [baselineRate, merchantRecommended, creditLim])
+    })
+    if (o) o.apr = o.rate
+    return o
+  }, [baselineRate, merchantRecommended, creditLim])
 
-  const customOffer = useMemo(() =>
-    computeOffer({
-      C: safeDraw, rate,
+  const customOffer = useMemo(() => {
+    // Pin Custom to the same baseline rate so all three plans show identical APR.
+    const o = computeOffer({
+      C: safeDraw, rate: baselineRate,
       preset: { zeroStart, ioYrs, s, reductionYrs },
-    }), [safeDraw, rate, zeroStart, ioYrs, s, reductionYrs])
+    })
+    if (o) o.apr = o.rate
+    return o
+  }, [safeDraw, baselineRate, zeroStart, ioYrs, s, reductionYrs])
 
   // 5-year totals for the savings comparison badge on Recommended/Custom
   const standardFive = useMemo(() => computeFiveYearTotal(baselineOffer), [baselineOffer])
@@ -1402,7 +1415,9 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     ? 'No reduction (base loan)'
     : `${tier?.label} · ${Math.round(s * 100)}% off for ${reductionYrs ?? ioYrs} ${(reductionYrs ?? ioYrs) === 1 ? 'year' : 'years'}`
 
-  const rateDisplay = `${(rate * 100).toFixed(2)}%`
+  // Show the baseline (program) rate everywhere so it stays consistent with
+  // the APR displayed on each plan tile.
+  const rateDisplay = `${(baselineRate * 100).toFixed(2)}%`
 
   function handleConfirm() {
     if (!currentOffer) return
@@ -1418,7 +1433,7 @@ export default function ScreenOfferSelect({ step2, step1, dispatch, savedConfig 
     const loanObj = {
       creditLimit: creditUsed,
       withdrawNow: drawUsed,
-      rate:  isCustom ? rate : baselineRate,
+      rate:  baselineRate,
       cltv:  isCustom ? cltv : (MORTGAGE_BAL + SEED.defaultCredit) / PROP_VALUE,
       apr:   (currentOffer.apr * 100).toFixed(2),
       originationFee: calc?.origFee ?? 0,

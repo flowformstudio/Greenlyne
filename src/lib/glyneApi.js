@@ -93,6 +93,64 @@ export function getUserInfoByToken() {
   return glyneFetch('get-user-info-by-token')
 }
 
+/** Save a new mail campaign (Step 2 of the geo-prescreen flow).
+ * Returns 201; campaign_id comes from a follow-up call to campaign-collections.
+ */
+export function saveCampaignMail({ name, latlngs, fico = [640, 850], equity = [20000, 999000], cltv = [0, 90], monthOwnership = [0, 360], productType = 'HELOC' }) {
+  const polygon = toClosedLngLatRing(latlngs)
+  return glyneFetch('save-campaign/mail', {
+    name,
+    month_ownership_range:    `${monthOwnership[0]} ${monthOwnership[1]}`,
+    cltv_range:               `${cltv[0]} ${cltv[1]}`,
+    available_equity_range:   `${equity[0]} ${equity[1]}`,
+    fico_range:               `${fico[0]} ${fico[1]}`,
+    polygon_coordinates:      polygon,
+    shape_type:               'polygon',
+    product_type:             productType,
+    is_census_tract:          false,
+    is_single_campaign:       true,
+  })
+}
+
+/** Get a single campaign-collection's detail (with its campaigns + statuses). */
+export function getCampaignCollectionDetail(collectionId) {
+  return glyneFetch(`campaign-collections/mail/${collectionId}/`, {})
+}
+
+/** Delete a saved campaign collection by id. */
+export async function deleteSavedCampaign(collectionId) {
+  const url = `${PROXY_BASE}?p=${encodeURIComponent(`delete-campaign/${collectionId}/`)}`
+  const res = await fetch(url, { method: 'DELETE', headers: { 'Accept': 'application/json' } })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    const err = new Error(`[glyneApi] delete failed: ${res.status} ${txt.slice(0, 200)}`)
+    err.status = res.status
+    throw err
+  }
+  return true
+}
+
+/** Step 4/6 — Trigger or read household results for a saved campaign.
+ * mode='trigger' → fetch_data_only_from_db=false (kicks off Celery task)
+ * mode='read'    → fetch_data_only_from_db=true  (reads written rows)
+ */
+export function getPropertiesForCampaign({ campaignId, fico = [640, 850], equity = [20000, 999000], cltv = [0, 90], monthOwnership = [0, 360], mode = 'read', determineOffer = false, page = 1, pageSize = 50 }) {
+  const body = {
+    CampaignIds:           [campaignId],
+    CLTV:                  cltv,
+    AvailableEquity:       equity,
+    MonthOwnership:        monthOwnership,
+    FICOScore:             fico,
+    ApplyCensusTractFilter: false,
+  }
+  return glyneFetch('get-properties-by-criteria', body, {
+    page,
+    page_size:               pageSize,
+    determine_offer:         determineOffer ? 'true' : 'false',
+    fetch_data_only_from_db: mode === 'read' ? 'true' : 'false',
+  })
+}
+
 /**
  * Real property records inside a polygon, with per-shape analytics
  * (median home value/equity, qualifying counts, projected originations).
@@ -133,7 +191,10 @@ export function getPropertiesByCriteria(latlngs, opts = {}) {
   return glyneFetch('get-properties-by-criteria', body, {
     page: opts.page ?? 1,
     page_size: opts.pageSize ?? 50,
-    determine_offer: 'false',
-    fetch_data_only_from_db: 'true',
+    determine_offer: opts.determineOffer ? 'true' : 'false',
+    // liveMode=true → match production's "Get Households" / "Prescreen" buttons
+    // (run the live Altair pipeline; warms the per-account cache).
+    // liveMode=false (default) → fast cache-only read.
+    fetch_data_only_from_db: opts.liveMode ? 'false' : 'true',
   })
 }
