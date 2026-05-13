@@ -10,6 +10,8 @@ import { DEMO_PERSONA } from '../lib/persona'
 import { setDemoSession } from '../lib/demoSession'
 import { subscribeLeads, addLead, deleteLead } from '../lib/firebase'
 import { subscribeImports, addImport, deleteImport, clearEmptyImports, formatImportDate, readFileAsText, parseCSV, MAX_STORED_ROWS } from '../lib/imports'
+import { useIsMobile } from '../lib/useIsMobile'
+import PipelineMobile from './PipelineMobile'
 
 // ─── Demo borrower profile (mirrors the SmartPOS persona for downstream calcs) ─
 const DEMO_PROFILE = {
@@ -3117,6 +3119,12 @@ function SortTh({ col, label, sortKey, sortDir, onSort, className = '', align = 
 }
 
 export default function Pipeline() {
+  const isMobile = useIsMobile(768)
+  if (isMobile) return <PipelineMobile />
+  return <PipelineDesktop />
+}
+
+function PipelineDesktop() {
   const navigate = useNavigate()
   const { dark } = useTheme()
   // Unified dark blue-navy palette — one consistent hue family
