@@ -73,14 +73,129 @@ const ICONS = {
   dots:    <><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5"  cy="12" r="1" fill="currentColor"/></>,
 }
 
-/* ── KPI strip — horizontally scrollable cards. */
-function KpiStrip({ stats, activeKey, onPick }) {
+/* ── Analytics row — Outreach / Conversion / Funnel / Funded.
+   Horizontally scrollable cards that mirror the desktop analytics panel. */
+function AnalyticsRow({ leads }) {
+  const cnt = (fn) => leads.filter(fn).length
+  const qualified = cnt(l => l.status === 'qualified')
+  const contacted = cnt(l => ['contacted','engaged','hot','applying','approved','funded'].includes(l.status))
+  const engaged   = cnt(l => ['engaged','hot','applying','approved','funded'].includes(l.status))
+  const applied   = cnt(l => ['applying','approved','funded'].includes(l.status))
+  const hot       = cnt(l => l.status === 'hot')
+  const approved  = cnt(l => l.status === 'approved')
+  const funded    = cnt(l => l.status === 'funded')
+  const emailSent = cnt(l => !!l.emailSent)
+  const postcardSent = cnt(l => !!l.postcardSent)
+  const qualNoContact = cnt(l => l.status === 'qualified' && !l.emailSent && !l.postcardSent)
+  const contactToEng  = contacted ? Math.round((engaged / contacted) * 100) : 0
+  const engToApply    = engaged ? Math.round((applied / engaged) * 100) : 0
+  // Funded $ — sum the `amount` string ($85,000) by parsing.
+  const fundedSum = leads
+    .filter(l => l.status === 'funded')
+    .reduce((acc, l) => acc + (Number(String(l.amount || '').replace(/[^\d.]/g, '')) || 0), 0)
+  const fundedShort = fundedSum >= 1000 ? `$${Math.round(fundedSum / 1000)}k` : `$${fundedSum.toLocaleString()}`
+  const inClosing = approved
+  const pipelineVal = leads.reduce((acc, l) => acc + (Number(String(l.amount || '').replace(/[^\d.]/g, '')) || 0), 0)
+  const pipelineShort = pipelineVal >= 1000 ? `$${Math.round(pipelineVal / 1000)}k` : `$${pipelineVal.toLocaleString()}`
+
+  const cards = [
+    {
+      key: 'outreach', accent: '#016163',
+      head: 'Outreach Needed',
+      big: qualNoContact, bigUnit: '',
+      sub: 'leads not yet contacted',
+      foot: `${emailSent} emailed · ${postcardSent} postcard sent`,
+    },
+    {
+      key: 'conversion', accent: '#254BCE',
+      head: 'Conversion Rates',
+      rows: [
+        { label: 'Contact → Engaged', value: `${contactToEng}%` },
+        { label: 'Engaged → Applied',  value: `${engToApply}%` },
+      ],
+    },
+    {
+      key: 'funnel', accent: '#254BCE',
+      head: 'Funnel Overview',
+      bars: [
+        { label: 'Qualified', value: qualified, of: Math.max(qualified, contacted, 1) },
+        { label: 'Contacted', value: contacted, of: Math.max(qualified, contacted, 1) },
+        { label: 'Engaged',   value: engaged,   of: Math.max(qualified, contacted, 1) },
+        { label: 'Hot',       value: hot,       of: Math.max(qualified, contacted, 1) },
+      ],
+    },
+    {
+      key: 'funded', accent: '#016163',
+      head: 'Funded Value', emerald: true,
+      big: fundedShort, bigUnit: '',
+      sub: `${funded} funded · ${inClosing} in closing`,
+      foot: `Pipeline value: ${pipelineShort}`,
+    },
+  ]
   return (
-    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 16px 4px', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+    <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingInline: 16, paddingTop: 6, paddingBottom: 4, scrollPaddingInline: 16, scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+      {cards.map(c => (
+        <div key={c.key} style={{
+          flex: '0 0 auto', scrollSnapAlign: 'start',
+          width: 256, minHeight: 168, borderRadius: 18,
+          background: c.emerald ? 'rgba(1,97,99,0.06)' : '#fff',
+          border: `1px solid ${c.emerald ? 'rgba(1,97,99,0.18)' : 'rgba(0,22,96,0.07)'}`,
+          padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.emerald ? c.accent : 'rgba(0,22,96,0.55)' }}>
+            {c.head}
+          </div>
+          {c.big != null && (
+            <>
+              <div style={{ fontSize: 32, fontWeight: 700, color: c.emerald ? c.accent : '#001660', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                {c.big}{c.bigUnit}
+              </div>
+              <div style={{ fontSize: 11, color: c.emerald ? 'rgba(1,97,99,0.65)' : 'rgba(0,22,96,0.55)' }}>{c.sub}</div>
+              <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: `1px solid ${c.emerald ? 'rgba(1,97,99,0.10)' : 'rgba(0,22,96,0.06)'}`, fontSize: 10.5, color: c.emerald ? 'rgba(1,97,99,0.55)' : 'rgba(0,22,96,0.40)' }}>{c.foot}</div>
+            </>
+          )}
+          {c.rows && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+              {c.rows.map((r, i) => (
+                <div key={i}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, color: 'rgba(0,22,96,0.65)' }}>{r.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#016163' }}>{r.value}</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 999, background: 'rgba(1,97,99,0.10)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: r.value, background: '#016163', borderRadius: 999 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {c.bars && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
+              {c.bars.map((b, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(0,22,96,0.55)', width: 64 }}>{b.label}</span>
+                  <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'rgba(37,75,206,0.10)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, (b.value / b.of) * 100)}%`, background: c.accent, borderRadius: 999 }} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#001660', minWidth: 24, textAlign: 'right' }}>{b.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── KPI strip — horizontally scrollable cards. */
+function KpiStrip({ stats, activeStages, onToggle }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingInline: 16, paddingBottom: 4, scrollSnapType: 'x mandatory', scrollPaddingInline: 16, WebkitOverflowScrolling: 'touch' }}>
       {stats.map(s => {
-        const active = activeKey === s.key
+        const active = activeStages.has(s.key)
         return (
-          <button key={s.key} onClick={() => onPick?.(s.key)}
+          <button key={s.key} onClick={() => onToggle?.(s.key)}
             style={{
               flex: '0 0 auto', scrollSnapAlign: 'start',
               minWidth: 134, padding: '12px 14px', borderRadius: 14,
@@ -108,13 +223,14 @@ function KpiStrip({ stats, activeKey, onPick }) {
   )
 }
 
-/* ── Stage pill row. */
-function StagePills({ activeKey, onPick }) {
+/* ── Stage pill row (multi-select). */
+function StagePills({ activeStages, toggleStage, clearStages }) {
+  const allOff = activeStages.size === 0
   return (
-    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '12px 16px 14px', WebkitOverflowScrolling: 'touch' }}>
-      <Pill label="All" active={activeKey == null} onClick={() => onPick(null)} />
+    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingInline: 16, paddingTop: 12, paddingBottom: 14, scrollPaddingInline: 16, WebkitOverflowScrolling: 'touch' }}>
+      <Pill label="All" active={allOff} onClick={clearStages} />
       {STATUSES.map(s => (
-        <Pill key={s.key} label={s.label} color={s.color} active={activeKey === s.key} onClick={() => onPick(s.key)} />
+        <Pill key={s.key} label={s.label} color={s.color} active={activeStages.has(s.key)} onClick={() => toggleStage(s.key)} />
       ))}
     </div>
   )
@@ -302,8 +418,8 @@ function KV({ label, value }) {
   )
 }
 
-/* ── Filter sheet. */
-function FilterSheet({ open, onClose, stage, setStage }) {
+/* ── Filter sheet (multi-select). */
+function FilterSheet({ open, onClose, stages, toggleStage, clearStages }) {
   if (!open) return null
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 70 }}>
@@ -311,21 +427,30 @@ function FilterSheet({ open, onClose, stage, setStage }) {
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
         background: '#fff', borderRadius: '20px 20px 0 0',
-        padding: '12px 16px 24px calc(16px)',
+        padding: '12px 16px 24px',
         paddingBottom: 'calc(24px + env(safe-area-inset-bottom))',
         boxShadow: '0 -8px 30px rgba(0,22,96,0.18)',
       }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(0,22,96,0.12)', margin: '4px auto 14px' }} />
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#001660', marginBottom: 12 }}>Filter pipeline</div>
-        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Stage</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#001660' }}>Filter pipeline</div>
+          {stages.size > 0 && (
+            <button onClick={clearStages} style={{ background: 'transparent', border: 'none', color: '#254BCE', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Clear all
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Stage</div>
+          <div style={{ fontSize: 11, color: 'rgba(0,22,96,0.45)' }}>{stages.size > 0 ? `${stages.size} selected` : 'Select any'}</div>
+        </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-          <Pill label="All" active={stage == null} onClick={() => setStage(null)} />
           {STATUSES.map(s => (
-            <Pill key={s.key} label={s.label} color={s.color} active={stage === s.key} onClick={() => setStage(s.key)} />
+            <Pill key={s.key} label={s.label} color={s.color} active={stages.has(s.key)} onClick={() => toggleStage(s.key)} />
           ))}
         </div>
         <button onClick={onClose} style={{ width: '100%', padding: '13px', borderRadius: 12, background: '#001660', color: '#fff', border: 'none', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-          Apply filters
+          {stages.size > 0 ? `Show results (${stages.size} stage${stages.size === 1 ? '' : 's'})` : 'Show all leads'}
         </button>
       </div>
     </div>
@@ -381,10 +506,10 @@ function SearchOverlay({ open, onClose, query, setQuery, leads, onPick }) {
   )
 }
 
-/* ── FAB. */
-function Fab({ onClick }) {
+/* ── FAB — opens Add Leads action sheet (single / bulk / geo). */
+function Fab({ onClick, open }) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} aria-label="Add leads" style={{
       position: 'fixed', right: 18, bottom: 'calc(82px + env(safe-area-inset-bottom))',
       width: 56, height: 56, borderRadius: 999,
       background: 'linear-gradient(135deg, #001660 0%, #254BCE 100%)',
@@ -392,20 +517,79 @@ function Fab({ onClick }) {
       boxShadow: '0 10px 24px rgba(0,22,96,0.35), 0 2px 6px rgba(0,22,96,0.20)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 40,
+      transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+      transition: 'transform 200ms cubic-bezier(.4,0,.2,1)',
     }}>
       <Icon d={ICONS.plus} w={22} h={22} stroke={2.4} />
     </button>
   )
 }
 
-/* ── Bottom nav. */
-function BottomNav({ active = 'pipeline', onPick }) {
+function AddLeadsSheet({ open, onClose, onSingle, onBulk, onGeo }) {
+  if (!open) return null
+  const items = [
+    {
+      key: 'single', label: 'Add Single Lead', desc: 'Enter one lead by hand',
+      icon: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></>,
+      action: onSingle,
+    },
+    {
+      key: 'bulk', label: 'Bulk Upload Leads', desc: 'Import from a spreadsheet',
+      icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></>,
+      action: onBulk,
+    },
+    {
+      key: 'geo', label: 'Geo-Search Leads', desc: 'Find leads by area',
+      icon: <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
+      action: onGeo,
+    },
+  ]
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 80 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        background: '#fff', borderRadius: '20px 20px 0 0',
+        padding: '12px 14px',
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+        boxShadow: '0 -8px 30px rgba(0,22,96,0.18)',
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(0,22,96,0.12)', margin: '4px auto 12px' }} />
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#001660', marginBottom: 6, paddingInline: 4 }}>Add Leads</div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {items.map(it => (
+            <button key={it.key} onClick={() => { onClose(); it.action?.() }} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 8px', borderRadius: 12,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              textAlign: 'left',
+            }}
+              onMouseOver={e => e.currentTarget.style.background = 'rgba(0,22,96,0.04)'}
+              onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+              <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 10, background: 'rgba(37,75,206,0.08)', color: '#254BCE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon d={it.icon} w={18} h={18} stroke={2} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#001660' }}>{it.label}</div>
+                <div style={{ fontSize: 11.5, color: 'rgba(0,22,96,0.5)', marginTop: 1 }}>{it.desc}</div>
+              </span>
+              <Icon d={<polyline points="9 18 15 12 9 6"/>} w={14} h={14} stroke={2} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Bottom nav — Pipeline / Geo Campaign / Search / Account.
+   The Account tab combines the bell + avatar (notification dot on the avatar). */
+function BottomNav({ active, onPick, hasNotification }) {
   const tabs = [
-    { key: 'home',     label: 'Home',     icon: ICONS.home },
-    { key: 'pipeline', label: 'Pipeline', icon: ICONS.pipe },
-    { key: 'tasks',    label: 'Tasks',    icon: ICONS.task },
-    { key: 'msg',      label: 'Messages', icon: ICONS.msg },
-    { key: 'more',     label: 'More',     icon: ICONS.dots },
+    { key: 'pipeline', label: 'Pipeline',     iconType: 'svg', icon: ICONS.pipe },
+    { key: 'geo',      label: 'Geo Campaign', iconType: 'svg', icon: <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></> },
+    { key: 'search',   label: 'Search',       iconType: 'svg', icon: ICONS.search },
+    { key: 'account',  label: 'Account',      iconType: 'avatar' },
   ]
   return (
     <div style={{
@@ -421,15 +605,85 @@ function BottomNav({ active = 'pipeline', onPick }) {
         return (
           <button key={t.key} onClick={() => onPick?.(t.key)} style={{
             flex: 1, padding: '10px 4px 8px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
             background: 'transparent', border: 'none', cursor: 'pointer',
-            color: a ? '#001660' : 'rgba(0,22,96,0.5)',
+            color: a ? '#001660' : 'rgba(0,22,96,0.55)',
           }}>
-            <Icon d={t.icon} w={20} h={20} stroke={a ? 2.2 : 1.8} />
+            {t.iconType === 'avatar' ? (
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                <span style={{
+                  width: 24, height: 24, borderRadius: 999,
+                  background: a ? 'linear-gradient(135deg, #001660 0%, #254BCE 100%)' : 'linear-gradient(135deg, #FBBF24 0%, #FB923C 100%)',
+                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9.5, fontWeight: 700, letterSpacing: '-0.01em',
+                }}>IG</span>
+                {hasNotification && (
+                  <span style={{ position: 'absolute', top: -1, right: -1, width: 8, height: 8, borderRadius: 999, background: '#FB923C', boxShadow: '0 0 0 1.5px #fff' }} />
+                )}
+              </span>
+            ) : (
+              <Icon d={t.icon} w={20} h={20} stroke={a ? 2.2 : 1.8} />
+            )}
             <span style={{ fontSize: 9.5, fontWeight: a ? 700 : 500, letterSpacing: '0.02em' }}>{t.label}</span>
           </button>
         )
       })}
+    </div>
+  )
+}
+
+/* ── Account sheet — notifications + sign-out. */
+function AccountSheet({ open, onClose }) {
+  if (!open) return null
+  const notifications = [
+    { title: 'New lead from Geo Campaign — Miami Westside', when: '2m ago', dot: '#FB923C' },
+    { title: 'Marcus Reed clicked Apply Now',                when: '14m ago', dot: '#FB923C' },
+    { title: 'Olivia Stein started her application',         when: '1h ago', dot: '#FBBF24' },
+    { title: 'Hannah Ortiz funded · $92,000 HELOC',          when: 'Today',  dot: '#34D399' },
+  ]
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 80 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        background: '#fff', borderRadius: '20px 20px 0 0',
+        padding: '12px 0',
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+        boxShadow: '0 -8px 30px rgba(0,22,96,0.18)',
+        maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(0,22,96,0.12)', margin: '4px auto 14px' }} />
+        <div style={{ padding: '0 18px 12px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+          <div style={{ width: 42, height: 42, borderRadius: 999, background: 'linear-gradient(135deg, #FBBF24 0%, #FB923C 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>IG</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Igor Ginzburg</div>
+            <div style={{ fontSize: 11.5, color: 'rgba(0,22,96,0.5)' }}>igor@flowformstudio.com</div>
+          </div>
+        </div>
+        <div style={{ padding: '14px 18px 6px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Notifications</span>
+          <button style={{ background: 'transparent', border: 'none', color: '#254BCE', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Mark all read</button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 4px' }}>
+          {notifications.map((n, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '12px 8px', borderRadius: 12 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: n.dot, marginTop: 6, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: '#001660', lineHeight: 1.35 }}>{n.title}</div>
+                <div style={{ fontSize: 10.5, color: 'rgba(0,22,96,0.45)', marginTop: 2 }}>{n.when}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: '1px solid rgba(0,22,96,0.06)', padding: '10px 12px 0', display: 'flex', gap: 8 }}>
+          <button style={{ flex: 1, padding: '11px', borderRadius: 12, background: '#fff', color: '#001660', border: '1px solid rgba(0,22,96,0.10)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            Settings
+          </button>
+          <button style={{ flex: 1, padding: '11px', borderRadius: 12, background: 'rgba(220,38,38,0.06)', color: '#DC2626', border: '1px solid rgba(220,38,38,0.18)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -449,17 +703,26 @@ export default function PipelineMobile() {
     return Array.from(byId.values())
   }, [extraLeads])
 
-  const [stage, setStage] = useState(null)
+  const [activeStages, setActiveStages] = useState(() => new Set())
   const [filterOpen, setFilterOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQ, setSearchQ] = useState('')
   const [activeLead, setActiveLead] = useState(null)
-  const [activeKpi, setActiveKpi] = useState(null)
+  const [addOpen, setAddOpen] = useState(false)
+  const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+
+  const toggleStage = (key) => setActiveStages(prev => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key); else next.add(key)
+    return next
+  })
+  const clearStages = () => setActiveStages(new Set())
 
   const filtered = useMemo(() => {
-    const target = stage || activeKpi
-    return target ? allLeads.filter(l => l.status === target) : allLeads
-  }, [allLeads, stage, activeKpi])
+    if (activeStages.size === 0) return allLeads
+    return allLeads.filter(l => activeStages.has(l.status))
+  }, [allLeads, activeStages])
 
   const stats = useMemo(() => STATUSES.map(s => ({
     key: s.key, label: s.label, color: s.color,
@@ -483,34 +746,45 @@ export default function PipelineMobile() {
             fontSize: 12, fontWeight: 800, letterSpacing: '-0.02em',
           }}>G</div>
           <div style={{ flex: 1, fontSize: 19, fontWeight: 700, color: '#001660', letterSpacing: '-0.02em' }}>Pipeline</div>
-          <button onClick={() => setSearchOpen(true)} aria-label="Search" style={{ width: 38, height: 38, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid rgba(0,22,96,0.06)', color: '#001660', cursor: 'pointer' }}>
-            <Icon d={ICONS.search} w={17} h={17} stroke={2} />
-          </button>
-          <button aria-label="Notifications" style={{ width: 38, height: 38, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid rgba(0,22,96,0.06)', color: '#001660', cursor: 'pointer', position: 'relative' }}>
-            <Icon d={ICONS.bell} w={17} h={17} stroke={2} />
-            <span style={{ position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 999, background: '#FB923C', boxShadow: '0 0 0 2px #F8F9FB' }} />
-          </button>
-          <div style={{ width: 34, height: 34, borderRadius: 999, background: 'linear-gradient(135deg, #FBBF24 0%, #FB923C 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>IG</div>
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(0,22,96,0.55)' }}>
-          <b style={{ color: '#016163', fontWeight: 700 }}>{stats.find(s => s.key === 'hot')?.value || 0}</b> hot · {' '}
-          <b style={{ color: '#016163', fontWeight: 700 }}>{stats.find(s => s.key === 'qualified')?.value || 0}</b> awaiting contact · {' '}
-          <b style={{ color: '#016163', fontWeight: 700 }}>{stats.find(s => s.key === 'funded')?.value || 0}</b> funded
+        <button onClick={() => setAnalyticsOpen(o => !o)} style={{ background: 'transparent', border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'rgba(0,22,96,0.4)', transform: analyticsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 180ms ease' }}>
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span style={{ fontSize: 12, color: 'rgba(0,22,96,0.55)' }}>
+            <b style={{ color: '#016163', fontWeight: 700 }}>{stats.find(s => s.key === 'hot')?.value || 0}</b> hot · {' '}
+            <b style={{ color: '#016163', fontWeight: 700 }}>{stats.find(s => s.key === 'qualified')?.value || 0}</b> awaiting contact · {' '}
+            <b style={{ color: '#016163', fontWeight: 700 }}>{stats.find(s => s.key === 'funded')?.value || 0}</b> funded
+          </span>
+        </button>
+      </div>
+
+      {/* Analytics panel — collapsible. Mirrors desktop's 4-card row. */}
+      <div style={{ display: 'grid', gridTemplateRows: analyticsOpen ? '1fr' : '0fr', transition: 'grid-template-rows 240ms cubic-bezier(.4,0,.2,1)' }}>
+        <div style={{ overflow: 'hidden' }}>
+          <div style={{ paddingTop: 12, opacity: analyticsOpen ? 1 : 0, transform: analyticsOpen ? 'translateY(0)' : 'translateY(-4px)', transition: 'opacity 200ms ease, transform 220ms ease' }}>
+            <AnalyticsRow leads={allLeads} />
+          </div>
         </div>
       </div>
 
       {/* KPI strip */}
       <div style={{ padding: '14px 0 0' }}>
-        <KpiStrip stats={stats} activeKey={activeKpi} onPick={k => setActiveKpi(prev => prev === k ? null : k)} />
+        <KpiStrip stats={stats} activeStages={activeStages} onToggle={toggleStage} />
       </div>
 
       {/* Stage pills + filter button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 0, paddingRight: 16 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <StagePills activeKey={stage} onPick={setStage} />
+          <StagePills activeStages={activeStages} toggleStage={toggleStage} clearStages={clearStages} />
         </div>
-        <button onClick={() => setFilterOpen(true)} aria-label="Filters" style={{ width: 38, height: 38, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid rgba(0,22,96,0.06)', color: '#001660', cursor: 'pointer' }}>
+        <button onClick={() => setFilterOpen(true)} aria-label="Filters" style={{ position: 'relative', width: 38, height: 38, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid rgba(0,22,96,0.06)', color: '#001660', cursor: 'pointer' }}>
           <Icon d={ICONS.filter} w={15} h={15} stroke={2} />
+          {activeStages.size > 0 && (
+            <span style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: '#254BCE', color: '#fff', fontSize: 9.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px #F8F9FB' }}>
+              {activeStages.size}
+            </span>
+          )}
         </button>
       </div>
 
@@ -525,13 +799,23 @@ export default function PipelineMobile() {
         {filtered.map(l => <LeadCard key={l.id} lead={l} onOpen={setActiveLead} />)}
       </div>
 
-      <Fab onClick={() => navigate('/geo-campaigns?view=map&from=pipeline')} />
-      <BottomNav active="pipeline" onPick={tab => {
-        if (tab === 'home') navigate('/dashboard')
-        if (tab === 'pipeline') {/* already here */}
+      <Fab open={addOpen} onClick={() => setAddOpen(o => !o)} />
+      <BottomNav active="pipeline" hasNotification onPick={tab => {
+        if (tab === 'pipeline') {/* already here */ }
+        else if (tab === 'geo')     navigate('/geo-campaigns')
+        else if (tab === 'search')  setSearchOpen(true)
+        else if (tab === 'account') setAccountOpen(true)
       }} />
 
-      <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} stage={stage} setStage={setStage} />
+      <AddLeadsSheet
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSingle={() => alert('Add single lead — coming soon in mobile')}
+        onBulk={() => alert('Bulk upload — coming soon in mobile')}
+        onGeo={() => navigate('/geo-campaigns?view=map&from=pipeline')}
+      />
+      <FilterSheet open={filterOpen} onClose={() => setFilterOpen(false)} stages={activeStages} toggleStage={toggleStage} clearStages={clearStages} />
+      <AccountSheet open={accountOpen} onClose={() => setAccountOpen(false)} />
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} query={searchQ} setQuery={setSearchQ} leads={allLeads} onPick={setActiveLead} />
       <LeadDetailMobile lead={activeLead} onClose={() => setActiveLead(null)} />
     </div>

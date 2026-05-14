@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { QUOTA } from '../lib/quota'
 import { ThemeContext } from '../lib/theme'
 import DemoSwitcher from '../components/DemoSwitcher'
+import { useIsMobile } from '../lib/useIsMobile'
 
 const NAV_ITEMS = [
   {
@@ -294,6 +295,7 @@ export default function AppLayout() {
   const [themeMode, setThemeMode] = useState('light')
   const [dark, setDark] = useState(false)
   const location = useLocation()
+  const isMobile = useIsMobile(768)
   // Geo Review / Browse Map runs in immersive full-screen mode — no sidebar.
   const immersive = location.pathname === '/geo-campaigns' &&
                     new URLSearchParams(location.search).get('view') === 'map'
@@ -330,15 +332,19 @@ export default function AppLayout() {
         {/* Right side */}
         <div className="ml-auto flex items-center gap-1.5">
           <QuotaBadge />
-          <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />
-          <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Help">
-            <IconHelp />
-          </button>
-          <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Notifications">
-            <IconBell />
-          </button>
-          <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />
-          <UserMenu themeMode={themeMode} setThemeMode={setThemeMode} />
+          {!isMobile && (
+            <>
+              <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />
+              <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Help">
+                <IconHelp />
+              </button>
+              <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Notifications">
+                <IconBell />
+              </button>
+              <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />
+              <UserMenu themeMode={themeMode} setThemeMode={setThemeMode} />
+            </>
+          )}
         </div>
       </header>
 

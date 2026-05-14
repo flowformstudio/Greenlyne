@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useManageDemo } from '../lib/PartnersContext'
+import { useIsMobile } from '../lib/useIsMobile'
 
 export const DEMO_LINKS = [
   { label: 'Smart POS',    path: '/email',    hint: 'Consumer demo flow' },
@@ -20,6 +21,7 @@ export default function DemoSwitcher({ currentLabel, theme = 'dark' }) {
   const { openManage } = useManageDemo()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const isMobile = useIsMobile(640)
 
   useEffect(() => {
     if (!open) return
@@ -52,26 +54,28 @@ export default function DemoSwitcher({ currentLabel, theme = 'dark' }) {
           background: open ? btnBgOpen : btnBgIdle,
           border: btnBorder,
           borderRadius: 7,
-          padding: '4px 10px 5px',
+          padding: isMobile ? '5px 8px' : '4px 10px 5px',
           cursor: 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 8,
+          gap: isMobile ? 5 : 8,
           color: btnText,
           fontFamily: "'PostGrotesk', system-ui, sans-serif",
           transition: 'background 0.15s',
           whiteSpace: 'nowrap',
-          minWidth: 120,
+          minWidth: isMobile ? 0 : 120,
           justifyContent: 'space-between',
         }}
         onMouseEnter={e => { if (!open) e.currentTarget.style.background = btnBgHover }}
         onMouseLeave={e => { if (!open) e.currentTarget.style.background = btnBgIdle }}
       >
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
-          <span style={{
-            fontSize: 8, fontWeight: 700, color: labelColor,
-            textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1,
-          }}>Jump to</span>
+          {!isMobile && (
+            <span style={{
+              fontSize: 8, fontWeight: 700, color: labelColor,
+              textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1,
+            }}>Jump to</span>
+          )}
           <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.1 }}>{currentLabel}</span>
         </span>
         <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
