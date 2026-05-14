@@ -1350,33 +1350,51 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
         setFocusedCampaign({ campaign, detail: r })
         if (Array.isArray(r?.polygon_coordinates) && r.polygon_coordinates.length >= 3) {
           const latlngs = r.polygon_coordinates.map(([lng, lat]) => [lat, lng])
-          // Wait for activateShapeFromCampaign to finish so its trailing
-          // setRealProperties / setHouseholdPhase don't overwrite the read
-          // we're about to perform from the saved campaign's cache.
-          await activateShapeFromCampaign({
-            kind: 'polygon',
-            latlngs,
+          // Drop the shape onto the map directly — DO NOT call
+          // activateShapeFromCampaign (which fires a fresh by-criteria search)
+          // or runLiveHouseholdsFetch (which re-runs trigger → poll → read).
+          // Loading a saved campaign should just read whatever's already there.
+          setMapShape({
+            kind: 'polygon', latlngs,
             bbox: bboxFromLatLngs(latlngs),
-            areaKm2: 0,
-            center: null,
-            radius: null,
+            areaKm2: 0, center: null, radius: null,
           })
+          setShapeDrawn(true)
+          setShapeSavedId(campaign.id)
+          setSelectedHouseholds(new Set())
+          setRealAnalytics(null)
+          setRealPropertyCount(typeof r.selected_households === 'number' ? r.selected_households : null)
+          setHouseholdPhase('loading')
           const campaignId = r?.id ?? r?.campaign_id
           if (campaignId) {
             liveCollectionIdRef.current = campaign.id
             liveCampaignIdRef.current = campaignId
-            setShapeSavedId(campaign.id)
-            // Reuse the same full pipeline that "screen a new area" runs —
-            // trigger → poll → read. ensureLiveCampaignId short-circuits because
-            // liveCampaignIdRef is already set, so no new campaign gets created.
-            runLiveHouseholdsFetch({
-              kind: 'polygon',
-              latlngs,
-              bbox: bboxFromLatLngs(latlngs),
-              areaKm2: 0,
-              center: null,
-              radius: null,
-            })
+            try {
+              const ranges = filterRanges()
+              setLiveFetchStatus('reading')
+              const propsData = await getPropertiesForCampaign({
+                campaignId, ...ranges, mode: 'read', pageSize: 100,
+              }).catch(() => null)
+              const rows = Array.isArray(propsData?.results) ? propsData.results : []
+              if (rows.length > 0) {
+                applyResultsToUI(propsData)
+                setHouseholdPhase('list')
+                setLiveFetchStatus('done')
+              } else {
+                // Cache empty — show empty state instead of re-scanning. User
+                // can manually hit "Re-run Prescreen" if they want fresh data.
+                setRealProperties([])
+                setMapHouseholds([])
+                setHouseholdPhase('list')
+                setLiveFetchStatus('idle')
+              }
+            } catch (err) {
+              console.warn('[geo] read saved campaign households', err)
+              setHouseholdPhase('list')
+              setLiveFetchStatus('idle')
+            }
+          } else {
+            setHouseholdPhase('list')
           }
         }
       }
@@ -5178,17 +5196,6 @@ export default function GeoCampaigns() {
   const [pendingName, setPendingName] = useState('')
   const [showBrowseMap, setShowBrowseMap] = useState(() => searchParams.get('view') === 'map')
   const fromPipeline = searchParams.get('from') === 'pipeline'
-  // Freeze the device-mode while the geo prescreen flow is active so a browser
-  // resize doesn't tear down/remount the desktop or mobile component mid-scan.
-  const [frozenIsMobile, setFrozenIsMobile] = useState(null)
-  useEffect(() => {
-    if (showBrowseMap) {
-      if (frozenIsMobile === null) setFrozenIsMobile(isMobile)
-    } else if (frozenIsMobile !== null) {
-      setFrozenIsMobile(null)
-    }
-  }, [showBrowseMap]) // eslint-disable-line react-hooks/exhaustive-deps
-  const effectiveIsMobile = frozenIsMobile ?? isMobile
   const [editingCampaign, setEditingCampaign] = useState(null) // campaign to edit
   const [viewingCampaign, setViewingCampaign] = useState(null) // campaign to view on map
   const [selectedCampaignLead, setSelectedCampaignLead] = useState(null)
@@ -5397,26 +5404,15 @@ export default function GeoCampaigns() {
         setSearchParams({}, { replace: true })
       }
     }
-    const loadCampaignId = searchParams.get('load') || ''
-    if (effectiveIsMobile) {
-      return (
-        <GeoMapMobile
-          onBack={exit}
-          onOpenCampaigns={() => {
-            setShowBrowseMap(false)
-            setSearchParams({}, { replace: true })
-          }}
-        />
-      )
-    }
+    // Single layout for every screen size — keeps content in sync as the user
+    // resizes the browser. The mobile-first UX is the canonical experience.
     return (
-      <NewCampaignFlow
-        leadSearchMode
-        fromPipeline={fromPipeline}
-        initialName={pendingName}
-        loadCampaignId={loadCampaignId}
-        onCancel={exit}
-        onLaunch={exit}
+      <GeoMapMobile
+        onBack={exit}
+        onOpenCampaigns={() => {
+          setShowBrowseMap(false)
+          setSearchParams({}, { replace: true })
+        }}
       />
     )
   }
