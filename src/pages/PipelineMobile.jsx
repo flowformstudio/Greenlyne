@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { subscribeLeads } from '../lib/firebase'
+import { subscribeLeads, addLead } from '../lib/firebase'
+import { QuickPrescreenModal } from './Pipeline'
 
 /* ── Status palette — mirrors desktop STATUSES, abbreviated for the mobile UI. */
 const STATUSES = [
@@ -331,7 +332,13 @@ function FilterToolbar({
   const hasAny = active.length > 0
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingInline: 16, paddingTop: 4, paddingBottom: 14 }}>
+    <div style={{
+      position: 'sticky', top: 0, zIndex: 18,
+      display: 'flex', alignItems: 'center', gap: 8,
+      paddingInline: 16, paddingTop: 8, paddingBottom: 12,
+      background: 'rgba(248,249,251,0.94)', backdropFilter: 'blur(14px)',
+      borderBottom: '1px solid rgba(0,22,96,0.06)',
+    }}>
       <button onClick={onEnterSelection} style={{
         flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1019,7 +1026,7 @@ function SearchOverlay({ open, onClose, query, setQuery, leads, onPick }) {
 function Fab({ onClick, open }) {
   return (
     <button onClick={onClick} aria-label="Add leads" style={{
-      position: 'fixed', right: 18, bottom: 'calc(82px + env(safe-area-inset-bottom))',
+      position: 'fixed', right: 18, bottom: 'calc(20px + env(safe-area-inset-bottom))',
       width: 56, height: 56, borderRadius: 999,
       background: 'linear-gradient(135deg, #001660 0%, #254BCE 100%)',
       color: '#fff', border: 'none', cursor: 'pointer',
@@ -1227,11 +1234,20 @@ export default function PipelineMobile() {
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [viewMode, setViewMode] = useState('comfortable') // 'comfortable' | 'compact'
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const PAGE_INITIAL = 30
+  const PAGE_STEP = 30
+  const [visibleCount, setVisibleCount] = useState(PAGE_INITIAL)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [moreOpen, setMoreOpen] = useState(false)
 
   const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setMoreOpen(false) }
+
+  // Reset the visible window whenever filters/sort/search change.
+  useEffect(() => {
+    setVisibleCount(PAGE_INITIAL)
+  }, [filterStage, filterRep, filterSource, filterProduct, sortKey, searchQ])
   const toggleSelect = (id) => setSelectedIds(prev => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -1284,16 +1300,13 @@ export default function PipelineMobile() {
         />
       ) : (
       <>
-      {/* Top bar */}
+      {/* Top bar — scrolls away so the toolbar row below can become the sticky band.
+          The big "Pipeline" heading is moved into the blue navbar dropdown,
+          so we just keep the analytics summary line here. */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
-        padding: '14px 16px 10px calc(16px + env(safe-area-inset-left))',
-        background: 'rgba(248,249,251,0.94)', backdropFilter: 'blur(14px)',
-        borderBottom: '1px solid rgba(0,22,96,0.04)',
+        padding: '10px 16px 8px calc(16px + env(safe-area-inset-left))',
+        background: '#F8F9FB',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-          <div style={{ flex: 1, fontSize: 26, fontWeight: 700, color: '#001660', letterSpacing: '-0.02em' }}>Pipeline</div>
-        </div>
         <button onClick={() => setAnalyticsOpen(true)} style={{
           background: 'transparent', border: 'none', padding: '6px 0', marginTop: 2,
           display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
@@ -1347,7 +1360,7 @@ export default function PipelineMobile() {
             <div style={{ fontSize: 12 }}>Try a different stage or clear filters.</div>
           </div>
         )}
-        {filtered.map(l => {
+        {filtered.slice(0, visibleCount).map(l => {
           const props = {
             key: l.id, lead: l, onOpen: setActiveLead,
             selectionMode, selected: selectedIds.has(l.id),
@@ -1355,6 +1368,26 @@ export default function PipelineMobile() {
           }
           return viewMode === 'compact' ? <LeadCardCompact {...props} /> : <LeadCard {...props} />
         })}
+        {filtered.length > visibleCount && (
+          <button onClick={() => setVisibleCount(c => c + PAGE_STEP)} style={{
+            width: '100%', padding: '14px',
+            borderRadius: 12, background: '#fff',
+            border: '1px solid rgba(0,22,96,0.10)', color: '#001660',
+            fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginTop: 4,
+          }}>
+            Load more
+            <span style={{ fontSize: 12, color: 'rgba(0,22,96,0.5)', fontWeight: 500 }}>
+              · {filtered.length - visibleCount} remaining
+            </span>
+          </button>
+        )}
+        {filtered.length > 0 && filtered.length <= visibleCount && filtered.length > PAGE_INITIAL && (
+          <div style={{ textAlign: 'center', fontSize: 11.5, color: 'rgba(0,22,96,0.45)', padding: '8px 0 4px' }}>
+            End of list · {filtered.length} lead{filtered.length === 1 ? '' : 's'}
+          </div>
+        )}
       </div>
 
       {!selectionMode && <Fab open={addOpen} onClick={() => setAddOpen(o => !o)} />}
@@ -1378,10 +1411,47 @@ export default function PipelineMobile() {
       <AddLeadsSheet
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onSingle={() => alert('Add single lead — coming soon in mobile')}
+        onSingle={() => setShowQuickAdd(true)}
         onBulk={() => alert('Bulk upload — coming soon in mobile')}
         onGeo={() => navigate('/geo-campaigns?view=map&from=pipeline')}
       />
+
+      {showQuickAdd && (
+        <QuickPrescreenModal
+          onClose={() => setShowQuickAdd(false)}
+          onPrescreenComplete={async (newLead) => {
+            try {
+              await addLead({
+                status: 'qualified',
+                name: newLead.name,
+                email: newLead.email,
+                location: newLead.location,
+                address: newLead.address,
+                amount: newLead.amount,
+                monthly: newLead.monthly,
+                product: 'HELOC',
+                apr: '8.25%',
+                fiveYear: newLead.fiveYear,
+                portal: false, apply: false, days: 0,
+                lastActivity: 'Just added · Quick Prescreen',
+                source: 'Quick Prescreen', createdBy: 'Demo User', createdDate: 'Today',
+                propValue: '—', equity: '—', cltv: '—', fico: '—', dti: '—',
+                offerDate: 'Today', offerStatus: 'active',
+                actions: ['Send Email', 'Send Postcard'],
+                prescreenChecks: [
+                  { check: 'Address Verification', result: 'Pass', reason: null },
+                  { check: 'Max CLTV', result: 'Pass', reason: null },
+                  { check: 'Credit check', result: 'Pass', reason: null },
+                  { check: 'Loan Offer', result: 'Generated', reason: null },
+                ],
+                timeline: [{ date: 'Today', event: 'Lead created via Quick Prescreen' }],
+              })
+            } catch (err) {
+              console.warn('[mobile quick prescreen] addLead failed', err)
+            }
+          }}
+        />
+      )}
 
       <PickerSheet
         open={picker === 'sort'} onClose={() => setPicker(null)}

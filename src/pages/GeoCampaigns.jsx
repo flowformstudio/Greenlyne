@@ -5768,7 +5768,12 @@ export default function GeoCampaigns() {
         sortBy={sortBy}
         setSortBy={setSortBy}
         filteredCampaigns={filteredCampaigns}
-        onNewCampaign={() => { setPendingName(''); setNamingModal(true) }}
+        onNewCampaign={() => {
+          // On mobile we skip the naming modal — the user can name on save.
+          setPendingName('')
+          setSearchParams({ view: 'map' })
+          setShowBrowseMap(true)
+        }}
         onOpenCampaign={(c) => {
           const loadId = c.backendId ?? (typeof c.id === 'string' && c.id.startsWith('live-') ? c.id.slice(5) : c.id)
           setSearchParams({ view: 'map', load: String(loadId) })

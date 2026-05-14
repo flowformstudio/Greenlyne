@@ -320,23 +320,11 @@ export default function AppLayout() {
     <div className="flex flex-col h-screen overflow-hidden" style={{background: dark ? '#0F172A' : '#F0F2F5'}}>
       {/* Top Nav */}
       <header className="h-12 flex items-center shrink-0 border-b relative" style={{background: headerBg, borderColor:'rgba(255,255,255,0.12)', paddingLeft: isMobile ? 12 : 20, paddingRight: isMobile ? 12 : 20}}>
-        {/* Mobile: hamburger menu (opens Pipeline/Campaigns nav) + logo. */}
+        {/* Mobile: just the logo on the left — the section title/dropdown is in the body row below. */}
         {isMobile ? (
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => setMobileMenuOpen(o => !o)}
-              aria-label="Open navigation"
-              className="rounded-lg flex items-center justify-center"
-              style={{width: 38, height: 38, background: mobileMenuOpen ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', flexShrink: 0}}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </button>
-            <div className="flex items-center gap-2">
-              <img src="/greenlyne-logo-white.svg" alt="GreenLyne" style={{height: 18}} />
-              <span className="text-[10px] font-medium" style={{color:'rgba(255,255,255,0.55)'}}>PMPro</span>
-            </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <img src="/greenlyne-logo-white.svg" alt="GreenLyne" style={{height: 18}} />
+            <span className="text-[10px] font-medium" style={{color:'rgba(255,255,255,0.55)'}}>PMPro</span>
           </div>
         ) : (
           <>
@@ -370,39 +358,64 @@ export default function AppLayout() {
           <UserMenu themeMode={themeMode} setThemeMode={setThemeMode} />
         </div>
 
-        {/* Mobile dropdown menu — Pipeline / Campaigns. */}
-        {isMobile && mobileMenuOpen && (
-          <>
-            <div onClick={() => setMobileMenuOpen(false)}
-              style={{ position: 'fixed', left: 0, right: 0, top: 48, bottom: 0, zIndex: 39, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
-            <div style={{
-              position: 'absolute', left: 8, top: 50, zIndex: 60,
-              minWidth: 220, background: '#fff', borderRadius: 14,
-              boxShadow: '0 12px 36px rgba(0,22,96,0.22), 0 2px 6px rgba(0,22,96,0.10)',
-              border: '1px solid rgba(0,22,96,0.08)', overflow: 'hidden',
-            }}>
-              {NAV_ITEMS.map(item => {
-                const isActive = location.pathname.startsWith(item.path)
-                return (
-                  <button key={item.id}
-                    onClick={() => { setMobileMenuOpen(false); navigate(item.path) }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                    style={{
-                      color: isActive ? '#001660' : 'rgba(0,22,96,0.7)',
-                      background: isActive ? 'rgba(37,75,206,0.08)' : 'transparent',
-                      border: 'none', cursor: 'pointer',
-                      fontSize: 14, fontWeight: isActive ? 700 : 500,
-                      borderBottom: '1px solid rgba(0,22,96,0.05)',
-                    }}>
-                    <span style={{ color: isActive ? '#254BCE' : 'rgba(0,22,96,0.55)' }}>{item.icon}</span>
-                    {item.label}
-                  </button>
-                )
-              })}
-            </div>
-          </>
-        )}
       </header>
+
+      {/* Mobile section-title row — serves as both the page heading and the
+          section switcher (Pipeline ⇄ Campaigns). Skipped in immersive map view. */}
+      {isMobile && !immersive && (() => {
+        const current = NAV_ITEMS.find(it => location.pathname.startsWith(it.path)) || NAV_ITEMS[0]
+        return (
+          <div className="shrink-0 relative" style={{ background: dark ? '#172340' : '#fff', borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,22,96,0.07)'}` }}>
+            <button
+              onClick={() => setMobileMenuOpen(o => !o)}
+              aria-label="Switch section"
+              aria-expanded={mobileMenuOpen}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
+                color: dark ? '#E8EEF8' : '#001660', textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{current.label}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                style={{ opacity: 0.55, transform: mobileMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms ease' }}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {mobileMenuOpen && (
+              <>
+                <div onClick={() => setMobileMenuOpen(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 39, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
+                <div style={{
+                  position: 'absolute', left: 12, right: 12, top: 'calc(100% + 6px)', zIndex: 60,
+                  background: '#fff', borderRadius: 14,
+                  boxShadow: '0 12px 36px rgba(0,22,96,0.22), 0 2px 6px rgba(0,22,96,0.10)',
+                  border: '1px solid rgba(0,22,96,0.08)', overflow: 'hidden',
+                }}>
+                  {NAV_ITEMS.map(item => {
+                    const isActive = location.pathname.startsWith(item.path)
+                    return (
+                      <button key={item.id}
+                        onClick={() => { setMobileMenuOpen(false); navigate(item.path) }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                        style={{
+                          color: isActive ? '#001660' : 'rgba(0,22,96,0.7)',
+                          background: isActive ? 'rgba(37,75,206,0.08)' : 'transparent',
+                          border: 'none', cursor: 'pointer',
+                          fontSize: 14, fontWeight: isActive ? 700 : 500,
+                          borderBottom: '1px solid rgba(0,22,96,0.05)',
+                        }}>
+                        <span style={{ color: isActive ? '#254BCE' : 'rgba(0,22,96,0.55)' }}>{item.icon}</span>
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Body: sidebar + content */}
       <div className="flex flex-1 overflow-hidden relative">

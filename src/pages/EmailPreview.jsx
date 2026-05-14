@@ -218,7 +218,7 @@ export default function EmailPreview({ hideClientChrome = false, loanAmountOverr
               Two HELOC options · pre-qualified
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, paddingTop: 16, marginBottom: 12, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, paddingTop: 16, marginBottom: 12, alignItems: 'stretch' }}>
 
               {/* ── Standard HELOC ── */}
               <PlanTile

@@ -896,7 +896,7 @@ const APPROVED_LOAN_MAX = 150_000
 const LOAN_MIN          = 20_000
 const LOAN_MID          = Math.round((APPROVED_LOAN_MAX + LOAN_MIN) / 2)
 
-function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
+export function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
   const navigate                      = useNavigate()
   const isMobile                      = useIsMobile(768)
   const [step, setStep]               = useState('form')
@@ -1376,8 +1376,8 @@ function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
                   </button>
                 </div>
 
-                {/* OUTREACH GROUP: Email + Mail Postcard */}
-                <div className="flex gap-1.5 shrink-0">
+                {/* OUTREACH GROUP: Email + Mail Postcard — hidden on mobile (moved into More). */}
+                <div className="flex gap-1.5 shrink-0" style={{ display: isMobile ? 'none' : 'flex' }}>
                     {/* Email Offer */}
                     <button
                       onClick={handleSendEmail}
@@ -1448,6 +1448,20 @@ function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
                       <div className="absolute right-0 top-full mt-1 z-20 rounded-md overflow-hidden"
                         style={{ minWidth: 200, background:'#fff', border:'1px solid rgba(0,22,96,0.1)', boxShadow:'0 8px 24px rgba(0,22,96,0.14)' }}>
                         {[
+                          // On mobile we move the primary outreach actions in here too,
+                          // so the action row never bleeds outside the viewport.
+                          ...(isMobile ? [
+                            {
+                              label: emailSent ? 'Email Sent' : 'Email Offer',
+                              onClick: () => { setMoreOpen(false); handleSendEmail() },
+                              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>,
+                            },
+                            {
+                              label: postcardSent ? 'Postcard Mailed' : 'Mail Postcard',
+                              onClick: () => { setMoreOpen(false); handleSendPostcard() },
+                              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg>,
+                            },
+                          ] : []),
                           {
                             label: 'Preview email',
                             onClick: () => { setMoreOpen(false); handleViewEmailDemo() },
@@ -1551,7 +1565,7 @@ function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
               </div>
 
               {/* Plan tiles — same shape, content & style as the application Step 2 */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {standardOffer && (
                   <OfferTile
                     kind="baseline"
@@ -1704,18 +1718,21 @@ const TONES = {
  *  Open-state is lifted to the parent so the detail card can render in its own slot. */
 function VerificationDots({ mode, openIdx, setOpenIdx }) {
   const rows = VERIFICATION_DATA[mode] || VERIFICATION_DATA.pass
+  const isMobile = useIsMobile(640)
   return (
-    <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
+    <div
+      className="flex items-center flex-nowrap overflow-x-auto"
+      style={{ columnGap: isMobile ? 12 : 20, rowGap: 8, WebkitOverflowScrolling: 'touch' }}>
       {rows.map((r, i) => {
         const t = TONES[r.state]
         const isOpen = openIdx === i
         return (
           <button key={r.label}
             onClick={() => setOpenIdx(isOpen ? null : i)}
-            className="inline-flex items-center gap-1.5 transition-opacity"
+            className="inline-flex items-center gap-1.5 transition-opacity flex-shrink-0"
             style={{
               background: 'transparent', border: 0, padding: 0,
-              cursor: 'pointer', opacity: isOpen ? 1 : 0.95,
+              cursor: 'pointer', opacity: isOpen ? 1 : 0.95, whiteSpace: 'nowrap',
             }}
             onMouseEnter={e => { e.currentTarget.style.opacity = 1 }}
             onMouseLeave={e => { e.currentTarget.style.opacity = isOpen ? 1 : 0.95 }}>
@@ -1726,7 +1743,7 @@ function VerificationDots({ mode, openIdx, setOpenIdx }) {
             ) : (
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.color, flexShrink: 0, boxShadow: isOpen ? `0 0 0 3px ${t.bg}` : 'none', transition: 'box-shadow .15s' }} />
             )}
-            <span className="text-[11.5px] font-semibold" style={{ color: t.color, textDecoration: isOpen ? 'underline' : 'none', textUnderlineOffset: 3 }}>
+            <span style={{ fontSize: isMobile ? 10.5 : 11.5, fontWeight: 600, color: t.color, textDecoration: isOpen ? 'underline' : 'none', textUnderlineOffset: 3 }}>
               {r.label}
             </span>
           </button>

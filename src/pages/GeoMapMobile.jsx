@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import GeoLeafletMap from '../components/GeoLeafletMap'
+import {
+  listSavedCampaigns, getSavedCampaignDetail,
+  getPropertiesByCriteria, getPropertiesCountPolygon,
+  saveCampaignMail, getCampaignCollectionDetail, getPropertiesForCampaign,
+} from '../lib/glyneApi'
 
 /* GeoMapMobile — phone-first variant of the Geo Prescreen workflow.
    - Map is the hero, full viewport.
@@ -79,7 +84,7 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0,
-      zIndex: 25,
+      zIndex: 1090,
       background: '#fff',
       borderRadius: '20px 20px 0 0',
       boxShadow: '0 -8px 28px rgba(0,22,96,0.16), 0 -1px 3px rgba(0,22,96,0.08)',
@@ -108,7 +113,7 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
 function CollapsedContent({ stats, onScan, onPrescreen }) {
   return (
     <div style={{ padding: '6px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', gap: 22 }}>
         <Stat label="Homes in area" value={stats.homes} />
         <Stat label="Qualifying"    value={stats.qual}  accent="#10B981" />
         <Stat label="Med. value"    value={stats.med}   accent="#001660" />
@@ -237,11 +242,20 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
   /* ── Map + draw state ───────────────────────────────────────────────── */
   const [drawMode, setDrawMode] = useState(null)       // 'polygon' | 'rectangle' | 'radius' | null
   const [shapeDrawn, setShapeDrawn] = useState(false)
+  const [mapShape, setMapShape] = useState(null)       // { kind, latlngs, bbox, areaKm2, center, radius }
   const [baseLayer, setBaseLayer] = useState('default') // 'default' | 'satellite'
   const [flyTo, setFlyTo] = useState(null)
   const [households, setHouseholds] = useState([])      // markers on the map
   const [layerMenuOpen, setLayerMenuOpen] = useState(false)
   const [drawBarOpen, setDrawBarOpen] = useState(false)
+  const [overlays, setOverlays] = useState([])         // saved-campaign polygon overlays
+  const [realProperties, setRealProperties] = useState([])
+  const [realCount, setRealCount] = useState(null)
+  const [propsLoading, setPropsLoading] = useState(false)
+  const [savedCampaigns, setSavedCampaigns] = useState([])
+  const [savedCampaignsLoading, setSavedCampaignsLoading] = useState(false)
+  const liveCollectionIdRef = useRef(null)
+  const liveCampaignIdRef = useRef(null)
   const mapRef = useRef(null)
 
   /* ── Bottom sheet ─────────────────────────────────────────────────── */
@@ -269,42 +283,187 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
   })
   const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setMoreOpen(false) }
 
-  /* Filtered properties — demo stub. */
+  /* Adapt backend property rows to the card shape the UI expects. */
+  const adaptedReal = useMemo(() => realProperties.map((p, i) => {
+    const street = p.Address || p.address || ''
+    const city = [p.City, p.State, p.ZipCode].filter(Boolean).join(', ')
+    const qualified = (p.qualifies ?? p.is_qualified) ?? (
+      (p.FICO != null && p.AvailableEquity != null)
+        ? (p.FICO >= 660 && p.AvailableEquity >= 50_000) : undefined
+    )
+    const homeValue = Number(p.HomeValue ?? p.home_value ?? 0)
+    const equity    = Number(p.AvailableEquity ?? p.available_equity ?? 0)
+    return {
+      id: p.PropertyId ?? p.id ?? `real-${i}`,
+      address: street || '—',
+      city,
+      value: homeValue ? `$${homeValue.toLocaleString()}` : '—',
+      equity: equity ? `$${equity.toLocaleString()}` : '—',
+      qualified,
+      lat: p.Latitude ?? p.latitude ?? null,
+      lng: p.Longitude ?? p.longitude ?? null,
+    }
+  }), [realProperties])
+
+  /* Pick live data when we have any, demo fallback otherwise. */
+  const baseProperties = adaptedReal.length > 0 ? adaptedReal : DEMO_PROPERTIES
+
   const properties = useMemo(() => {
     const q = searchQ.trim().toLowerCase()
     return q
-      ? DEMO_PROPERTIES.filter(p => p.address.toLowerCase().includes(q) || p.city.toLowerCase().includes(q))
-      : DEMO_PROPERTIES
-  }, [searchQ])
+      ? baseProperties.filter(p => (p.address || '').toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q))
+      : baseProperties
+  }, [baseProperties, searchQ])
 
   const stats = useMemo(() => {
-    const total = properties.length
-    const qual = properties.filter(p => p.qualified).length
-    return { homes: total, qual, med: '$114k' }
-  }, [properties])
+    const total = realCount ?? properties.length
+    const qual  = adaptedReal.length > 0
+      ? adaptedReal.filter(p => p.qualified).length
+      : properties.filter(p => p.qualified).length
+    const med   = adaptedReal.length > 0
+      ? (() => {
+          const vals = realProperties.map(p => Number(p.HomeValue ?? p.home_value ?? 0)).filter(Boolean).sort((a, b) => a - b)
+          if (!vals.length) return '—'
+          const m = vals[Math.floor(vals.length / 2)]
+          return m >= 1000 ? `$${Math.round(m / 1000)}k` : `$${m}`
+        })()
+      : '$114k'
+    return { homes: total, qual, med }
+  }, [realCount, properties, adaptedReal, realProperties])
 
-  /* Prescreen demo flow. */
-  function startPrescreen() {
-    if (!shapeDrawn) { setSnap('mid'); return }
-    setPrescreening(true); setProgress(0)
-    const start = Date.now()
-    const T = 3500
-    const tick = () => {
-      const p = Math.min(100, Math.round(((Date.now() - start) / T) * 100))
-      setProgress(p)
-      if (p < 100) requestAnimationFrame(tick)
-      else setTimeout(() => { setPrescreening(false); setSnap('expanded') }, 350)
-    }
-    requestAnimationFrame(tick)
+  /* On mount: pull the tenant's saved campaigns so the drawer shows real data. */
+  useEffect(() => {
+    let cancelled = false
+    setSavedCampaignsLoading(true)
+    listSavedCampaigns()
+      .then(d => { if (!cancelled) setSavedCampaigns(Array.isArray(d?.results) ? d.results : (Array.isArray(d) ? d : [])) })
+      .catch(e => console.warn('[GeoMapMobile] listSavedCampaigns', e))
+      .finally(() => { if (!cancelled) setSavedCampaignsLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  /* Build filter ranges in the shape the backend expects. */
+  function filterRanges() {
+    const equity = [Math.max(0, Number(filters.equityMin || 0) * 1000), 99_999_000]
+    const fico   = [Math.max(600, Number(filters.fico || 660)), 850]
+    const months = [Math.max(0, Number(filters.monthsOwned || 0)), 360]
+    return { fico, equity, cltv: [0, 100], monthOwnership: months }
   }
 
-  /* When user draws a shape on the map. */
-  function onShape(shape) {
+  /* Real prescreen: save → trigger → poll → read. Falls back to demo
+     progress animation if the API isn't reachable so the UI still feels alive. */
+  async function startPrescreen() {
+    if (!shapeDrawn || !mapShape?.latlngs) { setSnap('mid'); return }
+    setPrescreening(true); setProgress(5)
+    try {
+      const ranges = filterRanges()
+      // 1) Ensure we have a campaign for this shape
+      if (!liveCampaignIdRef.current) {
+        const name = `mobile_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+        await saveCampaignMail({ name, latlngs: mapShape.latlngs, ...ranges })
+        let collectionId = null
+        for (let i = 0; i < 5 && !collectionId; i++) {
+          await new Promise(r => setTimeout(r, 700))
+          const list = await listSavedCampaigns().catch(() => null)
+          const arr = list?.results || list || []
+          const hit = arr.find(c => c.name === name)
+          if (hit) collectionId = hit.id
+        }
+        if (!collectionId) throw new Error('Could not locate saved campaign')
+        const detail = await getCampaignCollectionDetail(collectionId)
+        const camp = (detail?.results || [])[0]
+        if (!camp?.id) throw new Error('No campaign_id from backend')
+        liveCollectionIdRef.current = collectionId
+        liveCampaignIdRef.current   = camp.id
+      }
+      const campaignId = liveCampaignIdRef.current
+      setProgress(20)
+      // 2) Trigger
+      await getPropertiesForCampaign({ campaignId, ...ranges, mode: 'trigger' })
+      setProgress(35)
+      // 3) Poll (lightweight — every 2s, up to 90s, with opportunistic reads)
+      let propsData = null
+      for (let i = 0; i < 45 && !propsData; i++) {
+        await new Promise(r => setTimeout(r, 2000))
+        setProgress(p => Math.min(90, p + 1.4))
+        const d = await getCampaignCollectionDetail(liveCollectionIdRef.current).catch(() => null)
+        const c = (d?.results || []).find(x => x.id === campaignId)
+        const status = c?.status || ''
+        if (status === 'Get Household Success' || status === 'Get Household Failed' || i >= 3 && i % 3 === 0) {
+          const r = await getPropertiesForCampaign({ campaignId, ...ranges, mode: 'read', pageSize: 100 }).catch(() => null)
+          if (Array.isArray(r?.results) && r.results.length > 0) propsData = r
+        }
+      }
+      // 4) Final read if poll exited without rows.
+      if (!propsData) {
+        propsData = await getPropertiesForCampaign({ campaignId, ...ranges, mode: 'read', pageSize: 100 }).catch(() => null)
+      }
+      const rows = Array.isArray(propsData?.results) ? propsData.results : []
+      setRealProperties(rows)
+      setRealCount(rows.length || realCount)
+      setHouseholds(rows.map((p, i) => ({
+        id: p.PropertyId ?? p.id ?? `r-${i}`,
+        lat: p.Latitude ?? p.latitude,
+        lng: p.Longitude ?? p.longitude,
+        qualified: (p.qualifies ?? p.is_qualified) ?? null,
+        address: p.Address || p.address || '',
+      })).filter(h => typeof h.lat === 'number' && typeof h.lng === 'number'))
+    } catch (err) {
+      console.warn('[GeoMapMobile] prescreen failed', err)
+    } finally {
+      setProgress(100)
+      setTimeout(() => { setPrescreening(false); setSnap('expanded') }, 350)
+    }
+  }
+
+  /* When user draws a shape on the map: persist + fetch real properties. */
+  async function onShape(shape) {
     setShapeDrawn(true)
     setDrawMode(null)
-    // Populate demo households as a hint of activity.
-    setHouseholds(DEMO_PROPERTIES.map(p => ({ id: p.id, lat: p.lat, lng: p.lng, qualified: p.qualified, address: p.address })))
+    setMapShape(shape)
     setSnap('mid')
+    if (!shape?.latlngs || shape.latlngs.length < 3) return
+    setPropsLoading(true)
+    try {
+      const [countData, propsData] = await Promise.all([
+        getPropertiesCountPolygon(shape.latlngs).catch(() => null),
+        getPropertiesByCriteria(shape.latlngs, { filters: {
+          equity: Number(filters.equityMin || 0),
+          fico:   Number(filters.fico       || 660),
+          monthsOwned: Number(filters.monthsOwned || 0),
+        } }).catch(() => null),
+      ])
+      const cnt = countData?.count_of_properties ?? null
+      if (typeof cnt === 'number') setRealCount(cnt)
+      const rows = Array.isArray(propsData?.results) ? propsData.results : []
+      setRealProperties(rows)
+      setHouseholds(rows.map((p, i) => ({
+        id: p.PropertyId ?? p.id ?? `r-${i}`,
+        lat: p.Latitude ?? p.latitude,
+        lng: p.Longitude ?? p.longitude,
+        qualified: (p.qualifies ?? p.is_qualified) ?? null,
+        address: p.Address || p.address || '',
+      })).filter(h => typeof h.lat === 'number' && typeof h.lng === 'number'))
+    } finally {
+      setPropsLoading(false)
+    }
+  }
+
+  /* Load a saved campaign from the drawer: pull polygon, overlay it, fetch rows. */
+  async function loadSavedCampaign(c) {
+    try {
+      const detail = await getSavedCampaignDetail(c.id)
+      const r = Array.isArray(detail?.results) && detail.results[0] ? detail.results[0] : null
+      if (!Array.isArray(r?.polygon_coordinates) || r.polygon_coordinates.length < 3) return
+      const latlngs = r.polygon_coordinates.map(([lng, lat]) => [lat, lng])
+      liveCollectionIdRef.current = c.id
+      liveCampaignIdRef.current = r.id ?? r.campaign_id ?? null
+      setOverlays([{ id: `camp-${c.id}`, latlngs: r.polygon_coordinates, color: '#254BCE', name: c.name || `#${c.id}`, popupHtml: '', fitBounds: true }])
+      setCampaignsOpen(false)
+      await onShape({ kind: 'polygon', latlngs })
+    } catch (err) {
+      console.warn('[GeoMapMobile] loadSavedCampaign', err)
+    }
   }
 
   return (
@@ -317,6 +476,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           drawMode={drawMode}
           onShape={onShape}
           households={households}
+          overlays={overlays}
           flyTo={flyTo}
           baseLayer={baseLayer}
           onMapReady={(m) => { mapRef.current = m }}
@@ -325,7 +485,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
 
       {/* ── Top header (translucent over map) ────────────────────────── */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1100,
         padding: 'calc(env(safe-area-inset-top) + 10px) 12px 10px',
       }}>
         <div style={{
@@ -363,7 +523,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       <div style={{
         position: 'absolute', right: 12,
         top: 'calc(env(safe-area-inset-top) + 120px)',
-        zIndex: 28,
+        zIndex: 1080,
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <FloatBtn icon={ICONS.layers} label="Map layers" onClick={() => setLayerMenuOpen(o => !o)} />
@@ -404,7 +564,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         position: 'absolute', right: 12,
         bottom: snap === 'collapsed' ? 232 : (snap === 'mid' ? 412 : 'calc(85vh + 12px)'),
         transition: 'bottom 280ms cubic-bezier(.4,0,.2,1)',
-        zIndex: 28,
+        zIndex: 1080,
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <FloatBtn
@@ -426,7 +586,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           top: 'calc(env(safe-area-inset-top) + 162px)',
-          zIndex: 31,
+          zIndex: 1105,
           background: 'rgba(0,22,96,0.92)', color: '#fff',
           padding: '10px 14px', borderRadius: 12,
           fontSize: 12.5, fontWeight: 500, lineHeight: 1.35,
@@ -450,9 +610,9 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                   {/* Top stats + search input */}
                   <div style={{ padding: '4px 16px 10px', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-                      <Stat label="Homes"        value={stats.homes} />
-                      <Stat label="Qualifying"   value={stats.qual} accent="#10B981" />
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', gap: 22 }}>
+                      <Stat label="Homes"         value={stats.homes} />
+                      <Stat label="Qualifying"    value={stats.qual} accent="#10B981" />
                       <Stat label="Not qualified" value={stats.homes - stats.qual} accent="rgba(0,22,96,0.5)" />
                     </div>
                     <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'rgba(0,22,96,0.04)' }}>
@@ -485,7 +645,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       {selectionMode && (
         <>
           <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 35,
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1110,
             padding: 'calc(env(safe-area-inset-top) + 10px) 14px 10px',
             background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
             borderBottom: '1px solid rgba(0,22,96,0.06)',
@@ -515,7 +675,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           </BottomSheet>
           {/* Action dock */}
           <div style={{
-            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50,
+            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1120,
             padding: '10px 14px calc(14px + env(safe-area-inset-bottom))',
             background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
             borderTop: '1px solid rgba(0,22,96,0.08)',
@@ -563,7 +723,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
 
       {/* ── Filter bottom sheet ─────────────────────────────────────── */}
       {filtersOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1200 }}>
           <div onClick={() => setFiltersOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
           <div style={{
             position: 'absolute', left: 0, right: 0, bottom: 0,
@@ -622,7 +782,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
 
       {/* ── Search overlay ──────────────────────────────────────────── */}
       {searchOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 75, background: '#F8F9FB', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1210, background: '#F8F9FB', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
             <button onClick={() => setSearchOpen(false)} style={{ background: 'transparent', border: 'none', color: '#001660', cursor: 'pointer', padding: 6, marginLeft: -6, flexShrink: 0 }}>{I(ICONS.back)}</button>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,22,96,0.05)', borderRadius: 12, padding: '8px 12px' }}>
@@ -649,18 +809,39 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
 
       {/* ── Campaigns slide-over ────────────────────────────────────── */}
       {campaignsOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 80 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1220 }}>
           <div onClick={() => setCampaignsOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,22,96,0.40)', backdropFilter: 'blur(2px)' }} />
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 'min(340px, 86vw)', background: '#fff', boxShadow: '8px 0 30px rgba(0,22,96,0.18)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,22,96,0.06)', display: 'flex', alignItems: 'center' }}>
               <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: '#001660' }}>Campaigns</span>
               <button onClick={() => setCampaignsOpen(false)} style={{ background: 'transparent', border: 'none', color: '#001660', cursor: 'pointer', padding: 0 }}>{I(ICONS.close)}</button>
             </div>
-            <div style={{ flex: 1, padding: 16, fontSize: 13, color: 'rgba(0,22,96,0.55)' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 16px' }}>
               <button onClick={() => { setCampaignsOpen(false); onOpenCampaigns?.() }} style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#001660', color: '#fff', border: 'none', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: 14 }}>
                 + New Campaign
               </button>
-              Campaign list loads here. (Backend wiring next pass.)
+              {savedCampaignsLoading && (
+                <div style={{ padding: 18, textAlign: 'center', color: 'rgba(0,22,96,0.55)', fontSize: 12 }}>Loading campaigns…</div>
+              )}
+              {!savedCampaignsLoading && savedCampaigns.length === 0 && (
+                <div style={{ padding: 18, textAlign: 'center', color: 'rgba(0,22,96,0.55)', fontSize: 12 }}>No saved campaigns yet.</div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {savedCampaigns.map(c => (
+                  <button key={c.id} onClick={() => loadSavedCampaign(c)} style={{
+                    width: '100%', textAlign: 'left',
+                    padding: '10px 12px', borderRadius: 10,
+                    background: 'transparent', border: '1px solid rgba(0,22,96,0.06)',
+                    cursor: 'pointer',
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#001660', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name || `Campaign #${c.id}`}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 2 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(0,22,96,0.5)' }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : ''}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#001660' }}>{(c.total_property_count ?? c.selected_households ?? 0).toLocaleString()}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -702,7 +883,7 @@ function MoreActions({ count, onClose, onDelete }) {
     </button>
   )
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 90 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1230 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
