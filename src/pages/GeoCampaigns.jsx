@@ -9,6 +9,7 @@ import EmailPreview from '../components/EmailPreview'
 import EmailPreviewPage from './EmailPreview'
 import { useIsMobile } from '../lib/useIsMobile'
 import CampaignsMobile from './CampaignsMobile'
+import GeoMapMobile from './GeoMapMobile'
 
 const CAMPAIGNS_BASE = [
   {
@@ -5386,6 +5387,17 @@ export default function GeoCampaigns() {
       }
     }
     const loadCampaignId = searchParams.get('load') || ''
+    if (isMobile) {
+      return (
+        <GeoMapMobile
+          onBack={exit}
+          onOpenCampaigns={() => {
+            setShowBrowseMap(false)
+            setSearchParams({}, { replace: true })
+          }}
+        />
+      )
+    }
     return (
       <NewCampaignFlow
         leadSearchMode

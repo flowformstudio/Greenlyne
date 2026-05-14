@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { subscribeLeads } from '../lib/firebase'
 
@@ -59,7 +59,10 @@ const ICONS = {
   bell:    <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>,
   search:  <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
   filter:  <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>,
-  sort:    <><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="11" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="17 14 21 10 17 6"/><line x1="21" y1="10" x2="14" y2="10"/></>,
+  sort:    <><polyline points="2.6 18.9 6.9 23.1 11.1 18.9"/><polyline points="12.9 5.1 17.1 0.9 21.4 5.1"/><line x1="17.1" y1="0.9" x2="17.1" y2="23.1"/><line x1="6.9" y1="23.1" x2="6.9" y2="0.9"/></>,
+  viewComfortable: <><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></>,
+  viewCompact:     <><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
+  select:          <><rect x="3" y="3" width="18" height="18" rx="3.5"/><polyline points="8.5 12.5 11 15 16 10"/></>,
   phone:   <><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></>,
   mail:    <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
   eye:     <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>,
@@ -316,6 +319,9 @@ const SORTS = [
 function FilterToolbar({
   filterStage, filterRep, filterSource, filterProduct,
   onSearch, onOpenSort, onOpenFilters, onClearOne,
+  viewMode, onToggleView,
+  leadsCount,
+  onEnterSelection,
 }) {
   const active = []
   if (filterStage)   active.push({ key: 'stage',   label: STATUS_META[filterStage]?.label || filterStage, color: STATUS_META[filterStage]?.color })
@@ -325,34 +331,55 @@ function FilterToolbar({
   const hasAny = active.length > 0
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingInline: 16, paddingTop: 4, paddingBottom: 14, scrollPaddingInline: 16, WebkitOverflowScrolling: 'touch' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingInline: 16, paddingTop: 4, paddingBottom: 14 }}>
+      <button onClick={onEnterSelection} style={{
+        flexShrink: 0,
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px', borderRadius: 999,
+        background: '#fff', border: '1px solid rgba(0,22,96,0.10)',
+        color: 'rgba(0,22,96,0.7)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}>
+        <Icon d={ICONS.select} w={14} h={14} stroke={2} />
+        Select
+      </button>
+      {/* Scrollable middle: active filter pills */}
+      <div style={{
+        flex: 1, minWidth: 0,
+        display: 'flex', alignItems: 'center', gap: 8,
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        scrollPaddingInline: 4, paddingInline: 4, marginInline: -4,
+      }}>
+        {active.map(a => (
+          <button key={a.key} onClick={onOpenFilters} style={{
+            flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 6px 6px 12px', borderRadius: 999,
+            background: 'rgba(37,75,206,0.10)',
+            border: '1px solid rgba(37,75,206,0.30)',
+            color: '#254BCE',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>
+            {a.color && <span style={{ width: 7, height: 7, borderRadius: 999, background: a.color }} />}
+            {a.label}
+            <span
+              role="button"
+              aria-label={`Remove ${a.label} filter`}
+              onClick={e => { e.stopPropagation(); onClearOne(a.key) }}
+              style={{
+                width: 20, height: 20, borderRadius: 999,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(37,75,206,0.18)', color: '#254BCE', marginLeft: 2,
+              }}>
+              <Icon d={ICONS.close} w={10} h={10} stroke={2.4} />
+            </span>
+          </button>
+        ))}
+      </div>
+      {/* Right group: Search · Filter · Sort · View (view rightmost) */}
       <IconChip onClick={onSearch}       icon={ICONS.search} label="Search" />
-      <IconChip onClick={onOpenSort}     icon={ICONS.sort}   label="Sort" />
       <IconChip onClick={onOpenFilters}  icon={ICONS.filter} label="Filters" badge={hasAny ? active.length : 0} />
-      {active.map(a => (
-        <button key={a.key} onClick={onOpenFilters} style={{
-          flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '6px 6px 6px 12px', borderRadius: 999,
-          background: 'rgba(37,75,206,0.10)',
-          border: '1px solid rgba(37,75,206,0.30)',
-          color: '#254BCE',
-          fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-        }}>
-          {a.color && <span style={{ width: 7, height: 7, borderRadius: 999, background: a.color }} />}
-          {a.label}
-          <span
-            role="button"
-            aria-label={`Remove ${a.label} filter`}
-            onClick={e => { e.stopPropagation(); onClearOne(a.key) }}
-            style={{
-              width: 20, height: 20, borderRadius: 999,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(37,75,206,0.18)', color: '#254BCE', marginLeft: 2,
-            }}>
-            <Icon d={ICONS.close} w={10} h={10} stroke={2.4} />
-          </span>
-        </button>
-      ))}
+      <IconChip onClick={onOpenSort}     icon={ICONS.sort}   label="Sort" />
+      <IconChip onClick={onToggleView}   icon={viewMode === 'compact' ? ICONS.viewComfortable : ICONS.viewCompact} label={viewMode === 'compact' ? 'Comfortable view' : 'Compact view'} />
     </div>
   )
 }
@@ -521,21 +548,65 @@ function Pill({ label, color, active, onClick }) {
 }
 
 /* ── Lead card. */
-function LeadCard({ lead, onOpen }) {
+/* Long-press hook — triggers `onLongPress` after `ms`, and lets the click
+   handler skip the synthetic click that follows. */
+function useLongPress({ onLongPress, ms = 450 }) {
+  const timerRef = useRef(null)
+  const firedRef = useRef(false)
+  const start = () => {
+    firedRef.current = false
+    timerRef.current = setTimeout(() => { firedRef.current = true; onLongPress?.() }, ms)
+  }
+  const cancel = () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }
+  return {
+    handlers: {
+      onTouchStart: start, onTouchEnd: cancel, onTouchMove: cancel, onTouchCancel: cancel,
+      onMouseDown: start, onMouseUp: cancel, onMouseLeave: cancel,
+    },
+    consumeClick: () => { const v = firedRef.current; firedRef.current = false; return v },
+  }
+}
+
+function SelectCircle({ selected }) {
   return (
-    <div style={{
+    <span style={{
+      width: 22, height: 22, borderRadius: 999, flexShrink: 0,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: selected ? '#254BCE' : 'transparent',
+      border: `1.6px solid ${selected ? '#254BCE' : 'rgba(0,22,96,0.30)'}`,
+      transition: 'background 140ms ease, border-color 140ms ease',
+    }}>
+      {selected && (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      )}
+    </span>
+  )
+}
+
+function LeadCard({ lead, onOpen, selectionMode = false, selected = false, onToggleSelect, onLongPress }) {
+  const lp = useLongPress({ onLongPress: () => onLongPress?.(lead.id) })
+  const handleClick = () => {
+    if (lp.consumeClick()) return
+    if (selectionMode) onToggleSelect?.(lead.id)
+    else onOpen(lead)
+  }
+  return (
+    <div {...lp.handlers} onClick={handleClick} style={{
       width: '100%', maxWidth: '100%', boxSizing: 'border-box', textAlign: 'left',
       padding: '14px 16px 10px', borderRadius: 16,
-      background: '#fff',
-      border: '1px solid rgba(0,22,96,0.06)',
-      boxShadow: '0 1px 3px rgba(0,22,96,0.04)',
+      background: selected ? 'rgba(37,75,206,0.06)' : '#fff',
+      border: `1px solid ${selected ? 'rgba(37,75,206,0.45)' : 'rgba(0,22,96,0.06)'}`,
+      boxShadow: selected ? '0 6px 20px rgba(37,75,206,0.18)' : '0 1px 3px rgba(0,22,96,0.04)',
       cursor: 'pointer', overflow: 'hidden',
-    }}
-    onClick={() => onOpen(lead)}>
+      WebkitUserSelect: selectionMode ? 'none' : 'auto', userSelect: selectionMode ? 'none' : 'auto',
+      transition: 'background 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
+    }}>
       {/* Header: name + amount */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-          <StatusDot status={lead.status} />
+          {selectionMode ? <SelectCircle selected={selected} /> : <StatusDot status={lead.status} />}
           <span style={{ fontSize: 16, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{lead.name}</span>
         </div>
         <span style={{ fontSize: 17, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em', flexShrink: 0 }}>{lead.amount || '—'}</span>
@@ -555,18 +626,163 @@ function LeadCard({ lead, onOpen }) {
         </span>
         <StatusPill status={lead.status} />
       </div>
-      {/* Bottom: activity + actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10, paddingTop: 8 }}>
-        <span style={{ fontSize: 12, color: 'rgba(0,22,96,0.5)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {lead.lastActivity || '—'}
-        </span>
-        <span style={{ width: 1, alignSelf: 'stretch', background: 'rgba(0,22,96,0.08)' }} />
-        <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-          <ActionPill icon={ICONS.phone} color="#10B981" onClick={() => lead.phone && (window.location.href = `tel:${lead.phone.replace(/\D/g, '')}`)} />
-          <ActionPill icon={ICONS.mail} onClick={() => lead.email && (window.location.href = `mailto:${lead.email}`)} />
-          <ActionPill icon={ICONS.eye} onClick={() => onOpen(lead)} />
-          <ActionPill icon={ICONS.more} onClick={() => onOpen(lead)} />
+      {/* Bottom: activity + actions — hidden during selection mode */}
+      {!selectionMode && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10, paddingTop: 8 }}>
+          <span style={{ fontSize: 12, color: 'rgba(0,22,96,0.5)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {lead.lastActivity || '—'}
+          </span>
+          <span style={{ width: 1, alignSelf: 'stretch', background: 'rgba(0,22,96,0.08)' }} />
+          <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+            <ActionPill icon={ICONS.phone} color="#10B981" onClick={() => lead.phone && (window.location.href = `tel:${lead.phone.replace(/\D/g, '')}`)} />
+            <ActionPill icon={ICONS.mail} onClick={() => lead.email && (window.location.href = `mailto:${lead.email}`)} />
+            <ActionPill icon={ICONS.eye} onClick={() => onOpen(lead)} />
+            <ActionPill icon={ICONS.more} onClick={() => onOpen(lead)} />
+          </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+function LeadCardCompact({ lead, onOpen, selectionMode = false, selected = false, onToggleSelect, onLongPress }) {
+  const lp = useLongPress({ onLongPress: () => onLongPress?.(lead.id) })
+  const handleClick = () => {
+    if (lp.consumeClick()) return
+    if (selectionMode) onToggleSelect?.(lead.id)
+    else onOpen(lead)
+  }
+  const parts = [lead.location, lead.amount, lead.apr && `${lead.apr} APR`].filter(Boolean)
+  return (
+    <div {...lp.handlers} onClick={handleClick} style={{
+      width: '100%', maxWidth: '100%', boxSizing: 'border-box',
+      padding: '12px 14px', borderRadius: 12,
+      background: selected ? 'rgba(37,75,206,0.06)' : '#fff',
+      border: `1px solid ${selected ? 'rgba(37,75,206,0.45)' : 'rgba(0,22,96,0.06)'}`,
+      boxShadow: selected ? '0 4px 14px rgba(37,75,206,0.16)' : '0 1px 2px rgba(0,22,96,0.03)',
+      cursor: 'pointer', overflow: 'hidden',
+      WebkitUserSelect: selectionMode ? 'none' : 'auto', userSelect: selectionMode ? 'none' : 'auto',
+      transition: 'background 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      {selectionMode && <SelectCircle selected={selected} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{lead.name}</span>
+          <StatusPill status={lead.status} />
+        </div>
+        <div style={{
+          marginTop: 1,
+          fontSize: 12, color: 'rgba(0,22,96,0.55)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {parts.join(' · ') || '—'}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* Selection header — replaces the sticky top area when selectionMode is on. */
+function SelectionHeader({ count, total, onCancel, onToggleAll, allSelected }) {
+  return (
+    <div style={{
+      position: 'sticky', top: 0, zIndex: 25,
+      background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
+      borderBottom: '1px solid rgba(0,22,96,0.08)',
+      padding: '12px 16px',
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <button onClick={onCancel} style={{ background: 'transparent', border: 'none', color: '#254BCE', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+        Cancel
+      </button>
+      <div style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em' }}>
+        {count} Selected
+      </div>
+      <button onClick={onToggleAll} style={{ background: 'transparent', border: 'none', color: '#254BCE', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+        {allSelected ? 'Deselect All' : `Select All${total > 12 ? ` (${total})` : ''}`}
+      </button>
+    </div>
+  )
+}
+
+/* Sticky bottom dock — primary bulk actions. */
+function SelectionDock({ count, onEmail, onPostcard, onExport, onMore }) {
+  if (count === 0) return null
+  const Btn = ({ icon, label, primary, onClick }) => (
+    <button onClick={onClick} style={{
+      flex: 1, padding: '10px 6px', borderRadius: 14,
+      background: primary ? '#001660' : '#fff',
+      border: primary ? 'none' : '1px solid rgba(0,22,96,0.10)',
+      color: primary ? '#fff' : '#001660',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      cursor: 'pointer', boxShadow: primary ? '0 6px 14px rgba(0,22,96,0.25)' : 'none',
+    }}>
+      <Icon d={icon} w={18} h={18} stroke={2} />
+      <span style={{ fontSize: 11, fontWeight: 600 }}>{label}</span>
+    </button>
+  )
+  return (
+    <div style={{
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 45,
+      padding: '10px 14px calc(14px + env(safe-area-inset-bottom))',
+      background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(14px)',
+      borderTop: '1px solid rgba(0,22,96,0.08)',
+      animation: 'ff-dock-slide 220ms cubic-bezier(.4,0,.2,1)',
+    }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Btn icon={ICONS.mail}    label="Email"    primary onClick={onEmail} />
+        <Btn icon={<><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></>} label="Postcard" onClick={onPostcard} />
+        <Btn icon={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} label="Export" onClick={onExport} />
+        <Btn icon={ICONS.more}    label="More"    onClick={onMore} />
+      </div>
+    </div>
+  )
+}
+
+function MoreActionsSheet({ open, onClose, count, onExportCsv, onAddToCfc, onAssignRep, onMoveStage, onDelete }) {
+  if (!open) return null
+  const item = (icon, label, onClick, destructive) => (
+    <button onClick={() => { onClick?.(); onClose() }} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+      padding: '14px 12px', borderRadius: 12,
+      background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+      color: destructive ? '#DC2626' : '#001660',
+      fontSize: 14, fontWeight: destructive ? 700 : 600,
+    }}>
+      <span style={{
+        width: 32, height: 32, borderRadius: 10,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: destructive ? 'rgba(220,38,38,0.10)' : 'rgba(37,75,206,0.08)',
+        color: destructive ? '#DC2626' : '#254BCE', flexShrink: 0,
+      }}>
+        <Icon d={icon} w={16} h={16} stroke={2} />
+      </span>
+      {label}
+    </button>
+  )
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 90 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,22,96,0.32)', backdropFilter: 'blur(2px)' }} />
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        background: '#fff', borderRadius: '20px 20px 0 0',
+        padding: '12px 12px',
+        paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
+        boxShadow: '0 -8px 30px rgba(0,22,96,0.18)',
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(0,22,96,0.12)', margin: '4px auto 8px' }} />
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#001660', padding: '4px 8px 6px' }}>Bulk actions <span style={{ color: 'rgba(0,22,96,0.45)', fontWeight: 500, marginLeft: 4 }}>· {count}</span></div>
+        {item(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></>, 'Export CSV',  onExportCsv)}
+        {item(<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></>, 'Add to CFC',  onAddToCfc)}
+        {item(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></>, 'Assign rep', onAssignRep)}
+        {item(<><polyline points="5 12 12 5 19 12"/><line x1="12" y1="5" x2="12" y2="19"/></>, 'Move stage', onMoveStage)}
+        <div style={{ height: 1, background: 'rgba(0,22,96,0.08)', margin: '6px 12px 4px' }} />
+        {item(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></>, 'Delete leads', onDelete, true)}
       </div>
     </div>
   )
@@ -1010,6 +1226,22 @@ export default function PipelineMobile() {
   const [addOpen, setAddOpen] = useState(false)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [viewMode, setViewMode] = useState('comfortable') // 'comfortable' | 'compact'
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setMoreOpen(false) }
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+  const enterSelectionWith = (id) => {
+    setSelectionMode(true)
+    setSelectedIds(new Set([id]))
+    if (window.navigator?.vibrate) try { window.navigator.vibrate(15) } catch {}
+  }
 
   const toggleStage = (key) => setFilterStage(prev => prev === key ? '' : key)
   const clearAll = () => { setFilterStage(''); setFilterRep(''); setFilterSource(''); setFilterProduct('') }
@@ -1038,7 +1270,20 @@ export default function PipelineMobile() {
   })), [allLeads])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8F9FB', paddingBottom: 'calc(96px + env(safe-area-inset-bottom))' }}>
+    <div style={{ minHeight: '100vh', background: '#F8F9FB', paddingBottom: `calc(${selectionMode && selectedIds.size > 0 ? 120 : 96}px + env(safe-area-inset-bottom))` }}>
+      {selectionMode ? (
+        <SelectionHeader
+          count={selectedIds.size}
+          total={filtered.length}
+          allSelected={filtered.length > 0 && filtered.every(l => selectedIds.has(l.id))}
+          onCancel={exitSelection}
+          onToggleAll={() => {
+            const allOn = filtered.length > 0 && filtered.every(l => selectedIds.has(l.id))
+            setSelectedIds(allOn ? new Set() : new Set(filtered.map(l => l.id)))
+          }}
+        />
+      ) : (
+      <>
       {/* Top bar */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
@@ -1074,6 +1319,10 @@ export default function PipelineMobile() {
         filterRep={filterRep}
         filterSource={filterSource}
         filterProduct={filterProduct}
+        viewMode={viewMode}
+        onToggleView={() => setViewMode(v => v === 'compact' ? 'comfortable' : 'compact')}
+        leadsCount={filtered.length}
+        onEnterSelection={() => setSelectionMode(true)}
         onSearch={() => setSearchOpen(true)}
         onOpenSort={() => setPicker('sort')}
         onOpenFilters={() => {
@@ -1087,6 +1336,8 @@ export default function PipelineMobile() {
           if (k === 'product') setFilterProduct('')
         }}
       />
+      </>
+      )}
 
       {/* Lead cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '6px 16px 28px' }}>
@@ -1096,10 +1347,33 @@ export default function PipelineMobile() {
             <div style={{ fontSize: 12 }}>Try a different stage or clear filters.</div>
           </div>
         )}
-        {filtered.map(l => <LeadCard key={l.id} lead={l} onOpen={setActiveLead} />)}
+        {filtered.map(l => {
+          const props = {
+            key: l.id, lead: l, onOpen: setActiveLead,
+            selectionMode, selected: selectedIds.has(l.id),
+            onToggleSelect: toggleSelect, onLongPress: enterSelectionWith,
+          }
+          return viewMode === 'compact' ? <LeadCardCompact {...props} /> : <LeadCard {...props} />
+        })}
       </div>
 
-      <Fab open={addOpen} onClick={() => setAddOpen(o => !o)} />
+      {!selectionMode && <Fab open={addOpen} onClick={() => setAddOpen(o => !o)} />}
+
+      <SelectionDock
+        count={selectionMode ? selectedIds.size : 0}
+        onEmail={()    => alert(`Email ${selectedIds.size} lead(s) — coming soon`)}
+        onPostcard={() => alert(`Postcard ${selectedIds.size} lead(s) — coming soon`)}
+        onExport={()   => alert(`Export ${selectedIds.size} lead(s) — coming soon`)}
+        onMore={()     => setMoreOpen(true)}
+      />
+      <MoreActionsSheet
+        open={moreOpen} onClose={() => setMoreOpen(false)} count={selectedIds.size}
+        onExportCsv={() => alert(`Export CSV — ${selectedIds.size} lead(s)`)}
+        onAddToCfc={()  => alert(`Add to CFC — ${selectedIds.size} lead(s)`)}
+        onAssignRep={() => alert(`Assign rep — ${selectedIds.size} lead(s)`)}
+        onMoveStage={() => alert(`Move stage — ${selectedIds.size} lead(s)`)}
+        onDelete={()    => { if (confirm(`Delete ${selectedIds.size} lead(s)?`)) exitSelection() }}
+      />
 
       <AddLeadsSheet
         open={addOpen}

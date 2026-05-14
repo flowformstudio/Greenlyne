@@ -898,6 +898,7 @@ const LOAN_MID          = Math.round((APPROVED_LOAN_MAX + LOAN_MIN) / 2)
 
 function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
   const navigate                      = useNavigate()
+  const isMobile                      = useIsMobile(768)
   const [step, setStep]               = useState('form')
   const [stageIndex, setStageIndex]   = useState(0)
   const [emailFlow, setEmailFlow]     = useState(null)   // null | 'sending' | 'sent'
@@ -1084,9 +1085,14 @@ function QuickPrescreenModal({ onClose, onPrescreenComplete }) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 z-40" onClick={step === 'loading' ? undefined : onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className={`relative bg-white rounded-lg shadow-2xl w-full ${step === 'result' ? 'max-w-4xl' : 'max-w-md'} flex flex-col max-h-[90vh] overflow-hidden`}>
+      {!isMobile && (
+        <div className="fixed inset-0 bg-black/30 z-40" onClick={step === 'loading' ? undefined : onClose} />
+      )}
+      <div className={`fixed inset-0 z-50 ${isMobile ? '' : 'flex items-center justify-center p-4'}`}>
+        <div
+          className={`relative bg-white shadow-2xl flex flex-col overflow-hidden ${isMobile ? '' : `w-full rounded-lg ${step === 'result' ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh]`}`}
+          style={isMobile ? { width: '100vw', height: '100vh', maxWidth: '100vw', boxSizing: 'border-box', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
+        >
 
           {/* ─── FORM ─── */}
           {step === 'form' && (<>
