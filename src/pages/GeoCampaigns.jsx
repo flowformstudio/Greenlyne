@@ -5178,6 +5178,17 @@ export default function GeoCampaigns() {
   const [pendingName, setPendingName] = useState('')
   const [showBrowseMap, setShowBrowseMap] = useState(() => searchParams.get('view') === 'map')
   const fromPipeline = searchParams.get('from') === 'pipeline'
+  // Freeze the device-mode while the geo prescreen flow is active so a browser
+  // resize doesn't tear down/remount the desktop or mobile component mid-scan.
+  const [frozenIsMobile, setFrozenIsMobile] = useState(null)
+  useEffect(() => {
+    if (showBrowseMap) {
+      if (frozenIsMobile === null) setFrozenIsMobile(isMobile)
+    } else if (frozenIsMobile !== null) {
+      setFrozenIsMobile(null)
+    }
+  }, [showBrowseMap]) // eslint-disable-line react-hooks/exhaustive-deps
+  const effectiveIsMobile = frozenIsMobile ?? isMobile
   const [editingCampaign, setEditingCampaign] = useState(null) // campaign to edit
   const [viewingCampaign, setViewingCampaign] = useState(null) // campaign to view on map
   const [selectedCampaignLead, setSelectedCampaignLead] = useState(null)
@@ -5387,7 +5398,7 @@ export default function GeoCampaigns() {
       }
     }
     const loadCampaignId = searchParams.get('load') || ''
-    if (isMobile) {
+    if (effectiveIsMobile) {
       return (
         <GeoMapMobile
           onBack={exit}
