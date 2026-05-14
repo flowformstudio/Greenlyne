@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Lock the viewport so no rogue child can introduce horizontal scroll on phones —
+   fixes lead-detail / search overlays appearing shifted off-screen. */
+html, body { max-width: 100vw; overflow-x: hidden; }
+body { -webkit-text-size-adjust: 100%; }
+
 /* ── Mobile responsive helpers for the POS application flow ─────────────── */
 @media (max-width: 640px) {
   /* Cap oversized display headings inside the application flow main pane */

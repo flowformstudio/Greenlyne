@@ -7,6 +7,8 @@ import { getPropertiesCountPolygon, getPropertiesCountCircle, getPropertiesByCri
 import { addLead } from '../lib/firebase'
 import EmailPreview from '../components/EmailPreview'
 import EmailPreviewPage from './EmailPreview'
+import { useIsMobile } from '../lib/useIsMobile'
+import CampaignsMobile from './CampaignsMobile'
 
 const CAMPAIGNS_BASE = [
   {
@@ -5169,6 +5171,7 @@ export default function GeoCampaigns() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { dark } = useTheme()
+  const isMobile = useIsMobile(768)
   const [showNew, setShowNew] = useState(false)
   const [namingModal, setNamingModal] = useState(false)
   const [pendingName, setPendingName] = useState('')
@@ -5739,6 +5742,36 @@ export default function GeoCampaigns() {
     }
     return list
   })()
+
+  if (isMobile) {
+    return (
+      <CampaignsMobile
+        campaigns={campaigns}
+        loading={landingLoading}
+        getCover={campaignCover}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        filteredCampaigns={filteredCampaigns}
+        onNewCampaign={() => { setPendingName(''); setNamingModal(true) }}
+        onOpenCampaign={(c) => {
+          const loadId = c.backendId ?? (typeof c.id === 'string' && c.id.startsWith('live-') ? c.id.slice(5) : c.id)
+          setSearchParams({ view: 'map', load: String(loadId) })
+          setShowBrowseMap(true)
+        }}
+        onEditCampaign={(c) => {
+          const loadId = c.backendId ?? (typeof c.id === 'string' && c.id.startsWith('live-') ? c.id.slice(5) : c.id)
+          setSearchParams({ view: 'map', load: String(loadId) })
+          setShowBrowseMap(true)
+        }}
+        onBrowseMap={() => { setSearchParams({ view: 'map' }); setShowBrowseMap(true) }}
+        onOpenCrm={() => navigate('/pipeline')}
+      />
+    )
+  }
 
   return (
     <div className="p-8" style={{background: D.pageBg, minHeight: '100%'}}>

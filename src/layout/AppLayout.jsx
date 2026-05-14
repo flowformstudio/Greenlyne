@@ -331,20 +331,22 @@ export default function AppLayout() {
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-1.5">
-          <QuotaBadge />
+          {!isMobile && <QuotaBadge />}
+          {!isMobile && <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />}
           {!isMobile && (
-            <>
-              <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />
-              <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Help">
-                <IconHelp />
-              </button>
-              <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Notifications">
-                <IconBell />
-              </button>
-              <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />
-              <UserMenu themeMode={themeMode} setThemeMode={setThemeMode} />
-            </>
+            <button className="p-1.5 rounded-lg transition-colors hover:bg-white/8" style={{color:'rgba(245,241,238,0.5)'}} title="Help">
+              <IconHelp />
+            </button>
           )}
+          <button className="rounded-full transition-colors hover:bg-white/8 relative flex items-center justify-center" style={{color:'rgba(245,241,238,0.85)', width: isMobile ? 38 : 32, height: isMobile ? 38 : 32, marginRight: isMobile ? 10 : 4}} title="Notifications">
+            <svg width={isMobile ? 22 : 17} height={isMobile ? 22 : 17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span style={{ position: 'absolute', top: isMobile ? -2 : 0, right: isMobile ? -2 : 0, minWidth: isMobile ? 18 : 14, height: isMobile ? 18 : 14, padding: '0 4px', borderRadius: 999, background: '#FB923C', color: '#fff', fontSize: isMobile ? 10 : 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, boxShadow: '0 0 0 2px #254BCE' }}>3</span>
+          </button>
+          {!isMobile && <div className="w-px h-4 mx-1" style={{background:'rgba(255,255,255,0.12)'}} />}
+          <UserMenu themeMode={themeMode} setThemeMode={setThemeMode} />
         </div>
       </header>
 
@@ -358,7 +360,7 @@ export default function AppLayout() {
         {!immersive && <aside
           onMouseEnter={() => setSidebarExpanded(true)}
           onMouseLeave={() => setSidebarExpanded(false)}
-          className="absolute left-0 top-0 bottom-0 z-20 flex flex-col overflow-hidden"
+          className="absolute left-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden"
           style={{
             background: dark ? '#172340' : '#fff',
             borderRight: dark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,22,96,0.08)',
