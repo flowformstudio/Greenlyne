@@ -5,6 +5,7 @@ import {
   getPropertiesByCriteria, getPropertiesCountPolygon,
   saveCampaignMail, getCampaignCollectionDetail, getPropertiesForCampaign,
 } from '../lib/glyneApi'
+import { loadGeoState, saveGeoState } from '../lib/geoPrescreenState'
 
 /* GeoMapMobile — phone-first variant of the Geo Prescreen workflow.
    - Map is the hero, full viewport.
@@ -342,6 +343,58 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
     return () => { cancelled = true }
   }, [])
 
+  /* Restore the in-progress shape from sessionStorage so a resize back from
+     desktop preserves what the user was working on. Runs once. */
+  useEffect(() => {
+    const s = loadGeoState()
+    if (!s || !Array.isArray(s.latlngs) || s.latlngs.length < 3) return
+    const latlngs = s.latlngs
+    setMapShape({ kind: s.kind || 'polygon', latlngs })
+    setShapeDrawn(true)
+    setSnap('mid')
+    if (s.collectionId) liveCollectionIdRef.current = s.collectionId
+    if (s.campaignId)   liveCampaignIdRef.current   = s.campaignId
+    if (s.campaignId) {
+      // Pull cached rows for this campaign instead of re-running by-criteria.
+      ;(async () => {
+        try {
+          const propsData = await getPropertiesForCampaign({
+            campaignId: s.campaignId,
+            ...filterRanges(),
+            mode: 'read', pageSize: 100,
+          }).catch(() => null)
+          const rows = Array.isArray(propsData?.results) ? propsData.results : []
+          if (rows.length > 0) {
+            setRealProperties(rows)
+            setRealCount(rows.length)
+            setHouseholds(rows.map((p, i) => ({
+              id: p.PropertyId ?? p.id ?? `r-${i}`,
+              lat: p.Latitude ?? p.latitude,
+              lng: p.Longitude ?? p.longitude,
+              qualified: (p.qualifies ?? p.is_qualified) ?? null,
+              address: p.Address || p.address || '',
+            })).filter(h => typeof h.lat === 'number' && typeof h.lng === 'number'))
+          }
+        } catch {}
+      })()
+    } else if (latlngs.length >= 3) {
+      // No campaign id yet — just re-fetch by criteria so the cards aren't blank.
+      onShape({ kind: s.kind || 'polygon', latlngs })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /* Persist shape + ids whenever they change so a resize hand-off is seamless. */
+  useEffect(() => {
+    if (!mapShape?.latlngs || mapShape.latlngs.length < 3) return
+    saveGeoState({
+      latlngs: mapShape.latlngs,
+      kind: mapShape.kind,
+      collectionId: liveCollectionIdRef.current ?? null,
+      campaignId:   liveCampaignIdRef.current   ?? null,
+    })
+  }, [mapShape])
+
   /* Build filter ranges in the shape the backend expects. */
   function filterRanges() {
     const equity = [Math.max(0, Number(filters.equityMin || 0) * 1000), 99_999_000]
@@ -375,6 +428,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         if (!camp?.id) throw new Error('No campaign_id from backend')
         liveCollectionIdRef.current = collectionId
         liveCampaignIdRef.current   = camp.id
+        saveGeoState({ collectionId, campaignId: camp.id })
       }
       const campaignId = liveCampaignIdRef.current
       setProgress(20)
@@ -458,6 +512,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       const latlngs = r.polygon_coordinates.map(([lng, lat]) => [lat, lng])
       liveCollectionIdRef.current = c.id
       liveCampaignIdRef.current = r.id ?? r.campaign_id ?? null
+      saveGeoState({ collectionId: c.id, campaignId: r.id ?? r.campaign_id ?? null })
       setOverlays([{ id: `camp-${c.id}`, latlngs: r.polygon_coordinates, color: '#254BCE', name: c.name || `#${c.id}`, popupHtml: '', fitBounds: true }])
       setCampaignsOpen(false)
       await onShape({ kind: 'polygon', latlngs })

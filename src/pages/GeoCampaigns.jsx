@@ -10,6 +10,7 @@ import EmailPreviewPage from './EmailPreview'
 import { useIsMobile } from '../lib/useIsMobile'
 import CampaignsMobile from './CampaignsMobile'
 import GeoMapMobile from './GeoMapMobile'
+import { clearGeoState, loadGeoState, saveGeoState } from '../lib/geoPrescreenState'
 
 const CAMPAIGNS_BASE = [
   {
@@ -1069,6 +1070,9 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
   const navigate = useNavigate()
   const { dark } = useTheme()
   const isEdit = !!initialData
+  // Once-on-mount restore from sessionStorage. Lets a resize from mobile to
+  // desktop pick up the shape + campaign id the user was working with.
+  const restoredOnceRef = useRef(false)
   const [step, setStep]               = useState(2)
   const [campaignName, setCampaignName] = useState(initialData?.name ?? initialName ?? 'Miami Westside — March 2026')
   const [campaignType, setCampaignType] = useState('mail')
@@ -1233,6 +1237,49 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
     return () => { cancelled = true }
   }, [loadCampaignId])
 
+  // Restore from sessionStorage — runs once when the user lands here from a
+  // resize hand-off (mobile → desktop). Sets the shape on the map and re-reads
+  // the campaign cache so the household table populates without a rescan.
+  useEffect(() => {
+    if (restoredOnceRef.current) return
+    const s = loadGeoState()
+    if (!s || !Array.isArray(s.latlngs) || s.latlngs.length < 3) return
+    restoredOnceRef.current = true
+    if (s.collectionId) liveCollectionIdRef.current = s.collectionId
+    if (s.campaignId)   liveCampaignIdRef.current   = s.campaignId
+    setMapShape({
+      kind: s.kind || 'polygon',
+      latlngs: s.latlngs,
+      bbox: bboxFromLatLngs(s.latlngs),
+      areaKm2: 0, center: null, radius: null,
+    })
+    setShapeDrawn(true)
+    setHouseholdPhase('loading')
+    if (s.campaignId) {
+      ;(async () => {
+        try {
+          const propsData = await getPropertiesForCampaign({
+            campaignId: s.campaignId,
+            ...filterRanges(),
+            mode: 'read', pageSize: 100,
+          }).catch(() => null)
+          const rows = Array.isArray(propsData?.results) ? propsData.results : []
+          if (rows.length > 0) {
+            applyResultsToUI(propsData)
+            setHouseholdPhase('list')
+          } else {
+            setHouseholdPhase('list')
+          }
+        } catch {
+          setHouseholdPhase('list')
+        }
+      })()
+    } else {
+      setHouseholdPhase('list')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Live refetch — when filters change while a polygon is drawn, re-run the
   // criteria search after a short debounce so the user sees counts update.
   useEffect(() => {
@@ -1369,6 +1416,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
           if (campaignId) {
             liveCollectionIdRef.current = campaign.id
             liveCampaignIdRef.current = campaignId
+            saveGeoState({ latlngs, kind: 'polygon', collectionId: campaign.id, campaignId })
             try {
               const ranges = filterRanges()
               setLiveFetchStatus('reading')
@@ -1450,6 +1498,7 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
     if (!camp?.id) throw new Error('Campaign created but no campaign_id returned.')
     liveCollectionIdRef.current = collectionId
     liveCampaignIdRef.current   = camp.id
+    saveGeoState({ collectionId, campaignId: camp.id })
     return camp.id
   }
 
@@ -1746,6 +1795,13 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
     setMapShape(shape)
     setShapeDrawn(true)
     setShapeSavedId(null)
+    if (shape?.latlngs?.length >= 3) {
+      saveGeoState({
+        latlngs: shape.latlngs, kind: shape.kind,
+        collectionId: liveCollectionIdRef.current ?? null,
+        campaignId:   liveCampaignIdRef.current   ?? null,
+      })
+    }
     setEstimatesLoading(true)
     setHouseholdPhase('loading')
     setSelectedHouseholds(new Set())
@@ -5396,6 +5452,7 @@ export default function GeoCampaigns() {
 
   if (showBrowseMap) {
     const exit = () => {
+      clearGeoState()
       if (fromPipeline) {
         navigate('/pipeline')
       } else {
@@ -5404,15 +5461,29 @@ export default function GeoCampaigns() {
         setSearchParams({}, { replace: true })
       }
     }
-    // Single layout for every screen size — keeps content in sync as the user
-    // resizes the browser. The mobile-first UX is the canonical experience.
+    const loadCampaignId = searchParams.get('load') || ''
+    // Breakpoint-based switch: desktop UI on wide screens, mobile UI on small.
+    // Both read/write a shared sessionStorage store so the drawn shape and
+    // campaign refs survive a resize across the breakpoint.
+    if (isMobile) {
+      return (
+        <GeoMapMobile
+          onBack={exit}
+          onOpenCampaigns={() => {
+            setShowBrowseMap(false)
+            setSearchParams({}, { replace: true })
+          }}
+        />
+      )
+    }
     return (
-      <GeoMapMobile
-        onBack={exit}
-        onOpenCampaigns={() => {
-          setShowBrowseMap(false)
-          setSearchParams({}, { replace: true })
-        }}
+      <NewCampaignFlow
+        leadSearchMode
+        fromPipeline={fromPipeline}
+        initialName={pendingName}
+        loadCampaignId={loadCampaignId}
+        onCancel={exit}
+        onLaunch={exit}
       />
     )
   }
