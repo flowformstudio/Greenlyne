@@ -538,46 +538,49 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         />
       </div>
 
-      {/* ── Top header (translucent over map) ────────────────────────── */}
+      {/* ── Top row: back arrow · search pill · filter button. */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1100,
-        padding: 'calc(env(safe-area-inset-top) + 10px) 12px 10px',
+        padding: 'calc(env(safe-area-inset-top) + 10px) 12px 0',
+        display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '6px 10px', borderRadius: 14,
-          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(14px)',
-          boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)',
+        <FloatBtn icon={ICONS.back} label="Back" onClick={onBack} />
+        <button onClick={() => setSearchOpen(true)} style={{
+          flex: 1, height: 42, borderRadius: 999, padding: '0 14px',
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
+          border: 'none', boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)',
+          color: 'rgba(0,22,96,0.55)', fontSize: 13.5, fontWeight: 500, cursor: 'pointer', textAlign: 'left',
         }}>
-          <button onClick={() => setCampaignsOpen(true)} aria-label="Open campaigns" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
-            {I(ICONS.menu)}
-          </button>
-          <div style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#001660', letterSpacing: '-0.01em' }}>Geo Prescreen</div>
-          <button onClick={onBack} aria-label="Back" style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
-            {I(ICONS.close)}
-          </button>
-        </div>
-
-        {/* Search pill + filter button row */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button onClick={() => setSearchOpen(true)} style={{
-            flex: 1, height: 42, borderRadius: 999, padding: '0 14px',
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
-            border: 'none', boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)',
-            color: 'rgba(0,22,96,0.55)', fontSize: 13.5, fontWeight: 500, cursor: 'pointer', textAlign: 'left',
-          }}>
-            <span style={{ color: 'rgba(0,22,96,0.45)' }}>{I(ICONS.search)}</span>
-            {searchQ || 'Search address or ZIP code…'}
-          </button>
-          <FloatBtn icon={ICONS.filter} label="Filters" onClick={() => setFiltersOpen(true)} />
-        </div>
+          <span style={{ color: 'rgba(0,22,96,0.45)' }}>{I(ICONS.search)}</span>
+          {searchQ || 'Search address or ZIP code…'}
+        </button>
+        <FloatBtn icon={ICONS.filter} label="Filters" onClick={() => setFiltersOpen(true)} />
       </div>
 
-      {/* ── Floating right-side controls ─────────────────────────────── */}
+      {/* ── Floating Campaigns bubble — left side, just under the search row. */}
+      <button
+        onClick={() => setCampaignsOpen(true)}
+        aria-label="Open campaigns"
+        style={{
+          position: 'absolute', left: 12,
+          top: 'calc(env(safe-area-inset-top) + 64px)',
+          zIndex: 1080,
+          height: 40, padding: '0 14px 0 12px', borderRadius: 999,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
+          color: '#001660', border: 'none', cursor: 'pointer',
+          boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.08)',
+          fontSize: 13, fontWeight: 600,
+        }}>
+        {I(ICONS.menu)}
+        Campaigns
+      </button>
+
+      {/* ── Top-right floating controls: Layers · Locate · Draw · Radius. */}
       <div style={{
         position: 'absolute', right: 12,
-        top: 'calc(env(safe-area-inset-top) + 120px)',
+        top: 'calc(env(safe-area-inset-top) + 64px)',
         zIndex: 1080,
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
@@ -586,15 +589,18 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           if (!navigator.geolocation) return
           navigator.geolocation.getCurrentPosition((pos) => setFlyTo([pos.coords.latitude, pos.coords.longitude, 14]))
         }} />
-        <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 999, background: 'rgba(255,255,255,0.96)', boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)', backdropFilter: 'blur(14px)' }}>
-          <button onClick={() => mapRef.current?.zoomIn()} aria-label="Zoom in" style={{ width: 40, height: 40, borderRadius: '999px 999px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
-            {I(ICONS.plus)}
-          </button>
-          <span style={{ height: 1, background: 'rgba(0,22,96,0.08)', margin: '0 8px' }} />
-          <button onClick={() => mapRef.current?.zoomOut()} aria-label="Zoom out" style={{ width: 40, height: 40, borderRadius: '0 0 999px 999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
-            {I(ICONS.minus)}
-          </button>
-        </div>
+        <FloatBtn
+          icon={ICONS.draw}
+          label="Draw area"
+          primary={drawMode === 'polygon'}
+          onClick={() => setDrawMode(drawMode === 'polygon' ? null : 'polygon')}
+        />
+        <FloatBtn
+          icon={ICONS.radius}
+          label="Radius mode"
+          primary={drawMode === 'radius'}
+          onClick={() => setDrawMode(drawMode === 'radius' ? null : 'radius')}
+        />
         {layerMenuOpen && (
           <div style={{
             position: 'absolute', right: 48, top: 0,
@@ -614,26 +620,22 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         )}
       </div>
 
-      {/* ── Draw/Radius FAB cluster (lifted above the bottom sheet) ───── */}
+      {/* ── Zoom +/- FAB cluster — lifted above the bottom sheet, bottom-right. */}
       <div style={{
         position: 'absolute', right: 12,
         bottom: snap === 'collapsed' ? 232 : (snap === 'mid' ? 412 : 'calc(85vh + 12px)'),
         transition: 'bottom 280ms cubic-bezier(.4,0,.2,1)',
         zIndex: 1080,
-        display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-        <FloatBtn
-          icon={ICONS.draw}
-          label="Draw area"
-          primary={drawMode === 'polygon'}
-          onClick={() => setDrawMode(drawMode === 'polygon' ? null : 'polygon')}
-        />
-        <FloatBtn
-          icon={ICONS.radius}
-          label="Radius mode"
-          primary={drawMode === 'radius'}
-          onClick={() => setDrawMode(drawMode === 'radius' ? null : 'radius')}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 999, background: 'rgba(255,255,255,0.96)', boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)', backdropFilter: 'blur(14px)' }}>
+          <button onClick={() => mapRef.current?.zoomIn()} aria-label="Zoom in" style={{ width: 40, height: 40, borderRadius: '999px 999px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
+            {I(ICONS.plus)}
+          </button>
+          <span style={{ height: 1, background: 'rgba(0,22,96,0.08)', margin: '0 8px' }} />
+          <button onClick={() => mapRef.current?.zoomOut()} aria-label="Zoom out" style={{ width: 40, height: 40, borderRadius: '0 0 999px 999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
+            {I(ICONS.minus)}
+          </button>
+        </div>
       </div>
 
       {/* ── Draw instruction toast ──────────────────────────────────── */}
