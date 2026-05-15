@@ -79,12 +79,31 @@ function FloatBtn({ icon, label, onClick, primary, accent, badge }) {
   )
 }
 
+/* Persistent search history — last ~10 things the user picked. */
+const RECENTS_KEY = 'glyne_geo_recent_searches_v1'
+function loadRecents() {
+  if (typeof window === 'undefined') return []
+  try { return JSON.parse(window.localStorage.getItem(RECENTS_KEY) || '[]') } catch { return [] }
+}
+function saveRecents(list) {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(RECENTS_KEY, JSON.stringify(list.slice(0, 10))) } catch {}
+}
+function pushRecent(entry) {
+  const list = loadRecents()
+  const next = [entry, ...list.filter(r => r.label !== entry.label)].slice(0, 10)
+  saveRecents(next)
+}
+
 /* Search overlay — real Mapbox geocoding (US only). */
 function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [recents, setRecents] = useState([])
   const debounceRef = useRef(null)
   const token = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_MAPBOX_TOKEN) || ''
+
+  useEffect(() => { if (open) setRecents(loadRecents()) }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -109,19 +128,21 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
     const lat = Array.isArray(c) ? c[1] : null
     if (typeof lat === 'number' && typeof lng === 'number') {
       const isAddress = (f.place_type || []).includes('address')
+      const label = f.place_name || f.text || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+      pushRecent({ label, lat, lng, zoom: isAddress ? 17 : 13, ts: Date.now() })
       onPick({ lat, lng, zoom: isAddress ? 17 : 13 })
     }
   }
-  const pickZip = async (z) => {
-    if (!token) { setQuery(z); return }
-    try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(z)}.json?country=us&types=postcode&limit=1&access_token=${token}`
-      const r = await fetch(url).then(r => r.json()).catch(() => null)
-      const f = r?.features?.[0]
-      if (f) pickResult(f)
-      else setQuery(z)
-    } catch { setQuery(z) }
+  const pickRecent = (r) => {
+    pushRecent({ ...r, ts: Date.now() })
+    onPick({ lat: r.lat, lng: r.lng, zoom: r.zoom || 14 })
   }
+  const removeRecent = (label) => {
+    const next = loadRecents().filter(r => r.label !== label)
+    saveRecents(next)
+    setRecents(next)
+  }
+  const clearAllRecents = () => { saveRecents([]); setRecents([]) }
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1210, background: '#F8F9FB',
@@ -157,12 +178,57 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
         )}
         {token && query.trim().length < 3 && (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '6px 4px 8px' }}>Recent ZIP codes</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, padding: '0 4px' }}>
-              {['95403', '95405', '94110', '78704', '85008'].map(z => (
-                <button key={z} type="button" onClick={() => pickZip(z)} style={{ padding: '8px 14px', borderRadius: 999, background: '#fff', border: '1px solid rgba(0,22,96,0.10)', fontSize: 13, fontWeight: 600, color: '#001660', cursor: 'pointer', touchAction: 'manipulation' }}>{z}</button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '6px 4px 8px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Recent searches</span>
+              {recents.length > 0 && (
+                <button type="button" onClick={clearAllRecents} style={{ background: 'transparent', border: 'none', color: '#254BCE', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>Clear</button>
+              )}
             </div>
+            {recents.length === 0 ? (
+              <div style={{ padding: '14px 4px 18px', fontSize: 12.5, color: 'rgba(0,22,96,0.50)' }}>
+                Start typing an address or ZIP code — your recent picks will show up here.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {recents.map(r => (
+                  <div key={r.label} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '4px 4px',
+                  }}>
+                    <button type="button" onClick={() => pickRecent(r)} style={{
+                      flex: 1, minWidth: 0, textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 8px', borderRadius: 12,
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      touchAction: 'manipulation',
+                    }}>
+                      <span style={{
+                        flexShrink: 0, width: 32, height: 32, borderRadius: 999,
+                        background: 'rgba(0,22,96,0.06)', color: 'rgba(0,22,96,0.55)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="9"/>
+                          <polyline points="12 7 12 12 15 14"/>
+                        </svg>
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: '#001660', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.label}
+                      </span>
+                    </button>
+                    <button type="button" aria-label="Remove" onClick={() => removeRecent(r.label)} style={{
+                      flexShrink: 0, width: 30, height: 30, borderRadius: 999,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'transparent', border: 'none', color: 'rgba(0,22,96,0.40)', cursor: 'pointer', padding: 0,
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        {ICONS.close}
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
         {token && loading && query.trim().length >= 3 && (
@@ -273,7 +339,7 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
 }
 
 /* Stats row + CTAs (collapsed state content). */
-function CollapsedContent({ stats, onScan, onPrescreen, shapeDrawn }) {
+function CollapsedContent({ stats, onScan, onPrescreen, shapeDrawn, scanning }) {
   if (!shapeDrawn) {
     return (
       <div style={{ padding: '6px 16px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -285,6 +351,23 @@ function CollapsedContent({ stats, onScan, onPrescreen, shapeDrawn }) {
         </div>
         <div style={{ fontSize: 11.5, color: 'rgba(0,22,96,0.40)', textAlign: 'center', maxWidth: 280, lineHeight: 1.35 }}>
           Use the Draw or Radius tool on the right to outline an area.
+        </div>
+      </div>
+    )
+  }
+  if (scanning) {
+    return (
+      <div style={{ padding: '10px 16px 18px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <span style={{
+          width: 22, height: 22, borderRadius: 999,
+          border: '2.5px solid rgba(0,22,96,0.15)', borderTopColor: '#254BCE',
+          animation: 'ff-spin 0.8s linear infinite',
+        }} />
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#001660', textAlign: 'center' }}>
+          Scanning area for homeowners…
+        </div>
+        <div style={{ fontSize: 11.5, color: 'rgba(0,22,96,0.50)', textAlign: 'center' }}>
+          Hang tight — results will appear in a moment.
         </div>
       </div>
     )
@@ -931,17 +1014,24 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           {({ snap: s }) => (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {s === 'collapsed' && (
-                <CollapsedContent stats={stats} shapeDrawn={shapeDrawn} onScan={() => onShape({ kind: 'demo' })} onPrescreen={startPrescreen} />
+                <CollapsedContent stats={stats} shapeDrawn={shapeDrawn} scanning={propsLoading} onScan={() => onShape({ kind: 'demo' })} onPrescreen={startPrescreen} />
               )}
               {s !== 'collapsed' && (
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                   {/* Top stats + search input */}
                   <div style={{ padding: '4px 16px 10px', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', gap: 22 }}>
-                      <Stat label="Homes"         value={stats.homes} />
-                      <Stat label="Qualifying"    value={stats.qual} accent="#10B981" />
-                      <Stat label="Not qualified" value={stats.homes - stats.qual} accent="rgba(0,22,96,0.5)" />
-                    </div>
+                    {propsLoading ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0 8px' }}>
+                        <span style={{ width: 18, height: 18, borderRadius: 999, border: '2.5px solid rgba(0,22,96,0.15)', borderTopColor: '#254BCE', animation: 'ff-spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#001660' }}>Scanning area for homeowners…</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', gap: 22 }}>
+                        <Stat label="Homes"         value={shapeDrawn ? stats.homes : '—'} />
+                        <Stat label="Qualifying"    value={shapeDrawn ? stats.qual  : '—'} accent="#10B981" />
+                        <Stat label="Not qualified" value={shapeDrawn ? stats.homes - stats.qual : '—'} accent="rgba(0,22,96,0.5)" />
+                      </div>
+                    )}
                     <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'rgba(0,22,96,0.04)' }}>
                       <span style={{ color: 'rgba(0,22,96,0.4)' }}>{I(ICONS.search)}</span>
                       <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search properties…"
