@@ -16,19 +16,19 @@ import { loadGeoState, saveGeoState } from '../lib/geoPrescreenState'
    This is a self-contained shell for the mobile UX; the props let the parent
    wire it to the existing GeoCampaigns data layer when ready. */
 
-const I = (d) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+const I = (d, size = 18) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
 const ICONS = {
   back:    <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
   menu:    <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
   search:  <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
   filter:  <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>,
-  layers:  <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
-  locate:  <><circle cx="12" cy="12" r="3"/><line x1="12" y1="2"  x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2"  y1="12" x2="5"  y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></>,
+  layers:  <><polygon points="12 2 22 7 12 12 2 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+  locate:  <><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/></>,
   plus:    <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5"  y1="12" x2="19" y2="12"/></>,
   minus:   <><line x1="5"  y1="12" x2="19" y2="12"/></>,
   close:   <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6"  y1="6" x2="18" y2="18"/></>,
-  draw:    <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
-  radius:  <><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2" fill="currentColor"/></>,
+  draw:    <><path strokeLinecap="round" strokeLinejoin="round" d="M8.17541 16.8263 2.69336 4.65838 14.8789 6.89422l6.428 -5.924982L20.9715 14.552l-9.9477 3.2393"/><path d="M6.172 19.027a2.641 2.023 0 1 0 5.282 0 2.641 2.023 0 1 0 -5.282 0"/><path strokeLinecap="round" strokeLinejoin="round" d="M11.3477 20.1711c1.7154 0.3318 1.918 1.9094 1.7154 2.8596"/></>,
+  radius:  <><path d="M22.284 16.706a11.1 11.1 0 0 1 -1.18 2.032"/><path d="M16.938 22.235a7.314 7.314 0 0 1 -1.083 0.459 7.455 7.455 0 0 1 -1.125 0.344"/><path d="M9.292 23.038a7.49 7.49 0 0 1 -1.125 -0.344 7.314 7.314 0 0 1 -1.083 -0.459"/><path d="M2.918 18.739a11.132 11.132 0 0 1 -1.179 -2.033"/><path d="M0.8 11.348a11.1 11.1 0 0 1 0.4 -2.315"/><path d="M3.924 4.323a12.406 12.406 0 0 1 1.8 -1.518"/><path d="m10.835 0.945 1.176 -0.062 1.176 0.062"/><path d="M18.3 2.805a12.452 12.452 0 0 1 1.8 1.518"/><path d="M22.819 9.033a11.039 11.039 0 0 1 0.4 2.315"/><path d="M8.261 12.133a3.75 3.75 0 1 0 7.5 0 3.75 3.75 0 1 0 -7.5 0Z"/></>,
   chevDn:  <><polyline points="6 9 12 15 18 9"/></>,
   chevRt:  <><polyline points="9 18 15 12 9 6"/></>,
   check:   <><polyline points="20 6 9 17 4 12"/></>,
@@ -111,7 +111,22 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
 }
 
 /* Stats row + CTAs (collapsed state content). */
-function CollapsedContent({ stats, onScan, onPrescreen }) {
+function CollapsedContent({ stats, onScan, onPrescreen, shapeDrawn }) {
+  if (!shapeDrawn) {
+    return (
+      <div style={{ padding: '14px 16px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: 'rgba(0,22,96,0.30)' }}>
+          {I(ICONS.draw, 32)}
+        </span>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(0,22,96,0.55)', textAlign: 'center' }}>
+          Define area to see households
+        </div>
+        <div style={{ fontSize: 12, color: 'rgba(0,22,96,0.40)', textAlign: 'center', maxWidth: 280 }}>
+          Use the Draw or Radius tool on the right to outline the area you want to prescreen.
+        </div>
+      </div>
+    )
+  }
   return (
     <div style={{ padding: '6px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-start', gap: 22 }}>
@@ -661,7 +676,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           {({ snap: s }) => (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {s === 'collapsed' && (
-                <CollapsedContent stats={stats} onScan={() => onShape({ kind: 'demo' })} onPrescreen={startPrescreen} />
+                <CollapsedContent stats={stats} shapeDrawn={shapeDrawn} onScan={() => onShape({ kind: 'demo' })} onPrescreen={startPrescreen} />
               )}
               {s !== 'collapsed' && (
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
