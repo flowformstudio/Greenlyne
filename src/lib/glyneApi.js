@@ -117,17 +117,40 @@ export function getCampaignCollectionDetail(collectionId) {
   return glyneFetch(`campaign-collections/mail/${collectionId}/`, {})
 }
 
-/** Delete a saved campaign collection by id. */
+/** Delete a saved campaign. The backend's `delete-campaign/{id}` endpoint
+ *  operates on the inner *campaign* id (not the outer *collection* id), so
+ *  we first resolve it via the collection detail call. If the collection has
+ *  no inner campaign (rare edge case) we still try the original id as a
+ *  fallback before bubbling the error up. */
 export async function deleteSavedCampaign(collectionId) {
-  const url = `${PROXY_BASE}?p=${encodeURIComponent(`delete-campaign/${collectionId}/`)}`
-  const res = await fetch(url, { method: 'DELETE', headers: { 'Accept': 'application/json' } })
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '')
-    const err = new Error(`[glyneApi] delete failed: ${res.status} ${txt.slice(0, 200)}`)
-    err.status = res.status
-    throw err
+  const tryDelete = async (id) => {
+    const url = `${PROXY_BASE}?p=${encodeURIComponent(`delete-campaign/${id}/`)}`
+    return fetch(url, { method: 'DELETE', headers: { 'Accept': 'application/json' } })
   }
-  return true
+  let innerId = null
+  try {
+    const detail = await glyneFetch(`campaign-collections/mail/${collectionId}/`, {})
+    const camp = (detail?.results || [])[0]
+    if (camp?.id) innerId = camp.id
+  } catch {}
+  // First attempt: inner campaign id (the format the backend actually expects).
+  if (innerId) {
+    const r1 = await tryDelete(innerId)
+    if (r1.ok) return true
+    if (r1.status !== 404) {
+      const txt = await r1.text().catch(() => '')
+      const err = new Error(`[glyneApi] delete failed: ${r1.status} ${txt.slice(0, 200)}`)
+      err.status = r1.status
+      throw err
+    }
+  }
+  // Fallback: try the collection id directly (in case the API also accepts it).
+  const r2 = await tryDelete(collectionId)
+  if (r2.ok) return true
+  const txt = await r2.text().catch(() => '')
+  const err = new Error(`[glyneApi] delete failed: ${r2.status} ${txt.slice(0, 200)}`)
+  err.status = r2.status
+  throw err
 }
 
 /** Step 4/6 — Trigger or read household results for a saved campaign.
