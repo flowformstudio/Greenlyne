@@ -592,14 +592,13 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         Campaigns
       </button>
 
-      {/* ── Top-right floating controls: Layers · Draw · Radius. */}
+      {/* ── Top-right floating controls: Draw · Radius. */}
       <div style={{
         position: 'absolute', right: 12,
         top: 'calc(env(safe-area-inset-top) + 64px)',
         zIndex: 1080,
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-        <FloatBtn icon={ICONS.layers} label="Map layers" onClick={() => setLayerMenuOpen(o => !o)} />
         <FloatBtn
           icon={ICONS.draw}
           label="Draw area"
@@ -612,33 +611,36 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           primary={drawMode === 'radius'}
           onClick={() => setDrawMode(drawMode === 'radius' ? null : 'radius')}
         />
-        {layerMenuOpen && (
-          <div style={{
-            position: 'absolute', right: 48, top: 0,
-            background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(12px)',
-            borderRadius: 12, boxShadow: '0 12px 24px rgba(0,22,96,0.14)',
-            padding: 6, minWidth: 140,
-          }}>
-            {['default', 'satellite'].map(l => (
-              <button key={l} onClick={() => { setBaseLayer(l); setLayerMenuOpen(false) }} style={{
-                width: '100%', padding: '8px 10px', borderRadius: 8,
-                background: baseLayer === l ? 'rgba(37,75,206,0.10)' : 'transparent',
-                border: 'none', color: baseLayer === l ? '#254BCE' : '#001660',
-                fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
-              }}>{l === 'default' ? 'Map' : 'Satellite'}</button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* ── Bottom-right cluster: Locate · Zoom +/- (lifted above the sheet). */}
+      {/* ── Bottom-right cluster: Layers · Locate · Zoom +/-  (lifted above the sheet). */}
       <div style={{
         position: 'absolute', right: 12,
-        bottom: snap === 'collapsed' ? 232 : (snap === 'mid' ? 412 : 'calc(85vh + 12px)'),
+        bottom: snap === 'collapsed' ? ((shapeDrawn ? 220 : 130) + 12) : (snap === 'mid' ? 412 : 'calc(85vh + 12px)'),
         transition: 'bottom 280ms cubic-bezier(.4,0,.2,1)',
         zIndex: 1080,
         display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
       }}>
+        <div style={{ position: 'relative' }}>
+          <FloatBtn icon={ICONS.layers} label="Map layers" onClick={() => setLayerMenuOpen(o => !o)} />
+          {layerMenuOpen && (
+            <div style={{
+              position: 'absolute', right: 48, top: 0,
+              background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(12px)',
+              borderRadius: 12, boxShadow: '0 12px 24px rgba(0,22,96,0.14)',
+              padding: 6, minWidth: 140,
+            }}>
+              {['default', 'satellite'].map(l => (
+                <button key={l} onClick={() => { setBaseLayer(l); setLayerMenuOpen(false) }} style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8,
+                  background: baseLayer === l ? 'rgba(37,75,206,0.10)' : 'transparent',
+                  border: 'none', color: baseLayer === l ? '#254BCE' : '#001660',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+                }}>{l === 'default' ? 'Map' : 'Satellite'}</button>
+              ))}
+            </div>
+          )}
+        </div>
         <FloatBtn icon={ICONS.locate} label="My location" onClick={() => {
           if (!navigator.geolocation) return
           navigator.geolocation.getCurrentPosition((pos) => setFlyTo([pos.coords.latitude, pos.coords.longitude, 14]))
@@ -673,7 +675,11 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
 
       {/* ── Bottom sheet ─────────────────────────────────────────────── */}
       {!prescreening && !selectionMode && (
-        <BottomSheet snap={snap} onSnap={setSnap}>
+        <BottomSheet
+          snap={snap}
+          onSnap={setSnap}
+          snapHeights={{ collapsed: shapeDrawn ? 220 : 130, mid: 400, expanded: '85vh' }}
+        >
           {({ snap: s }) => (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {s === 'collapsed' && (
