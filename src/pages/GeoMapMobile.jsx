@@ -114,15 +114,15 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
 function CollapsedContent({ stats, onScan, onPrescreen, shapeDrawn }) {
   if (!shapeDrawn) {
     return (
-      <div style={{ padding: '14px 16px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '6px 16px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
         <span style={{ color: 'rgba(0,22,96,0.30)' }}>
-          {I(ICONS.draw, 32)}
+          {I(ICONS.draw, 24)}
         </span>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(0,22,96,0.55)', textAlign: 'center' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(0,22,96,0.55)', textAlign: 'center' }}>
           Define area to see households
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(0,22,96,0.40)', textAlign: 'center', maxWidth: 280 }}>
-          Use the Draw or Radius tool on the right to outline the area you want to prescreen.
+        <div style={{ fontSize: 11.5, color: 'rgba(0,22,96,0.40)', textAlign: 'center', maxWidth: 280, lineHeight: 1.35 }}>
+          Use the Draw or Radius tool on the right to outline an area.
         </div>
       </div>
     )
@@ -592,7 +592,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         Campaigns
       </button>
 
-      {/* ── Top-right floating controls: Layers · Locate · Draw · Radius. */}
+      {/* ── Top-right floating controls: Layers · Draw · Radius. */}
       <div style={{
         position: 'absolute', right: 12,
         top: 'calc(env(safe-area-inset-top) + 64px)',
@@ -600,10 +600,6 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <FloatBtn icon={ICONS.layers} label="Map layers" onClick={() => setLayerMenuOpen(o => !o)} />
-        <FloatBtn icon={ICONS.locate} label="My location" onClick={() => {
-          if (!navigator.geolocation) return
-          navigator.geolocation.getCurrentPosition((pos) => setFlyTo([pos.coords.latitude, pos.coords.longitude, 14]))
-        }} />
         <FloatBtn
           icon={ICONS.draw}
           label="Draw area"
@@ -635,13 +631,18 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         )}
       </div>
 
-      {/* ── Zoom +/- FAB cluster — lifted above the bottom sheet, bottom-right. */}
+      {/* ── Bottom-right cluster: Locate · Zoom +/- (lifted above the sheet). */}
       <div style={{
         position: 'absolute', right: 12,
         bottom: snap === 'collapsed' ? 232 : (snap === 'mid' ? 412 : 'calc(85vh + 12px)'),
         transition: 'bottom 280ms cubic-bezier(.4,0,.2,1)',
         zIndex: 1080,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
       }}>
+        <FloatBtn icon={ICONS.locate} label="My location" onClick={() => {
+          if (!navigator.geolocation) return
+          navigator.geolocation.getCurrentPosition((pos) => setFlyTo([pos.coords.latitude, pos.coords.longitude, 14]))
+        }} />
         <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 999, background: 'rgba(255,255,255,0.96)', boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)', backdropFilter: 'blur(14px)' }}>
           <button onClick={() => mapRef.current?.zoomIn()} aria-label="Zoom in" style={{ width: 40, height: 40, borderRadius: '999px 999px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#001660', border: 'none', cursor: 'pointer', padding: 0 }}>
             {I(ICONS.plus)}
