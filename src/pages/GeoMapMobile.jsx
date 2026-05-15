@@ -832,27 +832,6 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         </div>
       )}
 
-      {/* ── Persistent radius badge — always visible after placing a circle. */}
-      {shapeDrawn && mapShape?.kind === 'circle' && mapShape.radius != null && (
-        <div style={{
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          top: 'calc(env(safe-area-inset-top) + 116px)',
-          zIndex: 1105,
-          background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(12px)',
-          color: '#001660',
-          padding: '6px 12px 6px 10px', borderRadius: 999,
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontSize: 12.5, fontWeight: 700,
-          boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.06)',
-          border: '1px solid rgba(37,75,206,0.30)',
-        }}>
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: '#254BCE' }} />
-          {(() => {
-            const miles = (Number(mapShape.radius) || 0) / 1609.344
-            return miles >= 1 ? `${miles.toFixed(1)} mi radius` : `${miles.toFixed(2)} mi radius`
-          })()}
-        </div>
-      )}
 
       {/* ── Bottom sheet ─────────────────────────────────────────────── */}
       {!prescreening && !selectionMode && (
