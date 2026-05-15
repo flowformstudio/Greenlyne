@@ -1036,12 +1036,6 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
                         <Stat label="Not qualified" value={shapeDrawn ? stats.homes - stats.qual : '—'} accent="rgba(0,22,96,0.5)" />
                       </div>
                     )}
-                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'rgba(0,22,96,0.04)' }}>
-                      <span style={{ color: 'rgba(0,22,96,0.4)' }}>{I(ICONS.search)}</span>
-                      <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search properties…"
-                        style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13.5, color: '#001660' }} />
-                      <button onClick={() => setSelectionMode(true)} style={{ background: 'transparent', border: 'none', color: '#254BCE', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Select</button>
-                    </div>
                   </div>
                   {/* Property list */}
                   <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 80px', display: 'flex', flexDirection: 'column', gap: 8 }}>
