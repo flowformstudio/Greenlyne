@@ -33,6 +33,8 @@ const ICONS = {
   chevRt:  <><polyline points="9 18 15 12 9 6"/></>,
   check:   <><polyline points="20 6 9 17 4 12"/></>,
   more:    <><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></>,
+  expand:  <><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></>,
+  collapse:<><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></>,
   mail:    <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
   card:    <><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></>,
   download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
@@ -61,8 +63,95 @@ function FloatBtn({ icon, label, onClick, primary, accent, badge }) {
   )
 }
 
+/* Search overlay — real Mapbox geocoding (US only). */
+function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const debounceRef = useRef(null)
+  const token = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_MAPBOX_TOKEN) || ''
+
+  useEffect(() => {
+    if (!open) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    const q = (query || '').trim()
+    if (q.length < 3 || !token) { setResults([]); return }
+    setLoading(true)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=us&limit=6&types=address,postcode,place,locality,neighborhood&autocomplete=true&access_token=${token}`
+        const r = await fetch(url).then(r => r.json()).catch(() => null)
+        setResults(Array.isArray(r?.features) ? r.features : [])
+      } finally { setLoading(false) }
+    }, 250)
+    return () => debounceRef.current && clearTimeout(debounceRef.current)
+  }, [query, open, token])
+
+  if (!open) return null
+  const pickResult = (f) => {
+    const [lng, lat] = f.center || []
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      const isAddress = (f.place_type || []).includes('address')
+      onPick({ lat, lng, zoom: isAddress ? 17 : 13 })
+    }
+  }
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1210, background: '#F8F9FB', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#001660', cursor: 'pointer', padding: 6, marginLeft: -6, flexShrink: 0 }}>{I(ICONS.back)}</button>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,22,96,0.05)', borderRadius: 12, padding: '8px 12px' }}>
+          <span style={{ color: 'rgba(0,22,96,0.4)', flexShrink: 0 }}>{I(ICONS.search)}</span>
+          <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search address or ZIP code…"
+            style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#001660' }} />
+          {query && (
+            <button onClick={() => setQuery('')} style={{ background: 'transparent', border: 'none', color: 'rgba(0,22,96,0.5)', cursor: 'pointer', padding: 0, flexShrink: 0 }}>{I(ICONS.close)}</button>
+          )}
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+        {!token && (
+          <div style={{ fontSize: 12.5, color: 'rgba(0,22,96,0.55)', padding: 16, textAlign: 'center' }}>
+            Address search requires a Mapbox token (VITE_MAPBOX_TOKEN).
+          </div>
+        )}
+        {token && query.trim().length < 3 && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '6px 4px 8px' }}>Recent ZIP codes</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, padding: '0 4px' }}>
+              {['95403', '95405', '94110', '78704', '85008'].map(z => (
+                <button key={z} onClick={() => setQuery(z)} style={{ padding: '8px 14px', borderRadius: 999, background: '#fff', border: '1px solid rgba(0,22,96,0.10)', fontSize: 13, fontWeight: 600, color: '#001660', cursor: 'pointer' }}>{z}</button>
+              ))}
+            </div>
+          </>
+        )}
+        {token && loading && query.trim().length >= 3 && (
+          <div style={{ fontSize: 12.5, color: 'rgba(0,22,96,0.55)', padding: 16, textAlign: 'center' }}>Searching…</div>
+        )}
+        {token && !loading && query.trim().length >= 3 && results.length === 0 && (
+          <div style={{ fontSize: 12.5, color: 'rgba(0,22,96,0.55)', padding: 16, textAlign: 'center' }}>No matches for "{query.trim()}".</div>
+        )}
+        {results.map((f, i) => (
+          <button key={f.id || i} onClick={() => pickResult(f)} style={{
+            width: '100%', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 12px', borderRadius: 12,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+          }}>
+            <span style={{ width: 32, height: 32, borderRadius: 999, background: 'rgba(37,75,206,0.10)', color: '#254BCE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {I(ICONS.search)}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#001660', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.text}</div>
+              <div style={{ fontSize: 11.5, color: 'rgba(0,22,96,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.place_name}</div>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /* Draggable bottom sheet — supports three snap heights. */
-function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { collapsed: 220, mid: 400, expanded: '85vh' } }) {
+function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { collapsed: 220, mid: 400, expanded: '85vh' }, fullscreenToggle = false }) {
   const height = snapHeights[snap]
   const startY = useRef(null)
   const lastDelta = useRef(0)
@@ -95,13 +184,30 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
-      <div
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        style={{ flexShrink: 0, paddingTop: 8, paddingBottom: 6, display: 'flex', justifyContent: 'center', cursor: 'grab' }}
-        onClick={() => onSnap?.(snap === 'expanded' ? 'collapsed' : (snap === 'collapsed' ? 'mid' : 'expanded'))}>
-        <span style={{ width: 42, height: 5, borderRadius: 999, background: 'rgba(0,22,96,0.18)' }} />
+      <div style={{ flexShrink: 0, position: 'relative', paddingTop: 8, paddingBottom: 6, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onClick={() => onSnap?.(snap === 'expanded' ? 'collapsed' : (snap === 'collapsed' ? 'mid' : 'expanded'))}
+          style={{ width: 80, padding: '6px 0', display: 'flex', justifyContent: 'center', cursor: 'grab' }}>
+          <span style={{ width: 42, height: 5, borderRadius: 999, background: 'rgba(0,22,96,0.18)' }} />
+        </div>
+        {fullscreenToggle && (
+          <button onClick={() => onSnap?.(snap === 'expanded' ? 'mid' : 'expanded')}
+            aria-label={snap === 'expanded' ? 'Exit fullscreen' : 'Fullscreen'}
+            style={{
+              position: 'absolute', top: 6, right: 10,
+              width: 30, height: 30, borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent', border: 'none',
+              color: 'rgba(0,22,96,0.55)', cursor: 'pointer', padding: 0,
+            }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {snap === 'expanded' ? ICONS.collapse : ICONS.expand}
+            </svg>
+          </button>
+        )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {children({ snap })}
@@ -553,7 +659,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         />
       </div>
 
-      {/* ── Top row: back arrow · search pill · filter button. */}
+      {/* ── Top row: back arrow + search pill. */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1100,
         padding: 'calc(env(safe-area-inset-top) + 10px) 12px 0',
@@ -570,27 +676,50 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           <span style={{ color: 'rgba(0,22,96,0.45)' }}>{I(ICONS.search)}</span>
           {searchQ || 'Search address or ZIP code…'}
         </button>
-        <FloatBtn icon={ICONS.filter} label="Filters" onClick={() => setFiltersOpen(true)} />
       </div>
 
-      {/* ── Floating Campaigns bubble — left side, just under the search row. */}
-      <button
-        onClick={() => setCampaignsOpen(true)}
-        aria-label="Open campaigns"
-        style={{
-          position: 'absolute', left: 12,
-          top: 'calc(env(safe-area-inset-top) + 64px)',
-          zIndex: 1080,
-          height: 40, padding: '0 14px 0 12px', borderRadius: 999,
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
-          color: '#001660', border: 'none', cursor: 'pointer',
-          boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.08)',
-          fontSize: 13, fontWeight: 600,
-        }}>
-        {I(ICONS.menu)}
-        Campaigns
-      </button>
+      {/* ── Floating Campaigns bubble (left) + Filters pill (right) below the search row. */}
+      <div style={{
+        position: 'absolute', left: 12,
+        top: 'calc(env(safe-area-inset-top) + 64px)',
+        zIndex: 1080,
+      }}>
+        <FloatBtn icon={ICONS.menu} label="Open campaigns" onClick={() => setCampaignsOpen(true)} />
+      </div>
+      {(() => {
+        const defaultFilters = { equityMin: 50, fico: 660, monthsOwned: 24, incomeMin: 50, pool: 'any' }
+        const filtersChanged =
+          filters.equityMin   !== defaultFilters.equityMin ||
+          filters.fico        !== defaultFilters.fico ||
+          filters.monthsOwned !== defaultFilters.monthsOwned ||
+          filters.incomeMin   !== defaultFilters.incomeMin ||
+          filters.pool        !== defaultFilters.pool
+        return (
+          <button onClick={() => setFiltersOpen(true)} aria-label="Open filters" style={{
+            position: 'absolute', right: 12,
+            top: 'calc(env(safe-area-inset-top) + 64px)',
+            zIndex: 1080,
+            height: 40, padding: '0 14px 0 12px', borderRadius: 999,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: filtersChanged ? 'rgba(37,75,206,0.10)' : 'rgba(255,255,255,0.96)',
+            backdropFilter: 'blur(14px)',
+            color: filtersChanged ? '#254BCE' : '#001660',
+            border: `1px solid ${filtersChanged ? 'rgba(37,75,206,0.45)' : 'rgba(0,22,96,0.06)'}`,
+            cursor: 'pointer',
+            boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.08)',
+            fontSize: 13, fontWeight: 600,
+          }}>
+            {I(ICONS.filter)}
+            Filters
+            {filtersChanged && (
+              <span style={{
+                width: 8, height: 8, borderRadius: 999, background: '#254BCE',
+                boxShadow: '0 0 0 2px #fff',
+              }} />
+            )}
+          </button>
+        )
+      })()}
 
       {/* ── Top-right floating controls: Draw · Radius. */}
       <div style={{
@@ -679,6 +808,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           snap={snap}
           onSnap={setSnap}
           snapHeights={{ collapsed: shapeDrawn ? 220 : 130, mid: 400, expanded: '85vh' }}
+          fullscreenToggle={shapeDrawn}
         >
           {({ snap: s }) => (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -860,31 +990,16 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       )}
 
       {/* ── Search overlay ──────────────────────────────────────────── */}
-      {searchOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1210, background: '#F8F9FB', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
-            <button onClick={() => setSearchOpen(false)} style={{ background: 'transparent', border: 'none', color: '#001660', cursor: 'pointer', padding: 6, marginLeft: -6, flexShrink: 0 }}>{I(ICONS.back)}</button>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,22,96,0.05)', borderRadius: 12, padding: '8px 12px' }}>
-              <span style={{ color: 'rgba(0,22,96,0.4)', flexShrink: 0 }}>{I(ICONS.search)}</span>
-              <input autoFocus value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search address or ZIP code…"
-                style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#001660' }} />
-              {searchQ && (
-                <button onClick={() => setSearchQ('')} style={{ background: 'transparent', border: 'none', color: 'rgba(0,22,96,0.5)', cursor: 'pointer', padding: 0, flexShrink: 0 }}>{I(ICONS.close)}</button>
-              )}
-            </div>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Recent ZIP codes</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-              {['95403', '95405', '94110', '78704', '85008'].map(z => (
-                <button key={z} onClick={() => { setSearchQ(z); setSearchOpen(false) }} style={{ padding: '8px 14px', borderRadius: 999, background: '#fff', border: '1px solid rgba(0,22,96,0.10)', fontSize: 13, fontWeight: 600, color: '#001660', cursor: 'pointer' }}>{z}</button>
-              ))}
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Saved searches</div>
-            <div style={{ fontSize: 13, color: 'rgba(0,22,96,0.55)' }}>None yet.</div>
-          </div>
-        </div>
-      )}
+      <SearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        query={searchQ}
+        setQuery={setSearchQ}
+        onPick={(loc) => {
+          setFlyTo([loc.lat, loc.lng, loc.zoom || 14])
+          setSearchOpen(false)
+        }}
+      />
 
       {/* ── Campaigns slide-over ────────────────────────────────────── */}
       {campaignsOpen && (
