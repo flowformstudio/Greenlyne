@@ -88,11 +88,23 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
 
   if (!open) return null
   const pickResult = (f) => {
-    const [lng, lat] = f.center || []
+    const c = f?.center || f?.geometry?.coordinates || []
+    const lng = Array.isArray(c) ? c[0] : null
+    const lat = Array.isArray(c) ? c[1] : null
     if (typeof lat === 'number' && typeof lng === 'number') {
       const isAddress = (f.place_type || []).includes('address')
       onPick({ lat, lng, zoom: isAddress ? 17 : 13 })
     }
+  }
+  const pickZip = async (z) => {
+    if (!token) { setQuery(z); return }
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(z)}.json?country=us&types=postcode&limit=1&access_token=${token}`
+      const r = await fetch(url).then(r => r.json()).catch(() => null)
+      const f = r?.features?.[0]
+      if (f) pickResult(f)
+      else setQuery(z)
+    } catch { setQuery(z) }
   }
   return (
     <div style={{
@@ -132,7 +144,7 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,22,96,0.55)', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '6px 4px 8px' }}>Recent ZIP codes</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18, padding: '0 4px' }}>
               {['95403', '95405', '94110', '78704', '85008'].map(z => (
-                <button key={z} onClick={() => setQuery(z)} style={{ padding: '8px 14px', borderRadius: 999, background: '#fff', border: '1px solid rgba(0,22,96,0.10)', fontSize: 13, fontWeight: 600, color: '#001660', cursor: 'pointer' }}>{z}</button>
+                <button key={z} type="button" onClick={() => pickZip(z)} style={{ padding: '8px 14px', borderRadius: 999, background: '#fff', border: '1px solid rgba(0,22,96,0.10)', fontSize: 13, fontWeight: 600, color: '#001660', cursor: 'pointer', touchAction: 'manipulation' }}>{z}</button>
               ))}
             </div>
           </>
@@ -144,11 +156,12 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
           <div style={{ fontSize: 12.5, color: 'rgba(0,22,96,0.55)', padding: 16, textAlign: 'center' }}>No matches for "{query.trim()}".</div>
         )}
         {results.map((f, i) => (
-          <button key={f.id || i} onClick={() => pickResult(f)} style={{
+          <button key={f.id || i} type="button" onClick={() => pickResult(f)} style={{
             width: '100%', textAlign: 'left',
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '12px 12px', borderRadius: 12,
             background: 'transparent', border: 'none', cursor: 'pointer',
+            touchAction: 'manipulation',
           }}>
             <span style={{ width: 32, height: 32, borderRadius: 999, background: 'rgba(37,75,206,0.10)', color: '#254BCE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {I(ICONS.search)}
