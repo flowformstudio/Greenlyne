@@ -130,12 +130,14 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
       const isAddress = (f.place_type || []).includes('address')
       const label = f.place_name || f.text || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
       pushRecent({ label, lat, lng, zoom: isAddress ? 17 : 13, ts: Date.now() })
-      onPick({ lat, lng, zoom: isAddress ? 17 : 13 })
+      setQuery(label)
+      onPick({ lat, lng, zoom: isAddress ? 17 : 13, label })
     }
   }
   const pickRecent = (r) => {
     pushRecent({ ...r, ts: Date.now() })
-    onPick({ lat: r.lat, lng: r.lng, zoom: r.zoom || 14 })
+    setQuery(r.label || '')
+    onPick({ lat: r.lat, lng: r.lng, zoom: r.zoom || 14, label: r.label })
   }
   const removeRecent = (label) => {
     const next = loadRecents().filter(r => r.label !== label)
@@ -551,6 +553,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
     setHouseholds([])
     setRealProperties([])
     setRealCount(null)
+    setSearchQ('')
     liveCollectionIdRef.current = null
     liveCampaignIdRef.current = null
     setSnap('collapsed')
@@ -792,6 +795,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       liveCampaignIdRef.current = r.id ?? r.campaign_id ?? null
       saveGeoState({ collectionId: c.id, campaignId: r.id ?? r.campaign_id ?? null })
       setOverlays([{ id: `camp-${c.id}`, latlngs: r.polygon_coordinates, color: '#254BCE', name: c.name || `#${c.id}`, popupHtml: '', fitBounds: true }])
+      setSearchQ(c.name || `Campaign #${c.id}`)
       setCampaignsOpen(false)
       await onShape({ kind: 'polygon', latlngs })
     } catch (err) {
