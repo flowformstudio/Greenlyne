@@ -1746,6 +1746,30 @@ function NewCampaignFlow({ onCancel, onLaunch, initialData, initialName = '', le
    * fetch — so the user sees "Scanning area…" → result row(s) in the table. */
   function scanFromAddress(entry) {
     if (!entry?.lat || !entry?.lng) return
+    // ZIP / postcode entries carry a bbox we can scan as a whole area.
+    if (entry.bbox && Array.isArray(entry.bbox) && entry.bbox.length === 4 && (entry.isPostcode || entry.kind === 'postcode')) {
+      // entry.bbox may be [minLng, minLat, maxLng, maxLat] (Mapbox order)
+      // or [s, w, n, e] (internal). Detect by magnitude — lng range is wider.
+      let minLat, minLng, maxLat, maxLng
+      const [a, b, c, d] = entry.bbox
+      if (Math.abs(a) > 90) { minLng = a; minLat = b; maxLng = c; maxLat = d }
+      else                  { minLat = a; minLng = b; maxLat = c; maxLng = d }
+      const latlngs = [
+        [maxLat, minLng], [maxLat, maxLng],
+        [minLat, maxLng], [minLat, minLng],
+        [maxLat, minLng],
+      ]
+      const shape = {
+        kind: 'polygon', latlngs,
+        bbox: [minLat, minLng, maxLat, maxLng],
+        areaKm2: 0,
+        center: [(minLat + maxLat) / 2, (minLng + maxLng) / 2],
+        radius: null,
+      }
+      activateShapeFromCampaign(shape)
+      setTimeout(() => runLiveHouseholdsFetch(shape), 600)
+      return
+    }
     const center = [entry.lat, entry.lng]
     const radiusMeters = 40  // ~40m — typical single-parcel footprint
     const latlngs = circleRingLatLngs(center, radiusMeters, 32)

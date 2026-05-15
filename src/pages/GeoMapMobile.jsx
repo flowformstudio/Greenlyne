@@ -127,17 +127,24 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
     const lng = Array.isArray(c) ? c[0] : null
     const lat = Array.isArray(c) ? c[1] : null
     if (typeof lat === 'number' && typeof lng === 'number') {
-      const isAddress = (f.place_type || []).includes('address')
+      const place_type = f.place_type || []
+      const isAddress  = place_type.includes('address')
+      const isPostcode = place_type.includes('postcode')
+      const bbox = Array.isArray(f.bbox) && f.bbox.length === 4 ? f.bbox : null
       const label = f.place_name || f.text || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-      pushRecent({ label, lat, lng, zoom: isAddress ? 17 : 13, ts: Date.now() })
+      const zoom = isAddress ? 17 : (isPostcode ? 12 : 13)
+      pushRecent({ label, lat, lng, zoom, bbox, isAddress, isPostcode, ts: Date.now() })
       setQuery(label)
-      onPick({ lat, lng, zoom: isAddress ? 17 : 13, label })
+      onPick({ lat, lng, zoom, label, bbox, isAddress, isPostcode })
     }
   }
   const pickRecent = (r) => {
     pushRecent({ ...r, ts: Date.now() })
     setQuery(r.label || '')
-    onPick({ lat: r.lat, lng: r.lng, zoom: r.zoom || 14, label: r.label })
+    onPick({
+      lat: r.lat, lng: r.lng, zoom: r.zoom || 14, label: r.label,
+      bbox: r.bbox, isAddress: r.isAddress, isPostcode: r.isPostcode,
+    })
   }
   const removeRecent = (label) => {
     const next = loadRecents().filter(r => r.label !== label)
@@ -1204,6 +1211,22 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         onPick={(loc) => {
           setFlyTo([loc.lat, loc.lng, loc.zoom || 14])
           setSearchOpen(false)
+          // Specific address → single-house circle scan (40m radius).
+          if (loc.isAddress) {
+            onShape({ kind: 'circle', center: [loc.lat, loc.lng], radius: 40 })
+            return
+          }
+          // ZIP code → scan the ZIP's bounding box as a polygon.
+          if (loc.isPostcode && Array.isArray(loc.bbox) && loc.bbox.length === 4) {
+            const [minLng, minLat, maxLng, maxLat] = loc.bbox
+            const latlngs = [
+              [maxLat, minLng], [maxLat, maxLng],
+              [minLat, maxLng], [minLat, minLng],
+              [maxLat, minLng], // close the ring
+            ]
+            const center = [(minLat + maxLat) / 2, (minLng + maxLng) / 2]
+            onShape({ kind: 'polygon', latlngs, center, bbox: [minLat, minLng, maxLat, maxLng] })
+          }
         }}
       />
 
