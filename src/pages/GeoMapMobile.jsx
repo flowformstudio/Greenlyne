@@ -95,19 +95,33 @@ function SearchOverlay({ open, onClose, query, setQuery, onPick }) {
     }
   }
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1210, background: '#F8F9FB', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)' }}>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1210, background: '#F8F9FB',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      width: '100vw', maxWidth: '100vw', boxSizing: 'border-box',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: 'calc(env(safe-area-inset-top) + 14px) 16px 14px',
+        background: '#fff', borderBottom: '1px solid rgba(0,22,96,0.06)',
+        boxSizing: 'border-box', width: '100%',
+      }}>
         <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#001660', cursor: 'pointer', padding: 6, marginLeft: -6, flexShrink: 0 }}>{I(ICONS.back)}</button>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,22,96,0.05)', borderRadius: 12, padding: '8px 12px' }}>
           <span style={{ color: 'rgba(0,22,96,0.4)', flexShrink: 0 }}>{I(ICONS.search)}</span>
           <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search address or ZIP code…"
-            style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#001660' }} />
+            style={{ flex: 1, minWidth: 0, width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#001660' }} />
           {query && (
             <button onClick={() => setQuery('')} style={{ background: 'transparent', border: 'none', color: 'rgba(0,22,96,0.5)', cursor: 'pointer', padding: 0, flexShrink: 0 }}>{I(ICONS.close)}</button>
           )}
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+      <div style={{
+        flex: 1, overflowY: 'auto', overflowX: 'hidden',
+        padding: 12, paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        boxSizing: 'border-box', width: '100%',
+      }}>
         {!token && (
           <div style={{ fontSize: 12.5, color: 'rgba(0,22,96,0.55)', padding: 16, textAlign: 'center' }}>
             Address search requires a Mapbox token (VITE_MAPBOX_TOKEN).
@@ -783,8 +797,8 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         </div>
       </div>
 
-      {/* ── Draw instruction toast ──────────────────────────────────── */}
-      {drawMode === 'polygon' && (
+      {/* ── Draw / Radius instruction toast (touch-friendly copy). */}
+      {(drawMode === 'polygon' || drawMode === 'radius') && (
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           top: 'calc(env(safe-area-inset-top) + 162px)',
@@ -795,8 +809,35 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           boxShadow: '0 8px 20px rgba(0,22,96,0.25)',
           maxWidth: 'calc(100% - 24px)', textAlign: 'center',
         }}>
-          Tap on the map to add points.<br />
-          <span style={{ opacity: 0.7 }}>Tap the first point again to close the area.</span>
+          {drawMode === 'polygon' ? (
+            <>Tap on the map to add points.<br />
+            <span style={{ opacity: 0.7 }}>Tap the first point again to close the area.</span></>
+          ) : (
+            <>Tap on the map to place a center, then drag outward to size your radius.<br />
+            <span style={{ opacity: 0.7 }}>Release to set the radius.</span></>
+          )}
+        </div>
+      )}
+
+      {/* ── Persistent radius badge — always visible after placing a circle. */}
+      {shapeDrawn && mapShape?.kind === 'circle' && mapShape.radius != null && (
+        <div style={{
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          top: 'calc(env(safe-area-inset-top) + 116px)',
+          zIndex: 1105,
+          background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(12px)',
+          color: '#001660',
+          padding: '6px 12px 6px 10px', borderRadius: 999,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontSize: 12.5, fontWeight: 700,
+          boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.06)',
+          border: '1px solid rgba(37,75,206,0.30)',
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: 999, background: '#254BCE' }} />
+          {(() => {
+            const miles = (Number(mapShape.radius) || 0) / 1609.344
+            return miles >= 1 ? `${miles.toFixed(1)} mi radius` : `${miles.toFixed(2)} mi radius`
+          })()}
         </div>
       )}
 
