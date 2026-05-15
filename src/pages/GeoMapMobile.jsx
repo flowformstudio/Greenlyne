@@ -842,20 +842,20 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       }}>
         <FloatBtn icon={ICONS.back} label="Back" onClick={onBack} />
         <div style={{
-          flex: 1, height: 42, borderRadius: 999, padding: '0 6px 0 14px',
+          flex: 1, minWidth: 0, height: 42, borderRadius: 999, padding: '0 6px 0 14px',
           display: 'flex', alignItems: 'center', gap: 8,
           background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
           boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)',
         }}>
           <button onClick={() => setSearchOpen(true)} style={{
             flex: 1, minWidth: 0, height: '100%', padding: 0,
-            display: 'inline-flex', alignItems: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', gap: 8,
             background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
             color: 'rgba(0,22,96,0.55)', fontSize: 13.5, fontWeight: 500,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            overflow: 'hidden',
           }}>
-            <span style={{ color: 'rgba(0,22,96,0.45)', flexShrink: 0 }}>{I(ICONS.search)}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ color: 'rgba(0,22,96,0.45)', flexShrink: 0, display: 'inline-flex' }}>{I(ICONS.search)}</span>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
               {searchQ || 'Search address or ZIP code…'}
             </span>
           </button>
