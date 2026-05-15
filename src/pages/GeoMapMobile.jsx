@@ -678,14 +678,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         </button>
       </div>
 
-      {/* ── Floating Campaigns bubble (left) + Filters pill (right) below the search row. */}
-      <div style={{
-        position: 'absolute', left: 12,
-        top: 'calc(env(safe-area-inset-top) + 64px)',
-        zIndex: 1080,
-      }}>
-        <FloatBtn icon={ICONS.menu} label="Open campaigns" onClick={() => setCampaignsOpen(true)} />
-      </div>
+      {/* ── Left row under search: Campaigns icon + Filters pill. */}
       {(() => {
         const defaultFilters = { equityMin: 50, fico: 660, monthsOwned: 24, incomeMin: 50, pool: 'any' }
         const filtersChanged =
@@ -695,29 +688,34 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           filters.incomeMin   !== defaultFilters.incomeMin ||
           filters.pool        !== defaultFilters.pool
         return (
-          <button onClick={() => setFiltersOpen(true)} aria-label="Open filters" style={{
-            position: 'absolute', right: 12,
+          <div style={{
+            position: 'absolute', left: 12,
             top: 'calc(env(safe-area-inset-top) + 64px)',
             zIndex: 1080,
-            height: 40, padding: '0 14px 0 12px', borderRadius: 999,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: filtersChanged ? 'rgba(37,75,206,0.10)' : 'rgba(255,255,255,0.96)',
-            backdropFilter: 'blur(14px)',
-            color: filtersChanged ? '#254BCE' : '#001660',
-            border: `1px solid ${filtersChanged ? 'rgba(37,75,206,0.45)' : 'rgba(0,22,96,0.06)'}`,
-            cursor: 'pointer',
-            boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.08)',
-            fontSize: 13, fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            {I(ICONS.filter)}
-            Filters
-            {filtersChanged && (
-              <span style={{
-                width: 8, height: 8, borderRadius: 999, background: '#254BCE',
-                boxShadow: '0 0 0 2px #fff',
-              }} />
-            )}
-          </button>
+            <FloatBtn icon={ICONS.menu} label="Open campaigns" onClick={() => setCampaignsOpen(true)} />
+            <button onClick={() => setFiltersOpen(true)} aria-label="Open filters" style={{
+              height: 40, padding: '0 14px 0 12px', borderRadius: 999,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: filtersChanged ? 'rgba(37,75,206,0.10)' : 'rgba(255,255,255,0.96)',
+              backdropFilter: 'blur(14px)',
+              color: filtersChanged ? '#254BCE' : '#001660',
+              border: `1px solid ${filtersChanged ? 'rgba(37,75,206,0.45)' : 'rgba(0,22,96,0.06)'}`,
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(0,22,96,0.14), 0 1px 3px rgba(0,22,96,0.08)',
+              fontSize: 13, fontWeight: 600,
+            }}>
+              {I(ICONS.filter)}
+              Filters
+              {filtersChanged && (
+                <span style={{
+                  width: 8, height: 8, borderRadius: 999, background: '#254BCE',
+                  boxShadow: '0 0 0 2px #fff',
+                }} />
+              )}
+            </button>
+          </div>
         )
       })()}
 
