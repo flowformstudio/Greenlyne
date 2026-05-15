@@ -17,6 +17,21 @@ import { loadGeoState, saveGeoState } from '../lib/geoPrescreenState'
    wire it to the existing GeoCampaigns data layer when ready. */
 
 const I = (d, size = 18) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+
+/** Convert a circle (center + radius m) to a closed polygon ring of latlngs. */
+function circleRingLatLngs(center, radiusMeters, segments = 64) {
+  const [lat0, lng0] = center
+  const latRad = lat0 * Math.PI / 180
+  const dLat = radiusMeters / 111320
+  const dLng = radiusMeters / (111320 * Math.cos(latRad))
+  const ring = []
+  for (let i = 0; i < segments; i++) {
+    const t = (i / segments) * 2 * Math.PI
+    ring.push([lat0 + dLat * Math.sin(t), lng0 + dLng * Math.cos(t)])
+  }
+  ring.push(ring[0])
+  return ring
+}
 const ICONS = {
   back:    <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
   menu:    <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
@@ -35,6 +50,7 @@ const ICONS = {
   more:    <><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></>,
   expand:  <><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></>,
   collapse:<><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></>,
+  minimize:<><line x1="5" y1="19" x2="19" y2="19"/></>,
   mail:    <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
   card:    <><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></>,
   download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
@@ -221,19 +237,32 @@ function BottomSheet({ snap = 'collapsed', onSnap, children, snapHeights = { col
           <span style={{ width: 42, height: 5, borderRadius: 999, background: 'rgba(0,22,96,0.18)' }} />
         </div>
         {fullscreenToggle && (
-          <button onClick={() => onSnap?.(snap === 'expanded' ? 'mid' : 'expanded')}
-            aria-label={snap === 'expanded' ? 'Exit fullscreen' : 'Fullscreen'}
-            style={{
-              position: 'absolute', top: 6, right: 10,
-              width: 30, height: 30, borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent', border: 'none',
-              color: 'rgba(0,22,96,0.55)', cursor: 'pointer', padding: 0,
-            }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {snap === 'expanded' ? ICONS.collapse : ICONS.expand}
-            </svg>
-          </button>
+          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 2 }}>
+            <button onClick={() => onSnap?.('collapsed')}
+              aria-label="Minimize to stats"
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: 'none',
+                color: 'rgba(0,22,96,0.55)', cursor: 'pointer', padding: 0,
+              }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {ICONS.minimize}
+              </svg>
+            </button>
+            <button onClick={() => onSnap?.(snap === 'expanded' ? 'mid' : 'expanded')}
+              aria-label={snap === 'expanded' ? 'Exit fullscreen' : 'Fullscreen'}
+              style={{
+                width: 30, height: 30, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: 'none',
+                color: 'rgba(0,22,96,0.55)', cursor: 'pointer', padding: 0,
+              }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {snap === 'expanded' ? ICONS.collapse : ICONS.expand}
+              </svg>
+            </button>
+          </div>
         )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -432,6 +461,18 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
   })
   const exitSelection = () => { setSelectionMode(false); setSelectedIds(new Set()); setMoreOpen(false) }
 
+  function clearArea() {
+    setShapeDrawn(false)
+    setMapShape(null)
+    setOverlays([])
+    setHouseholds([])
+    setRealProperties([])
+    setRealCount(null)
+    liveCollectionIdRef.current = null
+    liveCampaignIdRef.current = null
+    setSnap('collapsed')
+  }
+
   /* Adapt backend property rows to the card shape the UI expects. */
   const adaptedReal = useMemo(() => realProperties.map((p, i) => {
     const street = p.Address || p.address || ''
@@ -622,14 +663,20 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
   async function onShape(shape) {
     setShapeDrawn(true)
     setDrawMode(null)
-    setMapShape(shape)
+    // Backend wants a polygon ring; convert circles before storing/fetching.
+    let polygon = shape?.latlngs
+    if ((!polygon || polygon.length < 3) && shape?.kind === 'circle' && shape.center && shape.radius) {
+      polygon = circleRingLatLngs(shape.center, shape.radius, 64)
+    }
+    const enriched = { ...shape, latlngs: polygon }
+    setMapShape(enriched)
     setSnap('mid')
-    if (!shape?.latlngs || shape.latlngs.length < 3) return
+    if (!polygon || polygon.length < 3) return
     setPropsLoading(true)
     try {
       const [countData, propsData] = await Promise.all([
-        getPropertiesCountPolygon(shape.latlngs).catch(() => null),
-        getPropertiesByCriteria(shape.latlngs, { filters: {
+        getPropertiesCountPolygon(polygon).catch(() => null),
+        getPropertiesByCriteria(polygon, { filters: {
           equity: Number(filters.equityMin || 0),
           fico:   Number(filters.fico       || 660),
           monthsOwned: Number(filters.monthsOwned || 0),
@@ -682,6 +729,20 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
           overlays={overlays}
           flyTo={flyTo}
           baseLayer={baseLayer}
+          radarPing={(() => {
+            if (!propsLoading && !prescreening) return null
+            if (!mapShape || !mapShape.center) return null
+            let radius = mapShape.radius
+            if (!radius && Array.isArray(mapShape.bbox) && mapShape.bbox.length === 4) {
+              const [s, w, n, e] = mapShape.bbox
+              const latM = 111320, lngM = 111320 * Math.cos((s + n) / 2 * Math.PI / 180)
+              const dy = (n - s) * latM, dx = (e - w) * lngM
+              radius = 0.5 * Math.sqrt(dx * dx + dy * dy)
+            }
+            if (!radius) return null
+            const polygon = Array.isArray(mapShape.latlngs) && mapShape.latlngs.length >= 3 ? mapShape.latlngs : null
+            return { center: mapShape.center, radius, polygon }
+          })()}
           onMapReady={(m) => { mapRef.current = m }}
         />
       </div>
@@ -693,16 +754,38 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <FloatBtn icon={ICONS.back} label="Back" onClick={onBack} />
-        <button onClick={() => setSearchOpen(true)} style={{
-          flex: 1, height: 42, borderRadius: 999, padding: '0 14px',
-          display: 'inline-flex', alignItems: 'center', gap: 8,
+        <div style={{
+          flex: 1, height: 42, borderRadius: 999, padding: '0 6px 0 14px',
+          display: 'flex', alignItems: 'center', gap: 8,
           background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(14px)',
-          border: 'none', boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)',
-          color: 'rgba(0,22,96,0.55)', fontSize: 13.5, fontWeight: 500, cursor: 'pointer', textAlign: 'left',
+          boxShadow: '0 6px 16px rgba(0,22,96,0.10), 0 1px 3px rgba(0,22,96,0.06)',
         }}>
-          <span style={{ color: 'rgba(0,22,96,0.45)' }}>{I(ICONS.search)}</span>
-          {searchQ || 'Search address or ZIP code…'}
-        </button>
+          <button onClick={() => setSearchOpen(true)} style={{
+            flex: 1, minWidth: 0, height: '100%', padding: 0,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+            color: 'rgba(0,22,96,0.55)', fontSize: 13.5, fontWeight: 500,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            <span style={{ color: 'rgba(0,22,96,0.45)', flexShrink: 0 }}>{I(ICONS.search)}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {searchQ || 'Search address or ZIP code…'}
+            </span>
+          </button>
+          {shapeDrawn && (
+            <button onClick={clearArea} aria-label="Clear area" type="button" style={{
+              flexShrink: 0, width: 30, height: 30, borderRadius: 999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,22,96,0.06)', border: 'none',
+              color: 'rgba(0,22,96,0.7)', cursor: 'pointer', padding: 0,
+              touchAction: 'manipulation',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                {ICONS.close}
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Left row under search: Campaigns icon + Filters pill. */}
@@ -767,13 +850,17 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         />
       </div>
 
-      {/* ── Bottom-right cluster: Layers · Locate · Zoom +/-  (lifted above the sheet). */}
+      {/* ── Bottom-right cluster: Layers · Locate · Zoom +/-.
+            Hidden while the sheet is expanded above 'collapsed' — minimize
+            the sheet to reveal them again. */}
       <div style={{
         position: 'absolute', right: 12,
-        bottom: snap === 'collapsed' ? ((shapeDrawn ? 220 : 130) + 12) : (snap === 'mid' ? 412 : 'calc(85vh + 12px)'),
-        transition: 'bottom 280ms cubic-bezier(.4,0,.2,1)',
+        bottom: ((shapeDrawn ? 220 : 130) + 12),
         zIndex: 1080,
         display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
+        opacity: snap === 'collapsed' ? 1 : 0,
+        pointerEvents: snap === 'collapsed' ? 'auto' : 'none',
+        transition: 'opacity 200ms ease',
       }}>
         <div style={{ position: 'relative' }}>
           <FloatBtn icon={ICONS.layers} label="Map layers" onClick={() => setLayerMenuOpen(o => !o)} />
