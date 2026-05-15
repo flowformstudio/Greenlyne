@@ -201,11 +201,6 @@ function CompactCampaignCard({ c, getCover, onOpen, onEdit, onCrm, onMore }) {
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
                      filter: c.status === 'paused' ? 'grayscale(45%) brightness(0.92)' : 'none' }} />
         )}
-        <span style={{
-          position: 'absolute', top: 6, left: 6,
-          width: 8, height: 8, borderRadius: 999, background: status.dot,
-          boxShadow: '0 0 0 2px rgba(255,255,255,0.92)',
-        }} />
       </div>
       {/* Body */}
       <div style={{ flex: 1, minWidth: 0, padding: '10px 12px 10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
