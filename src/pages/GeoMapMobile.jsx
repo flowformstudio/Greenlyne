@@ -376,7 +376,7 @@ const DEMO_PROPERTIES = [
 
 export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
   /* ── Map + draw state ───────────────────────────────────────────────── */
-  const [drawMode, setDrawMode] = useState(null)       // 'polygon' | 'rectangle' | 'radius' | null
+  const [drawMode, setDrawMode] = useState(null)       // 'polygon' | 'circle' | 'rectangle' | null
   const [shapeDrawn, setShapeDrawn] = useState(false)
   const [mapShape, setMapShape] = useState(null)       // { kind, latlngs, bbox, areaKm2, center, radius }
   const [baseLayer, setBaseLayer] = useState('default') // 'default' | 'satellite'
@@ -749,8 +749,8 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
         <FloatBtn
           icon={ICONS.radius}
           label="Radius mode"
-          primary={drawMode === 'radius'}
-          onClick={() => setDrawMode(drawMode === 'radius' ? null : 'radius')}
+          primary={drawMode === 'circle'}
+          onClick={() => setDrawMode(drawMode === 'circle' ? null : 'circle')}
         />
       </div>
 
@@ -798,7 +798,7 @@ export default function GeoMapMobile({ onBack, onOpenCampaigns }) {
       </div>
 
       {/* ── Draw / Radius instruction toast (touch-friendly copy). */}
-      {(drawMode === 'polygon' || drawMode === 'radius') && (
+      {(drawMode === 'polygon' || drawMode === 'circle') && (
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           top: 'calc(env(safe-area-inset-top) + 162px)',
